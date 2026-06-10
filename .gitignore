@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / pnpm
+node_modules/
+.next/
+.turbo/
+.pnpm-store/
+
+# Frontend environment
+.env.local
+
+# uv virtual environment (if inside project dir)
+.venv/
