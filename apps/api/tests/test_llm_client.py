@@ -12,13 +12,6 @@ from src.services.llm_client import (
 )
 
 
-def _text_block(text: str) -> MagicMock:
-    block = MagicMock()
-    block.type = "text"
-    block.text = text
-    return block
-
-
 def _mock_response(
     text: str,
     model: str = DEFAULT_MODEL,
@@ -27,15 +20,15 @@ def _mock_response(
 ) -> MagicMock:
     response = MagicMock()
     response.model = model
-    response.usage.input_tokens = input_tokens
-    response.usage.output_tokens = output_tokens
-    response.content = [_text_block(text)]
+    response.usage.prompt_tokens = input_tokens
+    response.usage.completion_tokens = output_tokens
+    response.choices[0].message.content = text
     return response
 
 
 @pytest.fixture
-def mock_anthropic():
-    with patch("src.services.llm_client.anthropic.Anthropic") as MockClass:
+def mock_openai():
+    with patch("src.services.llm_client.OpenAI") as MockClass:
         instance = MagicMock()
         MockClass.return_value = instance
         yield instance
@@ -43,24 +36,24 @@ def mock_anthropic():
 
 class TestLLMClientInit:
     def test_default_model(self):
-        with patch("src.services.llm_client.anthropic.Anthropic"):
+        with patch("src.services.llm_client.OpenAI"):
             c = LLMClient(api_key="k")
         assert c.default_model == DEFAULT_MODEL
 
     def test_custom_model(self):
-        with patch("src.services.llm_client.anthropic.Anthropic"):
-            c = LLMClient(api_key="k", default_model="claude-haiku-4-5")
-        assert c.default_model == "claude-haiku-4-5"
+        with patch("src.services.llm_client.OpenAI"):
+            c = LLMClient(api_key="k", default_model="gpt-4.1")
+        assert c.default_model == "gpt-4.1"
 
     def test_passes_api_key_and_settings(self):
-        with patch("src.services.llm_client.anthropic.Anthropic") as MockClass:
+        with patch("src.services.llm_client.OpenAI") as MockClass:
             LLMClient(api_key="sk-test", timeout=30.0, max_retries=5)
         MockClass.assert_called_once_with(api_key="sk-test", timeout=30.0, max_retries=5)
 
 
 class TestGenerateText:
-    def test_returns_text_response(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response("Hello there")
+    def test_returns_text_response(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("Hello there")
 
         result = LLMClient(api_key="k").generate_text([{"role": "user", "content": "Hi"}])
 
@@ -68,8 +61,8 @@ class TestGenerateText:
         assert result.content == "Hello there"
         assert result.model == DEFAULT_MODEL
 
-    def test_usage_tracking(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response(
+    def test_usage_tracking(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response(
             "Hi", input_tokens=5, output_tokens=15
         )
 
@@ -80,51 +73,51 @@ class TestGenerateText:
         assert result.usage.output_tokens == 15
         assert result.usage.total_tokens == 20
 
-    def test_includes_system_when_provided(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response("ok")
+    def test_includes_system_when_provided(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
         LLMClient(api_key="k").generate_text(
             [{"role": "user", "content": "Hi"}], system="Be helpful"
         )
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        assert kwargs["system"] == "Be helpful"
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["messages"][0] == {"role": "system", "content": "Be helpful"}
 
-    def test_omits_system_when_not_provided(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response("ok")
+    def test_omits_system_when_not_provided(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
         LLMClient(api_key="k").generate_text([{"role": "user", "content": "Hi"}])
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        assert "system" not in kwargs
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["messages"] == [{"role": "user", "content": "Hi"}]
 
-    def test_model_override(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response("ok")
+    def test_model_override(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
         LLMClient(api_key="k").generate_text(
-            [{"role": "user", "content": "Hi"}], model="claude-haiku-4-5"
+            [{"role": "user", "content": "Hi"}], model="gpt-4.1"
         )
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        assert kwargs["model"] == "claude-haiku-4-5"
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["model"] == "gpt-4.1"
 
-    def test_uses_default_model_when_no_override(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response("ok")
+    def test_uses_default_model_when_no_override(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
         LLMClient(api_key="k").generate_text([{"role": "user", "content": "Hi"}])
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
+        kwargs = mock_openai.chat.completions.create.call_args[1]
         assert kwargs["model"] == DEFAULT_MODEL
 
-    def test_max_tokens_passed_through(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response("ok")
+    def test_max_tokens_passed_through(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
         LLMClient(api_key="k").generate_text(
             [{"role": "user", "content": "Hi"}], max_tokens=512
         )
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        assert kwargs["max_tokens"] == 512
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["max_completion_tokens"] == 512
 
 
 class TestGenerateStructured:
@@ -135,8 +128,8 @@ class TestGenerateStructured:
         "additionalProperties": False,
     }
 
-    def test_returns_structured_response(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response('{"name": "Alice"}')
+    def test_returns_structured_response(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response('{"name": "Alice"}')
 
         result = LLMClient(api_key="k").generate_structured(
             [{"role": "user", "content": "Extract name: Alice"}], schema=self.SCHEMA
@@ -145,9 +138,9 @@ class TestGenerateStructured:
         assert isinstance(result, StructuredResponse)
         assert result.data == {"name": "Alice"}
 
-    def test_parses_json_from_text_block(self, mock_anthropic):
+    def test_parses_json_from_text_block(self, mock_openai):
         payload = {"name": "Bob", "score": 42}
-        mock_anthropic.messages.create.return_value = _mock_response(json.dumps(payload))
+        mock_openai.chat.completions.create.return_value = _mock_response(json.dumps(payload))
 
         result = LLMClient(api_key="k").generate_structured(
             [{"role": "user", "content": "Extract"}], schema=self.SCHEMA
@@ -155,20 +148,20 @@ class TestGenerateStructured:
 
         assert result.data == payload
 
-    def test_passes_output_config_with_schema(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response('{"name": "Bob"}')
+    def test_passes_response_format_with_schema(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response('{"name": "Bob"}')
 
         LLMClient(api_key="k").generate_structured(
             [{"role": "user", "content": "Extract"}], schema=self.SCHEMA
         )
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        fmt = kwargs["output_config"]["format"]
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        fmt = kwargs["response_format"]
         assert fmt["type"] == "json_schema"
-        assert fmt["schema"] == self.SCHEMA
+        assert fmt["json_schema"]["schema"] == self.SCHEMA
 
-    def test_usage_tracking(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response(
+    def test_usage_tracking(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response(
             '{"name": "Bob"}', input_tokens=8, output_tokens=12
         )
 
@@ -180,8 +173,8 @@ class TestGenerateStructured:
         assert result.usage.output_tokens == 12
         assert result.usage.total_tokens == 20
 
-    def test_includes_system_when_provided(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response('{"name": "Bob"}')
+    def test_includes_system_when_provided(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response('{"name": "Bob"}')
 
         LLMClient(api_key="k").generate_structured(
             [{"role": "user", "content": "Extract"}],
@@ -189,20 +182,20 @@ class TestGenerateStructured:
             system="Extract JSON only",
         )
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        assert kwargs["system"] == "Extract JSON only"
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["messages"][0] == {"role": "system", "content": "Extract JSON only"}
 
-    def test_model_override(self, mock_anthropic):
-        mock_anthropic.messages.create.return_value = _mock_response('{"name": "Bob"}')
+    def test_model_override(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response('{"name": "Bob"}')
 
         LLMClient(api_key="k").generate_structured(
             [{"role": "user", "content": "Extract"}],
             schema=self.SCHEMA,
-            model="claude-sonnet-4-6",
+            model="gpt-4.1",
         )
 
-        kwargs = mock_anthropic.messages.create.call_args[1]
-        assert kwargs["model"] == "claude-sonnet-4-6"
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["model"] == "gpt-4.1"
 
 
 class TestLLMUsage:

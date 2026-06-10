@@ -4,9 +4,9 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-import anthropic
+from openai import OpenAI
 
-DEFAULT_MODEL = "claude-opus-4-8"
+DEFAULT_MODEL = "gpt-4.1-mini"
 DEFAULT_MAX_TOKENS = 2048
 
 
@@ -35,7 +35,7 @@ class StructuredResponse:
 
 
 class LLMClient:
-    """Thin abstraction over the Anthropic Messages API.
+    """Thin abstraction over OpenAI chat completions.
 
     Supports plain text generation and structured JSON output with token
     usage tracking, configurable timeouts, and automatic SDK-level retries.
@@ -48,7 +48,7 @@ class LLMClient:
         timeout: float = 60.0,
         max_retries: int = 2,
     ) -> None:
-        self._client = anthropic.Anthropic(
+        self._client = OpenAI(
             api_key=api_key,
             timeout=timeout,
             max_retries=max_retries,
@@ -63,22 +63,23 @@ class LLMClient:
         max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> TextResponse:
         """Send a chat completion request and return the text response."""
+        request_messages = list(messages)
+        if system is not None:
+            request_messages.insert(0, {"role": "system", "content": system})
         kwargs: dict[str, Any] = {
             "model": model or self.default_model,
-            "max_tokens": max_tokens,
-            "messages": messages,
+            "max_completion_tokens": max_tokens,
+            "messages": request_messages,
         }
-        if system is not None:
-            kwargs["system"] = system
 
-        response = self._client.messages.create(**kwargs)
-        text = next(b.text for b in response.content if b.type == "text")
+        response = self._client.chat.completions.create(**kwargs)
+        text = response.choices[0].message.content or ""
         return TextResponse(
             content=text,
             model=response.model,
             usage=LLMUsage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
+                input_tokens=response.usage.prompt_tokens,
+                output_tokens=response.usage.completion_tokens,
             ),
         )
 
@@ -95,27 +96,29 @@ class LLMClient:
         The schema must be a valid JSON Schema object. The API guarantees the
         response text is valid JSON conforming to the schema.
         """
+        request_messages = list(messages)
+        if system is not None:
+            request_messages.insert(0, {"role": "system", "content": system})
         kwargs: dict[str, Any] = {
             "model": model or self.default_model,
-            "max_tokens": max_tokens,
-            "messages": messages,
-            "output_config": {
-                "format": {
-                    "type": "json_schema",
+            "max_completion_tokens": max_tokens,
+            "messages": request_messages,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_response",
                     "schema": schema,
                 }
             },
         }
-        if system is not None:
-            kwargs["system"] = system
 
-        response = self._client.messages.create(**kwargs)
-        text = next(b.text for b in response.content if b.type == "text")
+        response = self._client.chat.completions.create(**kwargs)
+        text = response.choices[0].message.content or "{}"
         return StructuredResponse(
             data=json.loads(text),
             model=response.model,
             usage=LLMUsage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
+                input_tokens=response.usage.prompt_tokens,
+                output_tokens=response.usage.completion_tokens,
             ),
         )

@@ -6,7 +6,8 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     database_url: str = "postgresql://postgres:postgres@localhost:5432/agentops"
-    anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4.1-mini"
 
 
 settings = Settings()
