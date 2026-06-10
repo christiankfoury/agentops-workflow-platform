@@ -1,0 +1,14 @@
+{
+  "name": "agentops-workflow-platform",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter @agentops/web dev",
+    "dev:api": "cd apps/api && uv run uvicorn src.main:app --reload --port 8000",
+    "lint": "pnpm --filter @agentops/web lint",
+    "typecheck": "pnpm --filter @agentops/web typecheck && pnpm --filter @agentops/shared typecheck"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}
