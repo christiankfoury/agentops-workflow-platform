@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+from src.database import check_db
 
 app = FastAPI(
     title="AgentOps Workflow Platform API",
@@ -12,5 +15,7 @@ def health() -> dict[str, str]:
 
 
 @app.get("/ready")
-def ready() -> dict[str, str]:
-    return {"status": "ready"}
+def ready() -> JSONResponse:
+    if check_db():
+        return JSONResponse({"status": "ready"})
+    return JSONResponse({"status": "unavailable"}, status_code=503)
