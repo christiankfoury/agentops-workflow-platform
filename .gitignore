@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+apps/api/lib/
+apps/api/lib64/
 parts/
 sdist/
 var/
@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / pnpm
+node_modules/
+.next/
+.turbo/
+.pnpm-store/
+
+# Frontend environment
+.env.local
+
+# uv virtual environment (if inside project dir)
+.venv/
