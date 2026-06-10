@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.models.workflow_run import WorkflowRun
-from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead
+from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead, WorkflowRunTransition
+from src.services.workflow_state import InvalidTransitionError, transition
 
 router = APIRouter()
 
@@ -34,3 +35,16 @@ def create_workflow_run(body: WorkflowRunCreate, db: Session = Depends(get_db)) 
     db.commit()
     db.refresh(run)
     return run
+
+
+@router.patch("/{run_id}/status", response_model=WorkflowRunRead)
+def update_workflow_status(
+    run_id: uuid.UUID, body: WorkflowRunTransition, db: Session = Depends(get_db)
+) -> WorkflowRun:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return transition(run, body.status, db)
+    except InvalidTransitionError as e:
+        raise HTTPException(status_code=422, detail=str(e))

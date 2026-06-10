@@ -12,6 +12,10 @@ class WorkflowRunCreate(BaseModel):
     input_id: uuid.UUID | None = None
 
 
+class WorkflowRunTransition(BaseModel):
+    status: WorkflowStatus
+
+
 class WorkflowRunRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
