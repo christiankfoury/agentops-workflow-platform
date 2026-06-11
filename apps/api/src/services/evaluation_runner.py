@@ -10,6 +10,7 @@ from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.evaluation_metrics import calculate_sales_evaluation_scores
 from src.services.human_approvals import approve_human_approval
 from src.services.llm_client import StructuredResponse, TextResponse
 from src.services.sales_analyst import run_sales_analyst
@@ -80,6 +81,7 @@ def run_sales_evaluation_case(
         _complete_result(
             db,
             result,
+            evaluation_case,
             run,
             human_approval_required=human_approval_required,
             human_approved=human_approved,
@@ -187,6 +189,7 @@ def _get_pending_approval(db: Session, run_id: uuid.UUID) -> HumanApproval | Non
 def _complete_result(
     db: Session,
     result: EvaluationResult,
+    evaluation_case: EvaluationCase,
     run: WorkflowRun,
     *,
     human_approval_required: bool,
@@ -203,6 +206,11 @@ def _complete_result(
     result.retry_count = run.retry_count
     result.cost = run.total_cost
     result.latency_ms = run.latency_ms
+    if result.status == EvaluationRunStatus.completed:
+        scores = calculate_sales_evaluation_scores(evaluation_case, run.final_output)
+        result.factual_accuracy = scores.factual_accuracy
+        result.unsupported_claim_rate = scores.unsupported_claim_rate
+        result.completeness_score = scores.completeness_score
     if result.status == EvaluationRunStatus.failed:
         result.error_message = f"Workflow ended with status {run.status.value}"
     db.commit()

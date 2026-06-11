@@ -120,6 +120,9 @@ def test_run_sales_evaluation_case_stores_baseline_result():
     assert result.retry_count == 0
     assert result.cost == db.runs[0].total_cost
     assert result.latency_ms == db.runs[0].latency_ms
+    assert result.factual_accuracy == 1.0
+    assert result.unsupported_claim_rate == 0.0
+    assert result.completeness_score == 0.3333
     assert db.runs[0].final_output == "Executive Summary\nRevenue increased 12%."
 
 
@@ -141,6 +144,9 @@ def test_run_sales_evaluation_case_stores_multi_agent_result_after_auto_approval
     assert result.human_approval_required is True
     assert result.human_approved is True
     assert result.retry_count == 0
+    assert result.factual_accuracy == 1.0
+    assert result.unsupported_claim_rate == 0.0
+    assert result.completeness_score == 0.3333
     assert db.approvals[0].human_feedback == "Evaluation runner auto-approved for comparison."
     assert [step.agent_type for step in db.steps] == ["analyst", "reviewer", "writer"]
     assert db.runs[0].final_output == "Executive Summary\nRevenue increased 12%."

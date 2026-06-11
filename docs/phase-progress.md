@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 26 - Evaluation Metrics
+Current next phase: Phase 27 - Evaluation Dashboard
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -33,19 +33,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 23 | Complete | Sales report baseline single-agent execution path with API/UI trigger, cost/event persistence, final output storage, and focused tests. |
 | 24 | Complete | Evaluation case/result schema foundation, migration, read schemas, idempotent sales evaluation case seeding, and focused seed coverage. |
 | 25 | Complete | Sales evaluation runner service and CLI for baseline and multi-agent modes with persisted evaluation results and focused runner coverage. |
+| 26 | Complete | Deterministic sales evaluation scoring and aggregate metrics for factual accuracy, unsupported claims, completeness, approval rate, cost, latency, and retries. |
 
 ## Next Phase
 
-### Phase 26: Evaluation Metrics
+### Phase 27: Evaluation Dashboard
 
 Expected scope:
 
-- Implement first evaluation metrics for stored evaluation results.
-- Track factual accuracy, unsupported claim rate, completeness, human approval rate, average cost, average latency, and average retries.
-- Keep calculations focused on sales report evaluation results and existing stored fields.
-- Add focused tests for metric calculations and edge cases.
+- Create the evaluation dashboard.
+- Show baseline vs multi-agent comparison for factual accuracy, unsupported claims, completeness, average cost, average latency, human approval rate, and average retries.
+- Use stored `evaluation_results` and the Phase 26 aggregate metric helpers.
+- Keep the dashboard focused on read-only evaluation metrics display.
 
-Do not implement the evaluation dashboard, customer feedback workflows, incident workflows, background jobs, auth, or deployment work in Phase 26.
+Do not implement customer feedback workflows, incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 27.
 
 ## Last Known Validation Pattern
 
