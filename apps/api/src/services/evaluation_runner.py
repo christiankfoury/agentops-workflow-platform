@@ -351,6 +351,7 @@ def _complete_result(
         result.factual_accuracy = scores.factual_accuracy
         result.unsupported_claim_rate = scores.unsupported_claim_rate
         result.completeness_score = scores.completeness_score
+        result.judge_notes = scores.deterministic_notes
     if result.status == EvaluationRunStatus.failed:
         result.error_message = f"Workflow ended with status {run.status.value}"
     db.commit()

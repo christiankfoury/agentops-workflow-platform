@@ -13,6 +13,7 @@ class EvaluationScores:
     factual_accuracy: float
     unsupported_claim_rate: float
     completeness_score: float
+    deterministic_notes: str = ""
 
 
 @dataclass(frozen=True)
@@ -37,21 +38,26 @@ def calculate_sales_evaluation_scores(
     facts = evaluation_case.expected_facts_json or []
     risks = evaluation_case.expected_risks_json or []
     recommendations = evaluation_case.expected_recommendations_json or []
+    themes = _theme_expected_items(evaluation_case.expected_themes_json or [])
+    timeline = _timeline_expected_items(evaluation_case.expected_timeline_json or [])
 
     captured_facts = _count_captured(output, facts)
     captured_all = (
         captured_facts
         + _count_captured(output, risks)
         + _count_captured(output, recommendations)
+        + _count_captured(output, themes)
+        + _count_captured(output, timeline)
     )
-    expected_total = len(facts) + len(risks) + len(recommendations)
+    expected_total = len(facts) + len(risks) + len(recommendations) + len(themes) + len(timeline)
+    expected_items = facts + risks + recommendations + themes + timeline
     return EvaluationScores(
         factual_accuracy=_safe_ratio(captured_facts, len(facts)),
-        unsupported_claim_rate=_unsupported_claim_rate(
-            output,
-            facts + risks + recommendations,
-        ),
+        unsupported_claim_rate=_unsupported_claim_rate(output, expected_items),
         completeness_score=_safe_ratio(captured_all, expected_total),
+        deterministic_notes=(
+            f"Captured {captured_all}/{expected_total} expected deterministic checks."
+        ),
     )
 
 
@@ -128,6 +134,10 @@ def _claim_is_supported(claim: str, expected_items: list[str]) -> bool:
     claim_terms = _important_terms(normalized_claim)
     if not claim_terms:
         return True
+    claim_numbers = _numbers_in_text(claim)
+    expected_numbers = _numbers_in_text(" ".join(expected_items))
+    if claim_numbers and not claim_numbers.issubset(expected_numbers):
+        return False
     for expected_item in expected_items:
         normalized_item = _normalize(expected_item)
         if normalized_item and normalized_item in normalized_claim:
@@ -169,6 +179,26 @@ def _important_terms(value: str) -> set[str]:
         for term in value.split()
         if len(term) >= 4 or any(char.isdigit() for char in term)
     }
+
+
+def _theme_expected_items(themes: list[str]) -> list[str]:
+    return [theme.replace("_", " ") for theme in themes]
+
+
+def _timeline_expected_items(timeline: list[dict]) -> list[str]:
+    items: list[str] = []
+    for event in timeline:
+        time = str(event.get("time", "")).strip()
+        description = str(event.get("event", "")).strip()
+        if time:
+            items.append(time)
+        if description:
+            items.append(description)
+    return items
+
+
+def _numbers_in_text(value: str) -> set[str]:
+    return set(re.findall(r"\$?\d+(?:[.:]\d+)?%?", value))
 
 
 def _normalize(value: str) -> str:

@@ -81,6 +81,61 @@ def test_calculate_sales_evaluation_scores_handles_empty_output():
     assert scores.unsupported_claim_rate == 0.0
 
 
+def test_calculate_scores_counts_customer_feedback_themes():
+    case = EvaluationCase(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.customer_feedback,
+        title="Feedback",
+        input_text="Mobile checkout is slow and users ask for bulk export.",
+        expected_facts_json=["Mobile checkout is slow"],
+        expected_risks_json=[],
+        expected_recommendations_json=[],
+        expected_themes_json=["performance", "feature_requests"],
+        created_at=datetime.now(UTC),
+    )
+
+    scores = calculate_sales_evaluation_scores(
+        case,
+        "Mobile checkout is slow. Performance and feature requests are top themes.",
+    )
+
+    assert scores.completeness_score == 1.0
+    assert "3/3" in scores.deterministic_notes
+
+
+def test_calculate_scores_counts_incident_timeline_events():
+    case = EvaluationCase(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.incident_log,
+        title="Incident",
+        input_text="10:02 AM - API latency increased",
+        expected_facts_json=[],
+        expected_risks_json=[],
+        expected_recommendations_json=[],
+        expected_timeline_json=[
+            {"time": "10:02 AM", "event": "API latency increased"},
+            {"time": "10:40 AM", "event": "Service recovered"},
+        ],
+        created_at=datetime.now(UTC),
+    )
+
+    scores = calculate_sales_evaluation_scores(
+        case,
+        "Timeline: 10:02 AM API latency increased. 10:40 AM service recovered.",
+    )
+
+    assert scores.completeness_score == 1.0
+
+
+def test_calculate_scores_flags_unsupported_numbers():
+    scores = calculate_sales_evaluation_scores(
+        make_case(),
+        "Revenue increased 12%. Revenue increased 99%.",
+    )
+
+    assert scores.unsupported_claim_rate == pytest.approx(0.5)
+
+
 def test_summarize_evaluation_results_averages_completed_runs():
     first = EvaluationResult(
         evaluation_case_id=uuid.uuid4(),

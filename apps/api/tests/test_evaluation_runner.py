@@ -445,7 +445,7 @@ def test_run_customer_feedback_evaluation_case_stores_multi_agent_result():
     assert result.human_approved is True
     assert result.retry_count == 0
     assert result.factual_accuracy == 1.0
-    assert result.completeness_score == 0.75
+    assert result.completeness_score == 0.6667
     assert result.prompt_version_summary_json == {
         "classifier": str(db.prompts[0].id),
         "insight": str(db.prompts[1].id),

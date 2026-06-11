@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 54 - Advanced Evaluation: Deterministic Checks
+Current next phase: Phase 55 - Failure Case Explorer
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 53 complete; Phase 54 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 54 complete; Phase 55 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -63,17 +63,18 @@ Target range status: Phase 46 through Phase 53 complete; Phase 54 through Phase 
 | 51 | Complete | Multipart text, Markdown, and CSV upload endpoint with UTF-8 extraction, file metadata persistence, frontend upload wiring, and focused API/frontend coverage. |
 | 52 | Complete | Customer feedback CSV parsing with feedback-column validation, normalized feedback text extraction, CSV preview table, and focused upload/frontend coverage. |
 | 53 | Complete | Incident log parser that normalizes timestamped pasted or uploaded logs into ordered event lines while preserving ambiguous raw lines for timeline analysis. |
+| 54 | Complete | Deterministic evaluation checks now include expected customer feedback themes, incident timeline timestamps/events, unsupported generated numbers, and runner judge notes. |
 
 ## Next Phase
 
-### Phase 54: Advanced Evaluation: Deterministic Checks
+### Phase 55: Failure Case Explorer
 
 Expected scope:
 
-- Add non-LLM deterministic evaluation checks where possible.
-- Check expected numeric facts, incident timestamps, feedback themes, and unsupported numbers.
+- Create a dashboard for failed or low-quality runs.
+- Show lowest scoring workflows, common failure types, schema failures, reviewer false positives, and human rejected workflows where available.
 
-Do not implement background jobs, auth, or deployment work in Phase 54.
+Do not implement background jobs, auth, deployment work, or broad alerting in Phase 55.
 
 ## Last Known Validation Pattern
 
