@@ -19,6 +19,19 @@ export type ApprovalStatus =
   | "approved"
   | "rejected"
   | "retry_requested";
+export type WorkflowEventType =
+  | "workflow_started"
+  | "workflow_completed"
+  | "workflow_failed"
+  | "agent_started"
+  | "agent_completed"
+  | "agent_failed"
+  | "reviewer_rejected_output"
+  | "retry_triggered"
+  | "human_approval_required"
+  | "human_approved"
+  | "human_rejected"
+  | "human_requested_retry";
 
 export interface WorkflowRun {
   id: string;
@@ -72,6 +85,17 @@ export interface AgentStep {
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+}
+
+export interface WorkflowEvent {
+  id: string;
+  workflow_run_id: string;
+  agent_step_id: string | null;
+  event_type: WorkflowEventType;
+  message: string;
+  metadata_json: Record<string, unknown> | null;
+  error_message: string | null;
+  created_at: string;
 }
 
 export interface HumanApproval {

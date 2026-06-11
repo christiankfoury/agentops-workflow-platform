@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 22 - Observability Timeline UI
+Current next phase: Phase 23 - Baseline Single-Agent Workflow
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -29,19 +29,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 19 | Complete | Agent-level cost estimation, cost event persistence, workflow cost totals, and focused backend coverage. |
 | 20 | Complete | Cost dashboard with spend metrics, workflow and agent cost breakdowns, token usage, and expensive-run table. |
 | 21 | Complete | Structured workflow event model, migration, logging service, run event endpoint, and lifecycle logging across workflow creation, agents, retries, human approvals, completion, and failures. |
+| 22 | Complete | Workflow run detail observability timeline UI backed by workflow event API client/types and smoke coverage. |
 
 ## Next Phase
 
-### Phase 22: Observability Timeline UI
+### Phase 23: Baseline Single-Agent Workflow
 
 Expected scope:
 
-- Display workflow events visually on the workflow run detail page.
-- Fetch the new workflow events endpoint for a run.
-- Show event timestamp, event type, message, optional agent context, metadata summary, and error message.
-- Keep the UI focused on observability timeline display only.
+- Implement the baseline workflow for sales reports.
+- Run a single LLM prompt directly from sales report input to final executive summary.
+- Do not use reviewer, retry logic, human approval, or specialized intermediate agents.
+- Store baseline runs with `run_mode = baseline` and persist final output, cost, latency, and agent step details as appropriate.
 
-Do not implement baseline workflows, evaluation dashboards, customer feedback, incident workflows, background jobs, auth, or deployment work in Phase 22.
+Do not implement evaluation datasets, evaluation dashboards, customer feedback, incident workflows, background jobs, auth, or deployment work in Phase 23.
 
 ## Last Known Validation Pattern
 

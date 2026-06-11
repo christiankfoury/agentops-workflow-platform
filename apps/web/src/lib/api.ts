@@ -8,6 +8,7 @@ import type {
   HumanApprovalActionRequest,
   HumanApprovalEditRequest,
   UploadedInput,
+  WorkflowEvent,
   WorkflowRun,
 } from "./types";
 
@@ -69,6 +70,14 @@ export async function listAgentSteps(runId: string): Promise<AgentStep[]> {
   });
   if (!res.ok) throw new Error(`Failed to fetch agent steps: ${res.status}`);
   return res.json() as Promise<AgentStep[]>;
+}
+
+export async function listWorkflowEvents(runId: string): Promise<WorkflowEvent[]> {
+  const res = await fetch(apiUrl(`/workflow-runs/${runId}/events`), {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch workflow events: ${res.status}`);
+  return res.json() as Promise<WorkflowEvent[]>;
 }
 
 export async function runSalesAnalyst(runId: string): Promise<AgentStep> {

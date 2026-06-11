@@ -4,9 +4,10 @@ import {
   getUploadedInput,
   getWorkflowRun,
   listAgentSteps,
+  listWorkflowEvents,
   listHumanApprovals,
 } from "@/lib/api";
-import type { AgentStep } from "@/lib/types";
+import type { AgentStep, WorkflowEvent } from "@/lib/types";
 import { RunAnalystForm } from "./run-analyst-form";
 import { RunReviewerForm } from "./run-reviewer-form";
 import { RunWriterForm } from "./run-writer-form";
@@ -50,6 +51,130 @@ function getOutputPreview(step: AgentStep): string {
   if (step.output_json) return JSON.stringify(step.output_json, null, 2);
   if (step.error_message) return step.error_message;
   return "No output recorded yet.";
+}
+
+function formatEventType(value: WorkflowEvent["event_type"]): string {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getEventClass(eventType: WorkflowEvent["event_type"]): string {
+  if (eventType.endsWith("failed") || eventType === "human_rejected") {
+    return "border-destructive/30 bg-destructive/10 text-destructive";
+  }
+  if (
+    eventType === "workflow_completed" ||
+    eventType === "agent_completed" ||
+    eventType === "human_approved"
+  ) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300";
+  }
+  if (
+    eventType === "retry_triggered" ||
+    eventType === "reviewer_rejected_output" ||
+    eventType === "human_approval_required" ||
+    eventType === "human_requested_retry"
+  ) {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
+  }
+  return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300";
+}
+
+function formatMetadata(metadata: WorkflowEvent["metadata_json"]): string {
+  if (!metadata || Object.keys(metadata).length === 0) {
+    return "No metadata recorded.";
+  }
+  return JSON.stringify(metadata, null, 2);
+}
+
+function getEventAgentName(
+  event: WorkflowEvent,
+  stepsById: Map<string, AgentStep>,
+): string | null {
+  if (event.agent_step_id) {
+    const step = stepsById.get(event.agent_step_id);
+    if (step) return step.agent_name;
+  }
+  const agentName = event.metadata_json?.agent_name;
+  return typeof agentName === "string" ? agentName : null;
+}
+
+function WorkflowEventTimeline({
+  events,
+  steps,
+}: {
+  events: WorkflowEvent[];
+  steps: AgentStep[];
+}) {
+  const stepsById = new Map(steps.map((step) => [step.id, step]));
+
+  return (
+    <section className="mt-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <h2 className="text-lg font-semibold">Observability Timeline</h2>
+        <p className="text-sm text-muted-foreground">
+          {events.length} {events.length === 1 ? "event" : "events"}
+        </p>
+      </div>
+
+      {events.length === 0 ? (
+        <div className="mt-3 rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
+          No workflow events have been recorded for this workflow run yet.
+        </div>
+      ) : (
+        <ol className="mt-4 space-y-4">
+          {events.map((event, index) => {
+            const agentName = getEventAgentName(event, stepsById);
+            return (
+              <li key={event.id} className="relative pl-8">
+                {index < events.length - 1 && (
+                  <div className="absolute left-2 top-2 h-full w-px bg-border" />
+                )}
+                <div className="absolute left-0 top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium">
+                  {index + 1}
+                </div>
+                <article className="rounded-lg border border-border bg-card p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="font-semibold">{event.message}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {formatDateTime(event.created_at)}
+                        {agentName ? ` - ${agentName}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`w-fit rounded-full border px-2.5 py-1 text-xs font-medium ${getEventClass(
+                        event.event_type,
+                      )}`}
+                    >
+                      {formatEventType(event.event_type)}
+                    </span>
+                  </div>
+
+                  {event.error_message && (
+                    <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                      {event.error_message}
+                    </p>
+                  )}
+
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                      Metadata
+                    </summary>
+                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
+                      {formatMetadata(event.metadata_json)}
+                    </pre>
+                  </details>
+                </article>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
 }
 
 function AgentStepTimeline({ steps }: { steps: AgentStep[] }) {
@@ -176,6 +301,7 @@ export default async function WorkflowRunDetailPage({
   const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
   const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
   const agentSteps = await listAgentSteps(run.id);
+  const workflowEvents = await listWorkflowEvents(run.id);
   const humanApprovals =
     run.status === "waiting_for_human" ? await listHumanApprovals() : [];
   const pendingApproval = humanApprovals.find(
@@ -332,6 +458,8 @@ export default async function WorkflowRunDetailPage({
           </p>
         </section>
       )}
+
+      <WorkflowEventTimeline events={workflowEvents} steps={agentSteps} />
 
       <AgentStepTimeline steps={agentSteps} />
 
