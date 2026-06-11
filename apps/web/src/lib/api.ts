@@ -4,6 +4,9 @@ import type {
   AgentStep,
   CreateUploadedInputRequest,
   CreateWorkflowRunRequest,
+  HumanApproval,
+  HumanApprovalActionRequest,
+  HumanApprovalEditRequest,
   UploadedInput,
   WorkflowRun,
 } from "./types";
@@ -90,4 +93,76 @@ export async function runSalesReviewer(runId: string): Promise<AgentStep> {
     throw new Error(`Failed to run reviewer: ${detail}`);
   }
   return res.json() as Promise<AgentStep>;
+}
+
+export async function listHumanApprovals(): Promise<HumanApproval[]> {
+  const res = await fetch(apiUrl("/human-approvals"), { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch human approvals: ${res.status}`);
+  return res.json() as Promise<HumanApproval[]>;
+}
+
+export async function getHumanApproval(id: string): Promise<HumanApproval | null> {
+  const res = await fetch(apiUrl(`/human-approvals/${id}`), { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch human approval: ${res.status}`);
+  return res.json() as Promise<HumanApproval>;
+}
+
+export async function approveHumanApproval(
+  id: string,
+  body: HumanApprovalActionRequest,
+): Promise<HumanApproval> {
+  return postHumanApprovalAction(id, "approve", body);
+}
+
+export async function requestHumanApprovalRetry(
+  id: string,
+  body: HumanApprovalActionRequest,
+): Promise<HumanApproval> {
+  return postHumanApprovalAction(id, "request-retry", body);
+}
+
+export async function rejectHumanApproval(
+  id: string,
+  body: HumanApprovalActionRequest,
+): Promise<HumanApproval> {
+  return postHumanApprovalAction(id, "reject", body);
+}
+
+export async function editHumanApproval(
+  id: string,
+  body: HumanApprovalEditRequest,
+): Promise<HumanApproval> {
+  const res = await fetch(apiUrl(`/human-approvals/${id}/edit`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to edit human approval: ${detail}`);
+  }
+  return res.json() as Promise<HumanApproval>;
+}
+
+async function postHumanApprovalAction(
+  id: string,
+  action: "approve" | "request-retry" | "reject",
+  body: HumanApprovalActionRequest,
+): Promise<HumanApproval> {
+  const res = await fetch(apiUrl(`/human-approvals/${id}/${action}`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to ${action} human approval: ${detail}`);
+  }
+  return res.json() as Promise<HumanApproval>;
+}
+
+async function getErrorDetail(res: Response): Promise<string> {
+  const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+  return typeof body?.detail === "string" ? body.detail : String(res.status);
 }

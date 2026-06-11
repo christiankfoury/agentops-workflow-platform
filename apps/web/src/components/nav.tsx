@@ -20,6 +20,12 @@ export function Nav() {
           >
             New Workflow
           </Link>
+          <Link
+            href="/human-approvals"
+            className="transition-colors hover:text-foreground"
+          >
+            Approvals
+          </Link>
         </div>
       </nav>
     </header>

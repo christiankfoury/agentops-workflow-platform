@@ -14,6 +14,11 @@ export type WorkflowStatus =
   | "cancelled";
 
 export type AgentStepStatus = "pending" | "running" | "completed" | "failed";
+export type ApprovalStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "retry_requested";
 
 export interface WorkflowRun {
   id: string;
@@ -67,6 +72,29 @@ export interface AgentStep {
   error_message: string | null;
   created_at: string;
   completed_at: string | null;
+}
+
+export interface HumanApproval {
+  id: string;
+  workflow_run_id: string;
+  reviewer_score: number | null;
+  issues_json: unknown[] | null;
+  status: ApprovalStatus;
+  human_feedback: string | null;
+  edited_analysis_json: Record<string, unknown> | null;
+  approved_by_user_id: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface HumanApprovalActionRequest {
+  human_feedback?: string | null;
+  approved_by_user_id?: string | null;
+}
+
+export interface HumanApprovalEditRequest {
+  human_feedback?: string | null;
+  edited_analysis_json?: Record<string, unknown> | null;
 }
 
 export interface CreateUploadedInputRequest {

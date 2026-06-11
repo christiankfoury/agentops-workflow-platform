@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getUploadedInput, getWorkflowRun, listAgentSteps } from "@/lib/api";
+import {
+  getUploadedInput,
+  getWorkflowRun,
+  listAgentSteps,
+  listHumanApprovals,
+} from "@/lib/api";
 import type { AgentStep } from "@/lib/types";
 import { RunAnalystForm } from "./run-analyst-form";
 import { RunReviewerForm } from "./run-reviewer-form";
@@ -170,6 +175,12 @@ export default async function WorkflowRunDetailPage({
   const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
   const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
   const agentSteps = await listAgentSteps(run.id);
+  const humanApprovals =
+    run.status === "waiting_for_human" ? await listHumanApprovals() : [];
+  const pendingApproval = humanApprovals.find(
+    (approval) =>
+      approval.workflow_run_id === run.id && approval.status === "pending",
+  );
   const latestCompletedAnalystStep = agentSteps
     .filter((step) => step.agent_type === "analyst" && step.status === "completed")
     .at(-1);
@@ -238,6 +249,17 @@ export default async function WorkflowRunDetailPage({
       )}
 
       {canRunReviewer && <RunReviewerForm runId={run.id} />}
+
+      {pendingApproval && (
+        <div className="mt-4">
+          <Link
+            href={`/human-approvals/${pendingApproval.id}`}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            Review Approval
+          </Link>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map(({ label, value }) => (

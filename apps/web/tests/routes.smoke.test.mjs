@@ -10,6 +10,13 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getWorkflowRun/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getUploadedInput/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listAgentSteps/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listHumanApprovals/);
+  assert.match(read("src/app/human-approvals/page.tsx"), /listHumanApprovals/);
+  assert.match(read("src/app/human-approvals/[id]/page.tsx"), /getHumanApproval/);
+  assert.match(read("src/app/human-approvals/[id]/actions.ts"), /approveHumanApproval/);
+  assert.match(read("src/app/human-approvals/[id]/actions.ts"), /requestHumanApprovalRetry/);
+  assert.match(read("src/app/human-approvals/[id]/actions.ts"), /rejectHumanApproval/);
+  assert.match(read("src/app/human-approvals/[id]/actions.ts"), /editHumanApproval/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesAnalyst/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesReviewer/);
   assert.match(read("src/app/workflow-runs/[id]/run-analyst-form.tsx"), /useActionState/);
@@ -31,4 +38,10 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function listAgentSteps/);
   assert.match(api, /export async function runSalesAnalyst/);
   assert.match(api, /export async function runSalesReviewer/);
+  assert.match(api, /export async function listHumanApprovals/);
+  assert.match(api, /export async function getHumanApproval/);
+  assert.match(api, /export async function approveHumanApproval/);
+  assert.match(api, /export async function requestHumanApprovalRetry/);
+  assert.match(api, /export async function rejectHumanApproval/);
+  assert.match(api, /export async function editHumanApproval/);
 });
