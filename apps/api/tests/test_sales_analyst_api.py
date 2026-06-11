@@ -9,7 +9,7 @@ from src.dependencies import get_llm_client
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
-from src.models.human_approval import HumanApproval
+from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
@@ -248,10 +248,22 @@ def test_run_sales_analyst_retry_uses_reviewer_feedback_and_increments_retry_cou
         created_at=datetime.now(UTC),
         completed_at=datetime.now(UTC),
     )
+    human_retry = HumanApproval(
+        id=uuid.uuid4(),
+        workflow_run_id=run.id,
+        reviewer_score=0.62,
+        issues_json=reviewer_step.output_json["issues"],
+        status=ApprovalStatus.retry_requested,
+        human_feedback="Focus on the churn claim and cite only exact source language.",
+        edited_analysis_json={"risks": ["Enterprise churn claim needs support."]},
+        created_at=datetime.now(UTC),
+        resolved_at=datetime.now(UTC),
+    )
     llm = FakeLLMClient()
     db.inputs.append(uploaded_input)
     db.runs.append(run)
     db.steps.append(reviewer_step)
+    db.approvals.append(human_retry)
     db.prompts.append(make_prompt())
     override_dependencies(db, llm)
     client = TestClient(app)
@@ -268,7 +280,15 @@ def test_run_sales_analyst_retry_uses_reviewer_feedback_and_increments_retry_cou
         "High severity reviewer issue"
     )
     assert body["input_json"]["reviewer_feedback"] == reviewer_step.output_json
+    assert body["input_json"]["human_feedback"] == (
+        "Focus on the churn claim and cite only exact source language."
+    )
+    assert body["input_json"]["edited_analysis_json"] == {
+        "risks": ["Enterprise churn claim needs support."]
+    }
     assert "This is a retry" in llm.messages[0]["content"]
+    assert "Human feedback: Focus on the churn claim" in llm.messages[0]["content"]
+    assert "Human-edited analysis JSON" in llm.messages[0]["content"]
     assert run.retry_count == 1
     assert run.status == WorkflowStatus.reviewer_running
     clear_overrides()

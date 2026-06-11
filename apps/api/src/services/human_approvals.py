@@ -49,9 +49,8 @@ def approve_human_approval(
     approval.human_feedback = _coalesce_feedback(human_feedback, approval.human_feedback)
     approval.approved_by_user_id = approved_by_user_id
     approval.resolved_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(approval)
     transition(run, WorkflowStatus.writer_running, db)
+    db.refresh(approval)
     return approval
 
 
@@ -68,9 +67,8 @@ def request_human_approval_retry(
     approval.human_feedback = _coalesce_feedback(human_feedback, approval.human_feedback)
     approval.approved_by_user_id = approved_by_user_id
     approval.resolved_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(approval)
     transition(run, WorkflowStatus.retrying, db)
+    db.refresh(approval)
     return approval
 
 
@@ -87,9 +85,8 @@ def reject_human_approval(
     approval.human_feedback = _coalesce_feedback(human_feedback, approval.human_feedback)
     approval.approved_by_user_id = approved_by_user_id
     approval.resolved_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(approval)
     transition(run, WorkflowStatus.cancelled, db)
+    db.refresh(approval)
     return approval
 
 
@@ -99,7 +96,9 @@ def edit_human_approval(
     human_feedback: str | None = None,
     edited_analysis_json: dict[str, Any] | None = None,
 ) -> HumanApproval:
+    run = _get_run(db, approval.workflow_run_id)
     _ensure_pending(approval)
+    _ensure_waiting_for_human(run)
     if human_feedback is not None:
         approval.human_feedback = human_feedback
     if edited_analysis_json is not None:

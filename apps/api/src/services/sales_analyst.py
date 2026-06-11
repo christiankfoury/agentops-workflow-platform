@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
+from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
@@ -90,6 +91,10 @@ def run_sales_analyst(
     if retry_context is not None:
         agent_input["retry_reason"] = retry_context["retry_reason"]
         agent_input["reviewer_feedback"] = retry_context["reviewer_feedback"]
+        if retry_context.get("human_feedback") is not None:
+            agent_input["human_feedback"] = retry_context["human_feedback"]
+        if retry_context.get("edited_analysis_json") is not None:
+            agent_input["edited_analysis_json"] = retry_context["edited_analysis_json"]
     step = AgentStep(
         workflow_run_id=run.id,
         agent_name=SALES_ANALYST_AGENT_NAME,
@@ -119,6 +124,13 @@ def run_sales_analyst(
                 f"Retry reason: {retry_context['retry_reason']}\n\n"
                 f"Reviewer feedback: {retry_context['reviewer_feedback']}"
             )
+            if retry_context.get("human_feedback") is not None:
+                user_content += f"\n\nHuman feedback: {retry_context['human_feedback']}"
+            if retry_context.get("edited_analysis_json") is not None:
+                user_content += (
+                    "\n\nHuman-edited analysis JSON: "
+                    f"{retry_context['edited_analysis_json']}"
+                )
         response = llm_client.generate_structured(
             messages=[
                 {
@@ -221,10 +233,31 @@ def _get_retry_context(db: Session, run: WorkflowRun) -> dict[str, Any]:
     if any(issue.get("severity") == "high" for issue in issues if isinstance(issue, dict)):
         reasons.append("High severity reviewer issue")
 
-    return {
+    latest_human_retry = _get_latest_human_retry(db, run.id)
+    context = {
         "retry_reason": "; ".join(reasons) or "Reviewer requested revised analysis",
         "reviewer_feedback": reviewer_step.output_json,
     }
+    if latest_human_retry is not None:
+        if latest_human_retry.human_feedback is not None:
+            context["human_feedback"] = latest_human_retry.human_feedback
+        if latest_human_retry.edited_analysis_json is not None:
+            context["edited_analysis_json"] = latest_human_retry.edited_analysis_json
+    return context
+
+
+def _get_latest_human_retry(db: Session, run_id: uuid.UUID) -> HumanApproval | None:
+    retry_approvals = (
+        db.query(HumanApproval)
+        .filter(
+            HumanApproval.workflow_run_id == run_id,
+            HumanApproval.status == ApprovalStatus.retry_requested,
+        )
+        .all()
+    )
+    if not retry_approvals:
+        return None
+    return max(retry_approvals, key=lambda approval: approval.resolved_at or approval.created_at)
 
 
 def _get_active_sales_analyst_prompt(db: Session) -> PromptVersion:

@@ -179,6 +179,25 @@ def test_edit_human_approval_saves_feedback_and_edited_analysis_without_resolvin
     clear_overrides()
 
 
+def test_edit_human_approval_rejects_when_workflow_is_not_waiting_for_human():
+    db = FakeSession()
+    run = make_run(status=WorkflowStatus.writer_running)
+    approval = make_approval(run.id)
+    db.runs.append(run)
+    db.approvals.append(approval)
+    override_db(db)
+    client = TestClient(app)
+
+    response = client.post(
+        f"/human-approvals/{approval.id}/edit",
+        json={"human_feedback": "Late edit."},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Workflow run is not waiting for human approval"
+    clear_overrides()
+
+
 def test_resolved_human_approval_rejects_followup_action():
     db = FakeSession()
     run = make_run(status=WorkflowStatus.writer_running)
