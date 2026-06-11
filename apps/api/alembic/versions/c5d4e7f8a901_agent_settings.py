@@ -9,8 +9,9 @@ Create Date: 2026-06-11 00:00:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "c5d4e7f8a901"
 down_revision: str | Sequence[str] | None = "b4e2a1c9d083"
@@ -29,7 +30,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "agent_type",
-            sa.Enum(
+            postgresql.ENUM(
                 "analyst",
                 "reviewer",
                 "writer",
