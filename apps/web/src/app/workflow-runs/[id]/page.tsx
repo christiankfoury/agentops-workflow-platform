@@ -13,6 +13,7 @@ export default async function WorkflowRunDetailPage({
   if (!run) notFound();
 
   const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
+  const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
 
   const fields = [
     { label: "Status", value: run.status },
@@ -91,6 +92,16 @@ export default async function WorkflowRunDetailPage({
               {uploadedInput.raw_text}
             </pre>
           </div>
+        </section>
+      )}
+
+      {isMissingLinkedInput && (
+        <section className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+          <h2 className="text-lg font-semibold">Input Missing</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This workflow references an uploaded input that could not be found.
+            Agents cannot run until the input relationship is repaired.
+          </p>
         </section>
       )}
 
