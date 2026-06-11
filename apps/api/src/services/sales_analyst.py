@@ -14,6 +14,7 @@ from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import StructuredResponse
 
 SALES_ANALYST_AGENT_NAME = "Sales Analyst Agent"
@@ -158,6 +159,8 @@ def run_sales_analyst(
     step.completed_at = datetime.now(UTC)
     db.commit()
     db.refresh(step)
+    record_agent_cost(db, step)
+    update_workflow_cost_totals(db, run)
     _set_run_status(run, WorkflowStatus.reviewer_running, db)
     return step
 

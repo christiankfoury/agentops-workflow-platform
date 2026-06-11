@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.database import get_db
@@ -9,6 +10,7 @@ from src.dependencies import get_llm_client
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
+from src.models.cost_event import CostEvent
 from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
@@ -66,10 +68,17 @@ class FakeSession:
         self.prompts: list[PromptVersion] = []
         self.steps: list[AgentStep] = []
         self.approvals: list[HumanApproval] = []
+        self.cost_events: list[CostEvent] = []
 
     def query(
         self,
-        model: type[WorkflowRun] | type[UploadedInput] | type[PromptVersion] | type[AgentStep],
+        model: (
+            type[WorkflowRun]
+            | type[UploadedInput]
+            | type[PromptVersion]
+            | type[AgentStep]
+            | type[CostEvent]
+        ),
     ) -> FakeQuery:
         if model is UploadedInput:
             return FakeQuery(self.inputs)
@@ -79,10 +88,13 @@ class FakeSession:
             return FakeQuery(self.steps)
         if model is HumanApproval:
             return FakeQuery(self.approvals)
+        if model is CostEvent:
+            return FakeQuery(self.cost_events)
         return FakeQuery(self.runs)
 
     def add(
-        self, item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | HumanApproval
+        self,
+        item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | HumanApproval | CostEvent,
     ) -> None:
         if isinstance(item, AgentStep) and item not in self.steps:
             self.steps.append(item)
@@ -90,11 +102,16 @@ class FakeSession:
             self.runs.append(item)
         if isinstance(item, HumanApproval) and item not in self.approvals:
             self.approvals.append(item)
+        if isinstance(item, CostEvent) and item not in self.cost_events:
+            self.cost_events.append(item)
 
     def commit(self) -> None:
         pass
 
-    def refresh(self, item: WorkflowRun | UploadedInput | PromptVersion | AgentStep) -> None:
+    def refresh(
+        self,
+        item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | HumanApproval | CostEvent,
+    ) -> None:
         if item.id is None:
             item.id = uuid.uuid4()
         if hasattr(item, "created_at") and item.created_at is None:
@@ -216,8 +233,14 @@ def test_run_sales_analyst_success_creates_completed_step():
     assert body["tokens_input"] == 100
     assert body["tokens_output"] == 50
     assert body["total_tokens"] == 150
+    assert body["cost"] == pytest.approx(0.00012)
     assert body["prompt_version_id"] == str(db.prompts[0].id)
     assert run.status == WorkflowStatus.reviewer_running
+    assert run.total_tokens == 150
+    assert run.total_cost == pytest.approx(0.00012)
+    assert len(db.cost_events) == 1
+    assert db.cost_events[0].agent_step_id == db.steps[0].id
+    assert db.cost_events[0].total_cost == pytest.approx(0.00012)
     clear_overrides()
 
 

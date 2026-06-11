@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 19 - Cost Tracking
+Current next phase: Phase 20 - Cost Dashboard
 
 Autonomous trial target: complete Phase 17 through Phase 20 in order.
 
@@ -26,19 +26,20 @@ Autonomous trial target: complete Phase 17 through Phase 20 in order.
 | 16 | Complete | Human approval UI list/detail/actions. |
 | 17 | Complete | Writer Agent backend, final output persistence, completion transition, focused tests, and workflow detail trigger. |
 | 18 | Complete | Dedicated final output page with summary metrics, approval status, and expandable workflow trace. |
+| 19 | Complete | Agent-level cost estimation, cost event persistence, workflow cost totals, and focused backend coverage. |
 
 ## Next Phase
 
-### Phase 19: Cost Tracking
+### Phase 20: Cost Dashboard
 
 Expected scope:
 
-- Implement detailed cost tracking.
-- Track input tokens, output tokens, total tokens, estimated cost, cost per agent, cost per workflow, and cost per retry.
-- Add or enrich cost event persistence only where needed for Phase 19.
-- Keep frontend updates limited to exposing the new cost fields where useful.
+- Create a cost dashboard.
+- Show total spend, average cost per workflow, cost by workflow type, cost by agent, most expensive runs, and average retry cost.
+- Include useful charts or tables for cost over time, cost per agent, cost per workflow type, and tokens by agent.
+- Use the existing workflow and agent-step data; add backend read endpoints only if needed for the dashboard.
 
-Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 19.
+Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 20.
 
 ## Last Known Validation Pattern
 

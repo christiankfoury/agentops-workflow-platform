@@ -14,6 +14,7 @@ from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import TextResponse
 from src.services.sales_analyst import SalesAnalysisOutput
 from src.services.workflow_state import transition
@@ -123,6 +124,7 @@ def run_sales_writer(
     run.final_output = final_output
     db.commit()
     db.refresh(step)
+    record_agent_cost(db, step)
     _update_run_metrics(run, db)
     transition(run, WorkflowStatus.completed, db)
     return step
@@ -278,14 +280,4 @@ def _mark_step_failed(
 
 
 def _update_run_metrics(run: WorkflowRun, db: Session) -> None:
-    steps = db.query(AgentStep).filter(AgentStep.workflow_run_id == run.id).all()
-    completed_steps = [step for step in steps if step.status == AgentStepStatus.completed]
-    total_tokens = sum(step.total_tokens or 0 for step in completed_steps)
-    total_latency = sum(step.latency_ms or 0 for step in completed_steps)
-    costs = [step.cost for step in completed_steps if step.cost is not None]
-
-    run.total_tokens = total_tokens or None
-    run.latency_ms = total_latency or None
-    run.total_cost = sum(costs) if costs else None
-    db.commit()
-    db.refresh(run)
+    update_workflow_cost_totals(db, run)

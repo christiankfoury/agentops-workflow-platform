@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.database import get_db
@@ -77,6 +78,7 @@ def make_completed_reviewer_step(run_id: uuid.UUID) -> AgentStep:
         tokens_input=80,
         tokens_output=20,
         total_tokens=100,
+        cost=0.000064,
         latency_ms=800,
         retry_count=0,
         created_at=datetime.now(UTC),
@@ -132,11 +134,15 @@ def test_run_sales_writer_success_completes_workflow_and_stores_final_output():
     assert body["tokens_input"] == 120
     assert body["tokens_output"] == 60
     assert body["total_tokens"] == 180
+    assert body["cost"] == pytest.approx(0.000144)
     assert body["prompt_version_id"] == str(db.prompts[0].id)
     assert run.final_output == "Executive Summary\nRevenue increased 12%."
     assert run.status == WorkflowStatus.completed
     assert run.completed_at is not None
     assert run.total_tokens == 430
+    assert run.total_cost == pytest.approx(0.000328)
+    assert len(db.cost_events) == 1
+    assert db.cost_events[0].agent_step_id == db.steps[-1].id
     assert run.latency_ms is not None
     clear_overrides()
 
