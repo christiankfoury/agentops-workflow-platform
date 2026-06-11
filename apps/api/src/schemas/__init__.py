@@ -1,4 +1,14 @@
 from src.schemas.agent_step import AgentStepRead
+from src.schemas.customer_feedback import (
+    BugReportPattern,
+    CustomerFeedbackClassificationOutput,
+    FeatureRequest,
+    FeedbackExample,
+    FeedbackTheme,
+    ProductInsightOutput,
+    ProductRecommendation,
+    SentimentPattern,
+)
 from src.schemas.evaluation import (
     EvaluationCaseRead,
     EvaluationMetricsSummaryRead,
@@ -11,14 +21,22 @@ from src.schemas.workflow_event import WorkflowEventRead
 
 __all__ = [
     "AgentStepRead",
+    "BugReportPattern",
+    "CustomerFeedbackClassificationOutput",
     "EvaluationCaseRead",
     "EvaluationMetricsSummaryRead",
     "EvaluationResultRead",
+    "FeatureRequest",
+    "FeedbackExample",
+    "FeedbackTheme",
     "HumanApprovalAction",
     "HumanApprovalEdit",
     "HumanApprovalRead",
+    "ProductInsightOutput",
+    "ProductRecommendation",
     "PromptVersionCreate",
     "PromptVersionRead",
+    "SentimentPattern",
     "UploadedInputCreate",
     "UploadedInputRead",
     "WorkflowEventRead",
