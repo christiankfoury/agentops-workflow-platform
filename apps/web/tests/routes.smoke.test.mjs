@@ -9,6 +9,8 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/page.tsx"), /listWorkflowRuns/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getWorkflowRun/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getUploadedInput/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listAgentSteps/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /runAnalystAction/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /useActionState/);
@@ -23,4 +25,6 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function createWorkflowRun/);
   assert.match(api, /export async function createUploadedInput/);
   assert.match(api, /export async function getUploadedInput/);
+  assert.match(api, /export async function listAgentSteps/);
+  assert.match(api, /export async function runSalesAnalyst/);
 });

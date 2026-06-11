@@ -13,6 +13,8 @@ export type WorkflowStatus =
   | "failed"
   | "cancelled";
 
+export type AgentStepStatus = "pending" | "running" | "completed" | "failed";
+
 export interface WorkflowRun {
   id: string;
   organization_id: string | null;
@@ -43,6 +45,28 @@ export interface UploadedInput {
   file_type: string | null;
   file_size: number | null;
   created_at: string;
+}
+
+export interface AgentStep {
+  id: string;
+  workflow_run_id: string;
+  agent_name: string;
+  agent_type: string;
+  step_order: number;
+  status: AgentStepStatus;
+  input_json: Record<string, unknown> | null;
+  output_json: Record<string, unknown> | null;
+  model: string | null;
+  prompt_version_id: string | null;
+  tokens_input: number | null;
+  tokens_output: number | null;
+  total_tokens: number | null;
+  cost: number | null;
+  latency_ms: number | null;
+  retry_count: number;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
 }
 
 export interface CreateUploadedInputRequest {

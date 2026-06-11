@@ -1,6 +1,7 @@
 import "server-only";
 
 import type {
+  AgentStep,
   CreateUploadedInputRequest,
   CreateWorkflowRunRequest,
   UploadedInput,
@@ -57,4 +58,20 @@ export async function getUploadedInput(id: string): Promise<UploadedInput | null
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch uploaded input: ${res.status}`);
   return res.json() as Promise<UploadedInput>;
+}
+
+export async function listAgentSteps(runId: string): Promise<AgentStep[]> {
+  const res = await fetch(apiUrl(`/workflow-runs/${runId}/agent-steps`), {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch agent steps: ${res.status}`);
+  return res.json() as Promise<AgentStep[]>;
+}
+
+export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
+  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-analyst`), {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to run analyst: ${res.status}`);
+  return res.json() as Promise<AgentStep>;
 }

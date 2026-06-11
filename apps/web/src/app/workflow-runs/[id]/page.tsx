@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getUploadedInput, getWorkflowRun } from "@/lib/api";
+import { getUploadedInput, getWorkflowRun, listAgentSteps } from "@/lib/api";
+import { runAnalystAction } from "./actions";
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -14,6 +15,13 @@ export default async function WorkflowRunDetailPage({
 
   const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
   const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
+  const agentSteps = await listAgentSteps(run.id);
+  const analystStep = agentSteps.find((step) => step.agent_type === "analyst");
+  const canRunAnalyst =
+    run.status === "created" &&
+    run.workflow_type === "sales_report" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null;
 
   const fields = [
     { label: "Status", value: run.status },
@@ -56,6 +64,18 @@ export default async function WorkflowRunDetailPage({
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight">Workflow Run</h1>
       <p className="font-mono text-sm text-muted-foreground">{run.id}</p>
+
+      {canRunAnalyst && (
+        <form action={runAnalystAction} className="mt-4">
+          <input type="hidden" name="run_id" value={run.id} />
+          <button
+            type="submit"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            Run Analyst
+          </button>
+        </form>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map(({ label, value }) => (
@@ -102,6 +122,38 @@ export default async function WorkflowRunDetailPage({
             This workflow references an uploaded input that could not be found.
             Agents cannot run until the input relationship is repaired.
           </p>
+        </section>
+      )}
+
+      {analystStep && (
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold">Analyst Output</h2>
+          <div className="mt-2 rounded-lg border border-border bg-card p-4">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+              <p>
+                <span className="text-muted-foreground">Status:</span>{" "}
+                {analystStep.status}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Model:</span>{" "}
+                {analystStep.model ?? "-"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Tokens:</span>{" "}
+                {analystStep.total_tokens ?? "-"}
+              </p>
+            </div>
+            {analystStep.error_message && (
+              <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm">
+                {analystStep.error_message}
+              </p>
+            )}
+            {analystStep.output_json && (
+              <pre className="mt-4 max-h-96 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
+                {JSON.stringify(analystStep.output_json, null, 2)}
+              </pre>
+            )}
+          </div>
         </section>
       )}
 
