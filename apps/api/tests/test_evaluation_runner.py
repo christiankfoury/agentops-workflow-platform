@@ -53,6 +53,26 @@ class EvaluationLLMClient:
         model: str | None = None,
         max_tokens: int = 2048,
     ) -> StructuredResponse:
+        if "workflow_type" in schema["required"]:
+            content = messages[0]["content"].lower().split("input:\n", 1)[-1]
+            if "incident" in content or "latency" in content:
+                workflow_type = "incident_log"
+                reasoning = "Input contains timestamped incident events."
+            elif "feedback" in content or "review" in content:
+                workflow_type = "customer_feedback"
+                reasoning = "Input contains customer feedback."
+            else:
+                workflow_type = "sales_report"
+                reasoning = "Input contains sales performance metrics."
+            return StructuredResponse(
+                data={
+                    "workflow_type": workflow_type,
+                    "confidence": 0.93,
+                    "reasoning_summary": reasoning,
+                },
+                model="gpt-eval-router",
+                usage=LLMUsage(input_tokens=70, output_tokens=20),
+            )
         if "approved" in schema["required"]:
             return StructuredResponse(
                 data={
@@ -330,6 +350,24 @@ def test_run_sales_evaluation_case_stores_baseline_result():
     assert result.completeness_score == 0.3333
     assert result.prompt_version_summary_json == {"baseline": None}
     assert db.runs[0].final_output == "Executive Summary\nRevenue increased 12%."
+
+
+def test_run_evaluation_case_records_router_accuracy_when_prompt_is_available():
+    db = EvaluationFakeSession()
+    db.prompts.append(make_agent_prompt(AgentType.router))
+    evaluation_case = make_case()
+
+    result = run_sales_evaluation_case(
+        db,
+        evaluation_case,
+        RunMode.baseline,
+        EvaluationLLMClient(),
+    )
+
+    assert result.status == EvaluationRunStatus.completed
+    assert result.router_detected_workflow_type == WorkflowType.sales_report
+    assert result.router_confidence == 0.93
+    assert result.router_correct is True
 
 
 def test_run_sales_evaluation_case_stores_multi_agent_result_after_auto_approval():

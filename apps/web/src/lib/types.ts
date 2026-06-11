@@ -114,6 +114,8 @@ export interface EvaluationMetricsSummary {
   factual_accuracy: number;
   unsupported_claim_rate: number;
   completeness_score: number;
+  router_accuracy: number;
+  average_router_confidence: number;
   human_approval_rate: number;
   average_cost: number;
   average_latency_ms: number;
@@ -185,6 +187,7 @@ export interface WorkflowDetection {
   workflow_type: WorkflowType;
   confidence: number;
   reasoning_summary: string;
+  recommended_action: "auto_select" | "confirm" | "manual_required";
 }
 
 export interface CreateWorkflowRunRequest {

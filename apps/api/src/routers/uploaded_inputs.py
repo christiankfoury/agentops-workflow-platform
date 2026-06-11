@@ -59,6 +59,7 @@ def detect_uploaded_input_workflow(
         workflow_type=detection.workflow_type,
         confidence=detection.confidence,
         reasoning_summary=detection.reasoning_summary,
+        recommended_action=detection.recommended_action,
     )
 
 

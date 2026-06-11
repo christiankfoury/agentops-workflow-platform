@@ -56,6 +56,9 @@ def make_result(
     factual_accuracy: float = 1.0,
     unsupported_claim_rate: float = 0.0,
     completeness_score: float = 1.0,
+    router_detected_workflow_type: WorkflowType | None = None,
+    router_confidence: float | None = None,
+    router_correct: bool | None = None,
     human_approval_required: bool = False,
     human_approved: bool | None = None,
     retry_count: int = 0,
@@ -72,6 +75,9 @@ def make_result(
         factual_accuracy=factual_accuracy,
         unsupported_claim_rate=unsupported_claim_rate,
         completeness_score=completeness_score,
+        router_detected_workflow_type=router_detected_workflow_type,
+        router_confidence=router_confidence,
+        router_correct=router_correct,
         human_approval_required=human_approval_required,
         human_approved=human_approved,
         retry_count=retry_count,
@@ -120,6 +126,9 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
                 run_mode=RunMode.baseline,
                 evaluation_case_id=sales_case.id,
                 factual_accuracy=0.5,
+                router_detected_workflow_type=WorkflowType.sales_report,
+                router_confidence=0.9,
+                router_correct=True,
                 cost=0.1,
             ),
             make_result(
@@ -129,6 +138,9 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
                 completeness_score=0.8,
                 human_approval_required=True,
                 human_approved=True,
+                router_detected_workflow_type=WorkflowType.customer_feedback,
+                router_confidence=0.7,
+                router_correct=False,
                 retry_count=1,
                 cost=0.3,
                 latency_ms=3000,
@@ -152,6 +164,9 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
                 factual_accuracy=0.8,
                 unsupported_claim_rate=0.1,
                 completeness_score=0.9,
+                router_detected_workflow_type=WorkflowType.incident_log,
+                router_confidence=0.88,
+                router_correct=True,
                 human_approval_required=True,
                 human_approved=True,
             ),
@@ -168,10 +183,14 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
     }
     assert body[("sales_report", "baseline")]["run_count"] == 1
     assert body[("sales_report", "baseline")]["factual_accuracy"] == 0.5
+    assert body[("sales_report", "baseline")]["router_accuracy"] == 1.0
+    assert body[("sales_report", "baseline")]["average_router_confidence"] == 0.9
     assert body[("sales_report", "baseline")]["average_cost"] == 0.1
     assert body[("sales_report", "multi_agent")]["run_count"] == 1
     assert body[("sales_report", "multi_agent")]["factual_accuracy"] == 0.9
     assert body[("sales_report", "multi_agent")]["completeness_score"] == 0.8
+    assert body[("sales_report", "multi_agent")]["router_accuracy"] == 0.0
+    assert body[("sales_report", "multi_agent")]["average_router_confidence"] == 0.7
     assert body[("sales_report", "multi_agent")]["human_approval_rate"] == 1.0
     assert body[("sales_report", "multi_agent")]["average_retries"] == 1.0
     assert body[("customer_feedback", "baseline")]["run_count"] == 1
@@ -182,4 +201,6 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
     assert body[("incident_log", "multi_agent")]["factual_accuracy"] == 0.8
     assert body[("incident_log", "multi_agent")]["unsupported_claim_rate"] == 0.1
     assert body[("incident_log", "multi_agent")]["completeness_score"] == 0.9
+    assert body[("incident_log", "multi_agent")]["router_accuracy"] == 1.0
+    assert body[("incident_log", "multi_agent")]["average_router_confidence"] == 0.88
     clear_overrides()

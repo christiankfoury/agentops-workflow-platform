@@ -56,6 +56,16 @@ function metricRows(
       multiAgent: formatPercent(multiAgent?.completeness_score ?? 0),
     },
     {
+      label: "Router Accuracy",
+      baseline: formatPercent(baseline?.router_accuracy ?? 0),
+      multiAgent: formatPercent(multiAgent?.router_accuracy ?? 0),
+    },
+    {
+      label: "Router Confidence",
+      baseline: formatPercent(baseline?.average_router_confidence ?? 0),
+      multiAgent: formatPercent(multiAgent?.average_router_confidence ?? 0),
+    },
+    {
       label: "Human Approval Rate",
       baseline: formatPercent(baseline?.human_approval_rate ?? 0),
       multiAgent: formatPercent(multiAgent?.human_approval_rate ?? 0),

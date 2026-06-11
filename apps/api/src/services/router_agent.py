@@ -10,6 +10,9 @@ from src.models.prompt_version import PromptVersion
 from src.models.workflow_run import WorkflowType
 from src.services.llm_client import StructuredResponse
 
+HIGH_CONFIDENCE_THRESHOLD = 0.85
+MEDIUM_CONFIDENCE_THRESHOLD = 0.60
+
 ROUTER_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -33,12 +36,16 @@ class RouterRunError(Exception):
     pass
 
 
-class RouterOutput(BaseModel):
+class RawRouterOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     workflow_type: Literal["sales_report", "customer_feedback", "incident_log"]
     confidence: float = Field(ge=0, le=1)
     reasoning_summary: str = Field(min_length=1)
+
+
+class RouterOutput(RawRouterOutput):
+    recommended_action: Literal["auto_select", "confirm", "manual_required"]
 
 
 class LLMClientLike(Protocol):
@@ -85,7 +92,11 @@ def detect_workflow_type(
             schema=ROUTER_SCHEMA,
             max_tokens=600,
         )
-        return RouterOutput.model_validate(response.data)
+        raw_output = RawRouterOutput.model_validate(response.data)
+        return RouterOutput(
+            **raw_output.model_dump(),
+            recommended_action=_recommended_action(raw_output.confidence),
+        )
     except ValidationError as e:
         raise RouterRunError("Router returned invalid workflow detection output") from e
     except Exception as e:
@@ -105,3 +116,11 @@ def _get_active_router_prompt(db: Session) -> PromptVersion:
     if prompt is None:
         raise RouterRunError("Active Router prompt not found")
     return prompt
+
+
+def _recommended_action(confidence: float) -> Literal["auto_select", "confirm", "manual_required"]:
+    if confidence >= HIGH_CONFIDENCE_THRESHOLD:
+        return "auto_select"
+    if confidence >= MEDIUM_CONFIDENCE_THRESHOLD:
+        return "confirm"
+    return "manual_required"

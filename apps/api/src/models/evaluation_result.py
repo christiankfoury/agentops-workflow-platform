@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
-from src.models.workflow_run import RunMode
+from src.models.workflow_run import RunMode, WorkflowType
 
 
 class EvaluationRunStatus(StrEnum):
@@ -44,6 +44,11 @@ class EvaluationResult(Base):
     factual_accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
     unsupported_claim_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     completeness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    router_detected_workflow_type: Mapped[WorkflowType | None] = mapped_column(
+        Enum(WorkflowType, name="workflowtype"), nullable=True
+    )
+    router_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    router_correct: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     human_approval_required: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     human_approved: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     retry_count: Mapped[int | None] = mapped_column(Integer, nullable=True)

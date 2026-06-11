@@ -89,6 +89,8 @@ def test_summarize_evaluation_results_averages_completed_runs():
         factual_accuracy=0.5,
         unsupported_claim_rate=0.2,
         completeness_score=0.4,
+        router_confidence=0.9,
+        router_correct=True,
         human_approval_required=False,
         retry_count=0,
         cost=0.1,
@@ -101,6 +103,8 @@ def test_summarize_evaluation_results_averages_completed_runs():
         factual_accuracy=1.0,
         unsupported_claim_rate=0.0,
         completeness_score=0.8,
+        router_confidence=0.7,
+        router_correct=False,
         human_approval_required=True,
         human_approved=True,
         retry_count=1,
@@ -127,6 +131,8 @@ def test_summarize_evaluation_results_averages_completed_runs():
     assert summary.factual_accuracy == 0.75
     assert summary.unsupported_claim_rate == 0.1
     assert summary.completeness_score == 0.6
+    assert summary.router_accuracy == 0.5
+    assert summary.average_router_confidence == 0.8
     assert summary.human_approval_rate == 1.0
     assert summary.average_cost == 0.2
     assert summary.average_latency_ms == 2000.0

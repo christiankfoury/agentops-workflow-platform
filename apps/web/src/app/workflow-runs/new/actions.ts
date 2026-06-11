@@ -29,6 +29,12 @@ function isWorkflowType(value: FormDataEntryValue | null): value is WorkflowType
   );
 }
 
+function formatWorkflowType(value: WorkflowType): string {
+  if (value === "customer_feedback") return "Customer Feedback";
+  if (value === "incident_log") return "Incident Log";
+  return "Sales Report";
+}
+
 async function readInputText(formData: FormData): Promise<
   | {
       ok: true;
@@ -119,6 +125,20 @@ export async function createWorkflow(
         raw_text: input.rawText,
         notes,
       });
+      if (detection.recommended_action === "confirm") {
+        return {
+          error: `Router suggests ${formatWorkflowType(detection.workflow_type)} with ${Math.round(
+            detection.confidence * 100,
+          )}% confidence. Confirm by selecting that workflow type manually.`,
+        };
+      }
+      if (detection.recommended_action === "manual_required") {
+        return {
+          error: `Router confidence is ${Math.round(
+            detection.confidence * 100,
+          )}%. Select a workflow type manually.`,
+        };
+      }
       workflowType = detection.workflow_type;
     } catch (error) {
       return {

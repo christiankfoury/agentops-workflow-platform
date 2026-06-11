@@ -21,6 +21,8 @@ class EvaluationAggregateMetrics:
     factual_accuracy: float
     unsupported_claim_rate: float
     completeness_score: float
+    router_accuracy: float
+    average_router_confidence: float
     human_approval_rate: float
     average_cost: float
     average_latency_ms: float
@@ -61,6 +63,8 @@ def summarize_evaluation_results(results: list[EvaluationResult]) -> EvaluationA
         if result.human_approval_required is not None and result.human_approval_required
     ]
     approved = [result for result in approvals if result.human_approved]
+    router_tracked = [result for result in completed if result.router_correct is not None]
+    router_correct = [result for result in router_tracked if result.router_correct]
     return EvaluationAggregateMetrics(
         run_count=len(completed),
         factual_accuracy=_average(
@@ -75,6 +79,12 @@ def summarize_evaluation_results(results: list[EvaluationResult]) -> EvaluationA
             result.completeness_score
             for result in completed
             if result.completeness_score is not None
+        ),
+        router_accuracy=_safe_ratio(len(router_correct), len(router_tracked)),
+        average_router_confidence=_average(
+            result.router_confidence
+            for result in completed
+            if result.router_confidence is not None
         ),
         human_approval_rate=_safe_ratio(len(approved), len(approvals)),
         average_cost=_average(result.cost for result in completed if result.cost is not None),

@@ -6,9 +6,11 @@ from typing import Protocol
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep
+from src.models.agent_type import AgentType
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.human_approval import ApprovalStatus, HumanApproval
+from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.customer_feedback_classifier import run_customer_feedback_classifier
@@ -22,6 +24,7 @@ from src.services.incident_root_cause import run_incident_root_cause
 from src.services.incident_timeline import run_incident_timeline
 from src.services.incident_writer import run_incident_writer
 from src.services.llm_client import StructuredResponse, TextResponse
+from src.services.router_agent import RouterOutput, detect_workflow_type
 from src.services.sales_analyst import run_sales_analyst
 from src.services.sales_baseline import run_sales_baseline
 from src.services.sales_reviewer import run_sales_reviewer
@@ -79,6 +82,7 @@ def run_sales_evaluation_case(
     db.refresh(result)
 
     try:
+        _record_router_detection(db, result, evaluation_case, llm_client)
         uploaded_input = _create_uploaded_input(db, evaluation_case)
         run = _create_workflow_run(db, evaluation_case, uploaded_input, run_mode)
         if run_mode == RunMode.baseline:
@@ -122,6 +126,48 @@ def run_sales_evaluation_suite(
         for run_mode in run_modes:
             results.append(run_sales_evaluation_case(db, evaluation_case, run_mode, llm_client))
     return results
+
+
+def _record_router_detection(
+    db: Session,
+    result: EvaluationResult,
+    evaluation_case: EvaluationCase,
+    llm_client: LLMClientLike,
+) -> None:
+    if _get_active_router_prompt(db) is None:
+        return
+    detection = detect_workflow_type(
+        db,
+        title=evaluation_case.title,
+        raw_text=evaluation_case.input_text,
+        notes=evaluation_case.expected_output_notes,
+        llm_client=llm_client,
+    )
+    _set_router_tracking(result, evaluation_case, detection)
+    db.commit()
+    db.refresh(result)
+
+
+def _get_active_router_prompt(db: Session) -> PromptVersion | None:
+    return (
+        db.query(PromptVersion)
+        .filter(
+            PromptVersion.agent_type == AgentType.router,
+            PromptVersion.is_active == True,  # noqa: E712
+        )
+        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
+        .first()
+    )
+
+
+def _set_router_tracking(
+    result: EvaluationResult,
+    evaluation_case: EvaluationCase,
+    detection: RouterOutput,
+) -> None:
+    result.router_detected_workflow_type = WorkflowType(detection.workflow_type)
+    result.router_confidence = detection.confidence
+    result.router_correct = result.router_detected_workflow_type == evaluation_case.workflow_type
 
 
 def _create_uploaded_input(db: Session, evaluation_case: EvaluationCase) -> UploadedInput:

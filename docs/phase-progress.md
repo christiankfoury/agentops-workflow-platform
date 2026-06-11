@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 41 - Router Confidence and Fallback Logic
+Current next phase: Phase 42 - Error Handling and Failure Recovery
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -50,20 +50,18 @@ Target range status: In progress.
 | 38 | Complete | Incident reviewer and writer support through existing run endpoints, including human approval handoff, final post-incident report persistence, and end-to-end workflow coverage. |
 | 39 | Complete | Incident evaluation case seeding with timeline expectations, baseline and multi-agent incident evaluation runner support, and incident workflow metrics in evaluation summaries. |
 | 40 | Complete | Optional Router Agent workflow detection endpoint plus new workflow form controls for manual selection or auto-detect before creating uploaded inputs and workflow runs. |
+| 41 | Complete | Router confidence thresholds for auto-select, confirmation, and manual-selection fallback plus router accuracy/confidence tracking in evaluation results and dashboard summaries. |
 
 ## Next Phase
 
-### Phase 41: Router Confidence and Fallback Logic
+### Phase 42: Error Handling and Failure Recovery
 
 Expected scope:
 
-- Add confidence thresholds for router suggestions.
-- High confidence should auto-select workflow.
-- Medium confidence should suggest workflow and ask for confirmation.
-- Low confidence should require manual selection.
-- Track router accuracy in evaluations.
+- Improve system reliability for LLM timeouts, invalid JSON, schema validation failures, database errors, agent failures, reviewer/writer failures, and workflow cancellation.
+- Add graceful failure states and useful UI error messages.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 41.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 42.
 
 ## Last Known Validation Pattern
 
@@ -76,4 +74,4 @@ pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
 pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
 ```
 
-Note: the full API test suite passed quickly in Phase 40.
+Note: the full API test suite passed quickly in Phase 41.

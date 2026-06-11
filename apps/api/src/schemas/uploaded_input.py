@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -75,3 +76,4 @@ class WorkflowDetectionRead(BaseModel):
     workflow_type: WorkflowType
     confidence: float = Field(ge=0, le=1)
     reasoning_summary: str
+    recommended_action: Literal["auto_select", "confirm", "manual_required"]

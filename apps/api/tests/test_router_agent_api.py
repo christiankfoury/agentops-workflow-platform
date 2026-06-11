@@ -91,10 +91,61 @@ def test_detect_workflow_type_returns_router_suggestion():
         "workflow_type": "incident_log",
         "confidence": 0.91,
         "reasoning_summary": "Input contains timestamped operational events.",
+        "recommended_action": "auto_select",
     }
     assert llm.system == "Detect workflow type."
     assert "Checkout incident" in llm.messages[0]["content"]
     assert "incident_log" in llm.schema["properties"]["workflow_type"]["enum"]
+    clear_overrides()
+
+
+def test_detect_workflow_type_marks_medium_confidence_for_confirmation():
+    db = FakeSession()
+    db.prompts.append(make_router_prompt())
+    override_dependencies(
+        db,
+        FakeRouterLLMClient(
+            data={
+                "workflow_type": "customer_feedback",
+                "confidence": 0.72,
+                "reasoning_summary": "Input contains reviews and feature requests.",
+            }
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/detect-workflow",
+        json={"title": "Feedback", "raw_text": "Review: Please add exports."},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["recommended_action"] == "confirm"
+    clear_overrides()
+
+
+def test_detect_workflow_type_requires_manual_selection_for_low_confidence():
+    db = FakeSession()
+    db.prompts.append(make_router_prompt())
+    override_dependencies(
+        db,
+        FakeRouterLLMClient(
+            data={
+                "workflow_type": "sales_report",
+                "confidence": 0.42,
+                "reasoning_summary": "Input is too ambiguous to route confidently.",
+            }
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/detect-workflow",
+        json={"title": "Ambiguous", "raw_text": "A short note."},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["recommended_action"] == "manual_required"
     clear_overrides()
 
 

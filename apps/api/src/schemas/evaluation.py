@@ -36,6 +36,9 @@ class EvaluationResultRead(BaseModel):
     factual_accuracy: float | None
     unsupported_claim_rate: float | None
     completeness_score: float | None
+    router_detected_workflow_type: WorkflowType | None
+    router_confidence: float | None
+    router_correct: bool | None
     human_approval_required: bool | None
     human_approved: bool | None
     retry_count: int | None
@@ -53,6 +56,8 @@ class EvaluationMetricsSummaryRead(BaseModel):
     factual_accuracy: float
     unsupported_claim_rate: float
     completeness_score: float
+    router_accuracy: float
+    average_router_confidence: float
     human_approval_rate: float
     average_cost: float
     average_latency_ms: float
