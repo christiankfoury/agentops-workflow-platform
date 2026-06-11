@@ -2,7 +2,7 @@
 
 Current next phase: Phase 21 - Observability Logs
 
-Autonomous trial target: Phase 17 through Phase 20 complete.
+Autonomous trial target: Phase 21 through Phase 30 complete.
 
 ## Completed Phases
 
