@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 55 - Failure Case Explorer
+Current next phase: Phase 56 - Improvement Tracking Over Time
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 54 complete; Phase 55 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 55 complete; Phase 56 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -64,17 +64,18 @@ Target range status: Phase 46 through Phase 54 complete; Phase 55 through Phase 
 | 52 | Complete | Customer feedback CSV parsing with feedback-column validation, normalized feedback text extraction, CSV preview table, and focused upload/frontend coverage. |
 | 53 | Complete | Incident log parser that normalizes timestamped pasted or uploaded logs into ordered event lines while preserving ambiguous raw lines for timeline analysis. |
 | 54 | Complete | Deterministic evaluation checks now include expected customer feedback themes, incident timeline timestamps/events, unsupported generated numbers, and runner judge notes. |
+| 55 | Complete | Failure case explorer dashboard for low-scoring runs, failed agent steps, schema validation failures, common failure types, and human-rejected outputs. |
 
 ## Next Phase
 
-### Phase 55: Failure Case Explorer
+### Phase 56: Improvement Tracking Over Time
 
 Expected scope:
 
-- Create a dashboard for failed or low-quality runs.
-- Show lowest scoring workflows, common failure types, schema failures, reviewer false positives, and human rejected workflows where available.
+- Track whether the system improves across prompt versions and agent settings.
+- Show factual accuracy, unsupported claim rate, cost, latency, and human approval rate trends over time.
 
-Do not implement background jobs, auth, deployment work, or broad alerting in Phase 55.
+Do not implement background jobs, auth, deployment work, or broad alerting in Phase 56.
 
 ## Last Known Validation Pattern
 

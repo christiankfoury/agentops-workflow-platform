@@ -51,6 +51,12 @@ export function Nav() {
             Compare
           </Link>
           <Link
+            href="/failures"
+            className="transition-colors hover:text-foreground"
+          >
+            Failures
+          </Link>
+          <Link
             href="/prompt-versions"
             className="transition-colors hover:text-foreground"
           >

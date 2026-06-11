@@ -38,6 +38,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/components/nav.tsx"), /href="\/evaluation"/);
   assert.match(read("src/components/nav.tsx"), /href="\/agent-performance"/);
   assert.match(read("src/components/nav.tsx"), /href="\/workflow-comparison"/);
+  assert.match(read("src/components/nav.tsx"), /href="\/failures"/);
   assert.match(read("src/components/nav.tsx"), /href="\/prompt-versions"/);
   assert.match(read("src/components/nav.tsx"), /href="\/settings"/);
   assert.match(read("src/app/evaluation/page.tsx"), /Evaluation Dashboard/);
@@ -52,6 +53,9 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-comparison/page.tsx"), /Workflow Comparison/);
   assert.match(read("src/app/workflow-comparison/page.tsx"), /getEvaluationComparisons/);
   assert.match(read("src/app/workflow-comparison/page.tsx"), /Reviewer Issues/);
+  assert.match(read("src/app/failures/page.tsx"), /Failure Case Explorer/);
+  assert.match(read("src/app/failures/page.tsx"), /listWorkflowRuns/);
+  assert.match(read("src/app/failures/page.tsx"), /Schema Validation Failures/);
   assert.match(read("src/app/prompt-versions/page.tsx"), /Prompt Versions/);
   assert.match(read("src/app/prompt-versions/page.tsx"), /listPromptVersions/);
   assert.match(read("src/app/prompt-versions/form.tsx"), /useActionState/);
