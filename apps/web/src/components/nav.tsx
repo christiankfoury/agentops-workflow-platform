@@ -38,6 +38,12 @@ export function Nav() {
           >
             Evaluation
           </Link>
+          <Link
+            href="/prompt-versions"
+            className="transition-colors hover:text-foreground"
+          >
+            Prompts
+          </Link>
         </div>
       </nav>
     </header>

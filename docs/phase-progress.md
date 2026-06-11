@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 29 - Prompt Management UI
+Current next phase: Phase 30 - Customer Feedback Workflow Schema
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -36,19 +36,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 26 | Complete | Deterministic sales evaluation scoring and aggregate metrics for factual accuracy, unsupported claims, completeness, approval rate, cost, latency, and retries. |
 | 27 | Complete | Evaluation summary API and dashboard comparing baseline vs multi-agent metrics with navigation and smoke coverage. |
 | 28 | Complete | Prompt version summaries recorded on evaluation results plus prompt-version performance comparison helper and tests. |
+| 29 | Complete | Prompt version management UI for listing, creating, viewing, and activating prompts with API client wiring and smoke coverage. |
 
 ## Next Phase
 
-### Phase 29: Prompt Management UI
+### Phase 30: Customer Feedback Workflow Schema
 
 Expected scope:
 
-- Create UI pages for prompt versions.
-- Show prompt versions with agent type, name, version, active status, created date, notes, and template preview.
-- Support creating prompt versions and activating an existing prompt version using existing backend APIs.
-- Keep prompt evaluation performance display minimal unless existing comparison helpers are already exposed cleanly.
+- Add support for the second workflow type schema: Customer Feedback to Product Insights Report.
+- Define structured output schemas for feedback themes, sentiment patterns, feature requests, bug reports, recommendations, and supporting examples.
+- Update validation/types where needed so future customer feedback agents can build on these schemas.
+- Do not implement customer feedback agents yet.
 
-Do not implement customer feedback workflows, incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 29.
+Do not implement customer feedback agents, incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 30.
 
 ## Last Known Validation Pattern
 

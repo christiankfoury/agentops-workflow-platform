@@ -1,5 +1,14 @@
 export type WorkflowType = "sales_report" | "customer_feedback" | "incident_log";
 export type RunMode = "baseline" | "multi_agent";
+export type AgentType =
+  | "analyst"
+  | "reviewer"
+  | "writer"
+  | "router"
+  | "timeline"
+  | "root_cause"
+  | "classifier"
+  | "insight";
 export type WorkflowStatus =
   | "created"
   | "running"
@@ -121,6 +130,28 @@ export interface HumanApproval {
   approved_by_user_id: string | null;
   created_at: string;
   resolved_at: string | null;
+}
+
+export interface PromptVersion {
+  id: string;
+  agent_type: AgentType;
+  name: string;
+  version: number;
+  template: string;
+  is_active: boolean;
+  notes: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+}
+
+export interface CreatePromptVersionRequest {
+  agent_type: AgentType;
+  name: string;
+  version: number;
+  template: string;
+  is_active?: boolean;
+  notes?: string | null;
+  created_by_user_id?: string | null;
 }
 
 export interface HumanApprovalActionRequest {

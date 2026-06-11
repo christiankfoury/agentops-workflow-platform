@@ -8,6 +8,8 @@ import type {
   HumanApproval,
   HumanApprovalActionRequest,
   HumanApprovalEditRequest,
+  CreatePromptVersionRequest,
+  PromptVersion,
   UploadedInput,
   WorkflowEvent,
   WorkflowRun,
@@ -87,6 +89,45 @@ export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
   return res.json() as Promise<EvaluationMetricsSummary[]>;
+}
+
+export async function listPromptVersions(): Promise<PromptVersion[]> {
+  const res = await fetch(apiUrl("/prompt-versions"), { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch prompt versions: ${res.status}`);
+  return res.json() as Promise<PromptVersion[]>;
+}
+
+export async function getPromptVersion(id: string): Promise<PromptVersion | null> {
+  const res = await fetch(apiUrl(`/prompt-versions/${id}`), { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch prompt version: ${res.status}`);
+  return res.json() as Promise<PromptVersion>;
+}
+
+export async function createPromptVersion(
+  body: CreatePromptVersionRequest,
+): Promise<PromptVersion> {
+  const res = await fetch(apiUrl("/prompt-versions"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to create prompt version: ${detail}`);
+  }
+  return res.json() as Promise<PromptVersion>;
+}
+
+export async function activatePromptVersion(id: string): Promise<PromptVersion> {
+  const res = await fetch(apiUrl(`/prompt-versions/${id}/activate`), {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to activate prompt version: ${detail}`);
+  }
+  return res.json() as Promise<PromptVersion>;
 }
 
 export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
