@@ -6,6 +6,7 @@ from src.database import get_db
 from src.dependencies import get_llm_client
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
+from src.models.uploaded_input import InputType
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowStatus, WorkflowType
 from src.services.llm_client import LLMUsage, TextResponse
@@ -96,7 +97,8 @@ def test_run_sales_baseline_requires_baseline_run_mode():
     run = make_run(status=WorkflowStatus.created, input_id=uploaded_input.id)
     db.inputs.append(uploaded_input)
     db.runs.append(run)
-    override_dependencies(db)
+    llm = FakeBaselineLLMClient()
+    override_dependencies(db, llm)
     client = TestClient(app)
 
     response = client.post(f"/workflow-runs/{run.id}/run-baseline")
@@ -106,11 +108,35 @@ def test_run_sales_baseline_requires_baseline_run_mode():
     clear_overrides()
 
 
-def test_run_sales_baseline_rejects_non_sales_workflow():
+def test_run_baseline_supports_customer_feedback_workflow():
+    db = FakeSession()
+    uploaded_input = make_input(InputType.customer_feedback)
+    run = make_run(
+        workflow_type=WorkflowType.customer_feedback,
+        run_mode=RunMode.baseline,
+        status=WorkflowStatus.created,
+        input_id=uploaded_input.id,
+    )
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    llm = FakeBaselineLLMClient()
+    override_dependencies(db, llm)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-baseline")
+
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.completed
+    assert "Customer feedback:" in llm.messages[0]["content"]
+    assert "product insights report" in (llm.system or "")
+    clear_overrides()
+
+
+def test_run_sales_baseline_rejects_unsupported_workflow():
     db = FakeSession()
     uploaded_input = make_input()
     run = make_run(
-        workflow_type=WorkflowType.customer_feedback,
+        workflow_type=WorkflowType.incident_log,
         run_mode=RunMode.baseline,
         status=WorkflowStatus.created,
         input_id=uploaded_input.id,
@@ -123,7 +149,9 @@ def test_run_sales_baseline_rejects_non_sales_workflow():
     response = client.post(f"/workflow-runs/{run.id}/run-baseline")
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "Baseline only supports sales report workflows"
+    assert response.json()["detail"] == (
+        "Baseline only supports sales report and customer feedback workflows"
+    )
     clear_overrides()
 
 

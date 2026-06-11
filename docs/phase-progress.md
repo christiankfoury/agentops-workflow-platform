@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 34 - Customer Feedback Evaluation Cases
+Current next phase: Phase 35 - Incident Report Workflow Schema
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -43,18 +43,18 @@ Target range status: In progress.
 | 31 | Complete | Customer Feedback Classifier Agent backend endpoint, structured output validation, agent step persistence, cost/event tracking, and focused API coverage. |
 | 32 | Complete | Customer Feedback Insight Agent backend endpoint that consumes classifier output, validates product insight JSON, persists insight steps, and advances runs toward review. |
 | 33 | Complete | Customer feedback reviewer and writer support through existing run endpoints, including human approval handoff and end-to-end workflow coverage. |
+| 34 | Complete | Customer feedback evaluation case seeding, baseline and multi-agent evaluation runner support, and workflow-type evaluation summary dashboard grouping. |
 
 ## Next Phase
 
-### Phase 34: Customer Feedback Evaluation Cases
+### Phase 35: Incident Report Workflow Schema
 
 Expected scope:
 
-- Add evaluation cases for customer feedback.
-- Seed 10 cases with input feedback, expected themes, expected insights, and expected recommendations.
-- Update the evaluation runner to support the customer feedback workflow type.
+- Add support for the incident log workflow schema.
+- Define structured outputs for timeline events, root cause analysis, confirmed facts, inferred causes, and follow-up actions.
 
-Do not implement incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 34.
+Do not implement incident workflow agents, background jobs, auth, deployment work, or export/reporting features in Phase 35.
 
 ## Last Known Validation Pattern
 

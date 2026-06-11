@@ -108,6 +108,7 @@ export interface WorkflowEvent {
 }
 
 export interface EvaluationMetricsSummary {
+  workflow_type: WorkflowType;
   run_mode: RunMode;
   run_count: number;
   factual_accuracy: number;

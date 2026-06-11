@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from src.config import settings
 from src.database import SessionLocal
 from src.models.evaluation_case import EvaluationCase
-from src.models.workflow_run import RunMode, WorkflowType
+from src.models.workflow_run import RunMode
 from src.services.evaluation_cases import seed_default_evaluation_cases
 from src.services.evaluation_runner import run_sales_evaluation_suite
 from src.services.llm_client import LLMClient
@@ -12,7 +12,7 @@ from src.services.prompt_versions import seed_default_prompt_versions
 
 
 def parse_run_modes(argv: Sequence[str] | None = None) -> tuple[RunMode, ...]:
-    parser = argparse.ArgumentParser(description="Run sales evaluation cases.")
+    parser = argparse.ArgumentParser(description="Run workflow evaluation cases.")
     parser.add_argument(
         "--mode",
         choices=("baseline", "multi_agent", "all"),
@@ -39,11 +39,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     with SessionLocal() as db:
         seed_default_prompt_versions(db)
         seed_default_evaluation_cases(db)
-        cases = (
-            db.query(EvaluationCase)
-            .filter(EvaluationCase.workflow_type == WorkflowType.sales_report)
-            .all()
-        )
+        cases = db.query(EvaluationCase).all()
         results = run_sales_evaluation_suite(
             db,
             cases,

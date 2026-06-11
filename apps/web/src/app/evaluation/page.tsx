@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getEvaluationSummary } from "@/lib/api";
-import type { EvaluationMetricsSummary, RunMode } from "@/lib/types";
+import type { EvaluationMetricsSummary, RunMode, WorkflowType } from "@/lib/types";
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -19,11 +19,20 @@ function formatMode(mode: RunMode): string {
   return mode === "multi_agent" ? "Multi-Agent" : "Baseline";
 }
 
+function formatWorkflow(type: WorkflowType): string {
+  if (type === "customer_feedback") return "Customer Feedback";
+  if (type === "incident_log") return "Incident Log";
+  return "Sales Report";
+}
+
 function findSummary(
   summaries: EvaluationMetricsSummary[],
+  workflowType: WorkflowType,
   mode: RunMode,
 ): EvaluationMetricsSummary | undefined {
-  return summaries.find((summary) => summary.run_mode === mode);
+  return summaries.find(
+    (summary) => summary.workflow_type === workflowType && summary.run_mode === mode,
+  );
 }
 
 function metricRows(
@@ -76,7 +85,7 @@ function SummaryCard({ summary }: { summary: EvaluationMetricsSummary }) {
         <div>
           <h2 className="font-semibold">{formatMode(summary.run_mode)}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {summary.run_count} completed evaluation runs
+            {formatWorkflow(summary.workflow_type)} · {summary.run_count} completed runs
           </p>
         </div>
         <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium">
@@ -109,9 +118,9 @@ function SummaryCard({ summary }: { summary: EvaluationMetricsSummary }) {
 
 export default async function EvaluationDashboardPage() {
   const summaries = await getEvaluationSummary();
-  const baseline = findSummary(summaries, "baseline");
-  const multiAgent = findSummary(summaries, "multi_agent");
-  const rows = metricRows(baseline, multiAgent);
+  const workflowTypes = Array.from(
+    new Set(summaries.map((summary) => summary.workflow_type)),
+  ).sort();
 
   return (
     <div>
@@ -119,7 +128,7 @@ export default async function EvaluationDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Evaluation Dashboard</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Baseline vs multi-agent sales workflow quality, cost, and latency.
+            Baseline vs multi-agent workflow quality, cost, and latency by workflow type.
           </p>
         </div>
         <Link
@@ -135,33 +144,43 @@ export default async function EvaluationDashboardPage() {
           No completed evaluation results are available yet.
         </section>
       ) : (
-        <>
-          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {baseline && <SummaryCard summary={baseline} />}
-            {multiAgent && <SummaryCard summary={multiAgent} />}
-          </div>
+        <div className="mt-6 space-y-8">
+          {workflowTypes.map((workflowType) => {
+            const baseline = findSummary(summaries, workflowType, "baseline");
+            const multiAgent = findSummary(summaries, workflowType, "multi_agent");
+            const rows = metricRows(baseline, multiAgent);
+            return (
+              <section key={workflowType}>
+                <h2 className="text-lg font-semibold">{formatWorkflow(workflowType)}</h2>
+                <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {baseline && <SummaryCard summary={baseline} />}
+                  {multiAgent && <SummaryCard summary={multiAgent} />}
+                </div>
 
-          <section className="mt-6 overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Metric</th>
-                  <th className="px-4 py-3 text-right">Baseline</th>
-                  <th className="px-4 py-3 text-right">Multi-Agent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.label} className="border-t border-border">
-                    <td className="px-4 py-3 font-medium">{row.label}</td>
-                    <td className="px-4 py-3 text-right">{row.baseline}</td>
-                    <td className="px-4 py-3 text-right">{row.multiAgent}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
-        </>
+                <div className="mt-4 overflow-hidden rounded-lg border border-border">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-muted text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-3">Metric</th>
+                        <th className="px-4 py-3 text-right">Baseline</th>
+                        <th className="px-4 py-3 text-right">Multi-Agent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row) => (
+                        <tr key={row.label} className="border-t border-border">
+                          <td className="px-4 py-3 font-medium">{row.label}</td>
+                          <td className="px-4 py-3 text-right">{row.baseline}</td>
+                          <td className="px-4 py-3 text-right">{row.multiAgent}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            );
+          })}
+        </div>
       )}
     </div>
   );

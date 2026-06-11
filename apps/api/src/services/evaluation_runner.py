@@ -11,6 +11,10 @@ from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.customer_feedback_classifier import run_customer_feedback_classifier
+from src.services.customer_feedback_insight import run_customer_feedback_insight
+from src.services.customer_feedback_reviewer import run_customer_feedback_reviewer
+from src.services.customer_feedback_writer import run_customer_feedback_writer
 from src.services.evaluation_metrics import calculate_sales_evaluation_scores
 from src.services.human_approvals import approve_human_approval
 from src.services.llm_client import StructuredResponse, TextResponse
@@ -51,8 +55,13 @@ def run_sales_evaluation_case(
     run_mode: RunMode,
     llm_client: LLMClientLike,
 ) -> EvaluationResult:
-    if evaluation_case.workflow_type != WorkflowType.sales_report:
-        raise EvaluationRunnerError("Evaluation runner only supports sales report cases")
+    if evaluation_case.workflow_type not in {
+        WorkflowType.sales_report,
+        WorkflowType.customer_feedback,
+    }:
+        raise EvaluationRunnerError(
+            "Evaluation runner only supports sales report and customer feedback cases"
+        )
 
     result = EvaluationResult(
         evaluation_case_id=evaluation_case.id,
@@ -112,7 +121,7 @@ def run_sales_evaluation_suite(
 def _create_uploaded_input(db: Session, evaluation_case: EvaluationCase) -> UploadedInput:
     uploaded_input = UploadedInput(
         title=f"Evaluation: {evaluation_case.title}",
-        input_type=InputType.sales_report,
+        input_type=InputType(evaluation_case.workflow_type.value),
         raw_text=evaluation_case.input_text,
         notes="Created by evaluation runner.",
     )
@@ -146,6 +155,9 @@ def _run_multi_agent_case(
     run: WorkflowRun,
     llm_client: LLMClientLike,
 ) -> tuple[bool, bool | None]:
+    if run.workflow_type == WorkflowType.customer_feedback:
+        return _run_customer_feedback_multi_agent_case(db, run, llm_client)
+
     run_sales_analyst(db, run, llm_client)
     if run.status == WorkflowStatus.failed:
         return False, None
@@ -171,6 +183,42 @@ def _run_multi_agent_case(
 
     if run.status == WorkflowStatus.writer_running:
         run_sales_writer(db, run, llm_client)
+        return False, None
+
+    return False, None
+
+
+def _run_customer_feedback_multi_agent_case(
+    db: Session,
+    run: WorkflowRun,
+    llm_client: LLMClientLike,
+) -> tuple[bool, bool | None]:
+    run_customer_feedback_classifier(db, run, llm_client)
+    if run.status == WorkflowStatus.failed:
+        return False, None
+
+    run_customer_feedback_insight(db, run, llm_client)
+    if run.status == WorkflowStatus.failed:
+        return False, None
+
+    run_customer_feedback_reviewer(db, run, llm_client)
+    if run.status == WorkflowStatus.failed:
+        return False, None
+
+    if run.status == WorkflowStatus.waiting_for_human:
+        approval = _get_pending_approval(db, run.id)
+        if approval is None:
+            raise EvaluationRunnerError("Pending human approval not found")
+        approve_human_approval(
+            db,
+            approval,
+            human_feedback="Evaluation runner auto-approved for comparison.",
+        )
+        run_customer_feedback_writer(db, run, llm_client)
+        return True, True
+
+    if run.status == WorkflowStatus.writer_running:
+        run_customer_feedback_writer(db, run, llm_client)
         return False, None
 
     return False, None

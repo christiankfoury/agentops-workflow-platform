@@ -47,6 +47,7 @@ class EvaluationResultRead(BaseModel):
 
 
 class EvaluationMetricsSummaryRead(BaseModel):
+    workflow_type: WorkflowType
     run_mode: RunMode
     run_count: int
     factual_accuracy: float

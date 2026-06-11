@@ -27,6 +27,12 @@ SALES_BASELINE_SYSTEM_PROMPT = (
     "sales report. This is a single-agent baseline: do not mention reviewer checks, "
     "retry logic, or human approval. Use only facts supported by the source input."
 )
+CUSTOMER_FEEDBACK_BASELINE_SYSTEM_PROMPT = (
+    "Generate a concise product insights report directly from the supplied customer "
+    "feedback. This is a single-agent baseline: do not mention reviewer checks, retry "
+    "logic, or human approval. Use only themes, requests, risks, and examples supported "
+    "by the source feedback."
+)
 
 
 class BaselineRunError(Exception):
@@ -75,19 +81,15 @@ def run_sales_baseline(
 
     started = time.perf_counter()
     try:
+        prompt = _baseline_prompt(uploaded_input)
         response = llm_client.generate_text(
             messages=[
                 {
                     "role": "user",
-                    "content": (
-                        "Create an executive summary directly from this sales report.\n\n"
-                        f"Title: {uploaded_input.title}\n\n"
-                        f"Notes: {uploaded_input.notes or 'None'}\n\n"
-                        f"Sales report:\n{uploaded_input.raw_text}"
-                    ),
+                    "content": prompt["content"],
                 }
             ],
-            system=SALES_BASELINE_SYSTEM_PROMPT,
+            system=prompt["system"],
         )
     except Exception as e:
         _mark_step_failed(step, str(e), started, db)
@@ -153,8 +155,10 @@ def run_sales_baseline(
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
     if run.status != WorkflowStatus.created:
         raise BaselineRunError("Baseline can only run from created workflows")
-    if run.workflow_type != WorkflowType.sales_report:
-        raise BaselineRunError("Baseline only supports sales report workflows")
+    if run.workflow_type not in {WorkflowType.sales_report, WorkflowType.customer_feedback}:
+        raise BaselineRunError(
+            "Baseline only supports sales report and customer feedback workflows"
+        )
     if run.run_mode != RunMode.baseline:
         raise BaselineRunError("Baseline only runs for baseline workflows")
     if run.input_id is None:
@@ -163,9 +167,32 @@ def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
     uploaded_input = db.query(UploadedInput).filter(UploadedInput.id == run.input_id).first()
     if uploaded_input is None:
         raise BaselineRunError("Uploaded input not found")
-    if uploaded_input.input_type != InputType.sales_report:
-        raise BaselineRunError("Uploaded input must be a sales report")
+    expected_input_type = InputType(run.workflow_type.value)
+    if uploaded_input.input_type != expected_input_type:
+        raise BaselineRunError("Uploaded input type must match workflow type")
     return uploaded_input
+
+
+def _baseline_prompt(uploaded_input: UploadedInput) -> dict[str, str]:
+    if uploaded_input.input_type == InputType.customer_feedback:
+        return {
+            "system": CUSTOMER_FEEDBACK_BASELINE_SYSTEM_PROMPT,
+            "content": (
+                "Create a product insights report directly from this customer feedback.\n\n"
+                f"Title: {uploaded_input.title}\n\n"
+                f"Notes: {uploaded_input.notes or 'None'}\n\n"
+                f"Customer feedback:\n{uploaded_input.raw_text}"
+            ),
+        }
+    return {
+        "system": SALES_BASELINE_SYSTEM_PROMPT,
+        "content": (
+            "Create an executive summary directly from this sales report.\n\n"
+            f"Title: {uploaded_input.title}\n\n"
+            f"Notes: {uploaded_input.notes or 'None'}\n\n"
+            f"Sales report:\n{uploaded_input.raw_text}"
+        ),
+    }
 
 
 def _ensure_no_baseline_started(db: Session, run_id: object) -> None:
