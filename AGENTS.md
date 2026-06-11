@@ -14,10 +14,10 @@ The goal is to let an engineering agent continue implementation autonomously whi
 Target range:
 
 ```text
-Phase 21 through Phase 30
+Phase 31 through Phase 45
 ```
 
-The agent should execute phases continuously in order from the current next phase until Phase 30 is completed, unless a stop condition is reached.
+The agent should execute phases continuously in order from the current next phase until Phase 45 is completed, unless a stop condition is reached.
 
 ## Operating Loop
 

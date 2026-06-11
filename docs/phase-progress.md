@@ -2,7 +2,7 @@
 
 Current next phase: Phase 31 - Customer Feedback Classifier Agent
 
-Autonomous trial target: Phase 21 through Phase 30 complete.
+Autonomous trial target: Phase 31 through Phase 45 complete.
 
 Target range status: Complete.
 
