@@ -36,6 +36,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/costs/page.tsx"), /listAgentSteps/);
   assert.match(read("src/components/nav.tsx"), /href="\/costs"/);
   assert.match(read("src/components/nav.tsx"), /href="\/evaluation"/);
+  assert.match(read("src/components/nav.tsx"), /href="\/demo"/);
   assert.match(read("src/components/nav.tsx"), /href="\/agent-performance"/);
   assert.match(read("src/components/nav.tsx"), /href="\/workflow-comparison"/);
   assert.match(read("src/components/nav.tsx"), /href="\/failures"/);
@@ -48,6 +49,12 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/evaluation/page.tsx"), /Export CSV/);
   assert.match(read("src/app/evaluation/page.tsx"), /Export JSON/);
   assert.match(read("src/app/evaluation/page.tsx"), /Export Markdown/);
+  assert.match(read("src/app/demo/page.tsx"), /Demo Mode/);
+  assert.match(read("src/app/demo/page.tsx"), /Run Demo Sales Workflow/);
+  assert.match(read("src/app/demo/page.tsx"), /Run Demo Feedback Workflow/);
+  assert.match(read("src/app/demo/page.tsx"), /Run Demo Incident Workflow/);
+  assert.match(read("src/app/demo/page.tsx"), /Run Full Evaluation/);
+  assert.match(read("src/app/demo/actions.ts"), /seedDemoDataset/);
   assert.match(read("src/app/agent-performance/page.tsx"), /Agent Performance Dashboard/);
   assert.match(read("src/app/agent-performance/page.tsx"), /getAgentPerformanceSummary/);
   assert.match(read("src/app/agent-performance/page.tsx"), /Schema Validation Failures/);
@@ -111,6 +118,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function getEvaluationSummary/);
   assert.match(api, /export async function listEvaluationResults/);
   assert.match(api, /export async function getEvaluationComparisons/);
+  assert.match(api, /export async function seedDemoDataset/);
   assert.match(api, /export async function getAgentPerformanceSummary/);
   assert.match(api, /export async function listPromptVersions/);
   assert.match(api, /export async function getPromptVersion/);

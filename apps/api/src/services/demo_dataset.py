@@ -9,7 +9,7 @@ from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.uploaded_input import InputType, UploadedInput
-from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus
+from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.evaluation_cases import seed_default_evaluation_cases
 
 DEMO_TITLE_PREFIX = "[Demo]"
@@ -24,8 +24,14 @@ class DemoDatasetSummary:
     agent_steps: int
 
 
-def seed_demo_dataset(db: Session) -> DemoDatasetSummary:
+def seed_demo_dataset(
+    db: Session,
+    workflow_types: set[WorkflowType] | None = None,
+) -> DemoDatasetSummary:
     cases = seed_default_evaluation_cases(db)
+    selected_cases = [
+        case for case in cases if workflow_types is None or case.workflow_type in workflow_types
+    ]
     created_at_base = datetime.now(UTC) - timedelta(days=len(cases))
 
     uploaded_inputs = 0
@@ -33,7 +39,7 @@ def seed_demo_dataset(db: Session) -> DemoDatasetSummary:
     evaluation_results = 0
     agent_steps = 0
 
-    for index, case in enumerate(cases):
+    for index, case in enumerate(selected_cases):
         input_record = _upsert_uploaded_input(db, case, created_at_base + timedelta(days=index))
         uploaded_inputs += 1
 
@@ -101,7 +107,7 @@ def seed_demo_dataset(db: Session) -> DemoDatasetSummary:
 
     db.commit()
     return DemoDatasetSummary(
-        evaluation_cases=len(cases),
+        evaluation_cases=len(selected_cases),
         uploaded_inputs=uploaded_inputs,
         workflow_runs=workflow_runs,
         evaluation_results=evaluation_results,

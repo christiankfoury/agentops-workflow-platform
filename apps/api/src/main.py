@@ -5,6 +5,7 @@ from src.database import check_db
 from src.routers import (
     agent_performance,
     agent_settings,
+    demo,
     evaluation_results,
     human_approvals,
     prompt_versions,
@@ -22,6 +23,7 @@ app.include_router(human_approvals.router, prefix="/human-approvals", tags=["hum
 app.include_router(prompt_versions.router, prefix="/prompt-versions", tags=["prompt-versions"])
 app.include_router(uploaded_inputs.router, prefix="/uploaded-inputs", tags=["uploaded-inputs"])
 app.include_router(agent_settings.router, prefix="/agent-settings", tags=["agent-settings"])
+app.include_router(demo.router, prefix="/demo", tags=["demo"])
 app.include_router(
     agent_performance.router,
     prefix="/agent-performance",

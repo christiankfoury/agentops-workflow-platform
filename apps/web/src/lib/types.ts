@@ -1,5 +1,10 @@
 export type WorkflowType = "sales_report" | "customer_feedback" | "incident_log";
 export type RunMode = "baseline" | "multi_agent";
+export type DemoSeedTarget =
+  | "sales-report"
+  | "customer-feedback"
+  | "incident-log"
+  | "full-evaluation";
 export type AgentType =
   | "analyst"
   | "reviewer"
@@ -322,4 +327,12 @@ export interface CreateWorkflowRunRequest {
   workflow_type: WorkflowType;
   run_mode?: RunMode;
   input_id?: string | null;
+}
+
+export interface DemoDatasetSummary {
+  evaluation_cases: number;
+  uploaded_inputs: number;
+  workflow_runs: number;
+  evaluation_results: number;
+  agent_steps: number;
 }

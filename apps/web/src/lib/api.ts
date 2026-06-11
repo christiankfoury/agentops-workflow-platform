@@ -6,6 +6,8 @@ import type {
   AgentSetting,
   AgentPerformanceSummary,
   CreateUploadedInputRequest,
+  DemoDatasetSummary,
+  DemoSeedTarget,
   EvaluationComparison,
   CreateWorkflowRunRequest,
   DetectWorkflowRequest,
@@ -142,6 +144,19 @@ export async function getEvaluationComparisons(): Promise<EvaluationComparison[]
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation comparisons: ${res.status}`);
   return res.json() as Promise<EvaluationComparison[]>;
+}
+
+export async function seedDemoDataset(
+  target: DemoSeedTarget,
+): Promise<DemoDatasetSummary> {
+  const res = await fetch(apiUrl(`/demo/${target}`), {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to seed demo dataset: ${detail}`);
+  }
+  return res.json() as Promise<DemoDatasetSummary>;
 }
 
 export async function getAgentPerformanceSummary(): Promise<AgentPerformanceSummary[]> {

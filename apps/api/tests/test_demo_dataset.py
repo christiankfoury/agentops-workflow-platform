@@ -2,6 +2,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from fastapi.testclient import TestClient
+
+from src.database import get_db
+from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
@@ -172,3 +176,41 @@ def test_seed_demo_dataset_does_not_overwrite_non_demo_evaluation_results():
     assert non_demo_result.factual_accuracy == 0.11
     assert non_demo_result.unsupported_claim_rate == 0.99
     assert non_demo_result.completeness_score == 0.22
+
+
+def test_seed_demo_dataset_can_seed_one_workflow_type():
+    db = FakeSession()
+
+    summary = seed_demo_dataset(db, {WorkflowType.sales_report})
+
+    assert summary.evaluation_cases == 10
+    assert summary.uploaded_inputs == 10
+    assert summary.workflow_runs == 20
+    assert summary.evaluation_results == 20
+    assert summary.agent_steps == 30
+    assert len(db.cases) == 30
+    assert len(db.uploaded_inputs) == 10
+    assert len(db.runs) == 20
+    assert len(db.results) == 20
+    assert {input_record.input_type.value for input_record in db.uploaded_inputs} == {
+        WorkflowType.sales_report.value
+    }
+
+
+def test_demo_sales_endpoint_seeds_sales_demo_records():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post("/demo/sales-report")
+
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    assert response.json() == {
+        "evaluation_cases": 10,
+        "uploaded_inputs": 10,
+        "workflow_runs": 20,
+        "evaluation_results": 20,
+        "agent_steps": 30,
+    }
+    assert len(db.uploaded_inputs) == 10
