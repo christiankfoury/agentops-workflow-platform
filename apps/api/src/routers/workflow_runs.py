@@ -35,6 +35,7 @@ from src.services.sales_baseline import BaselineRunError, run_sales_baseline
 from src.services.sales_reviewer import ReviewerRunError, run_sales_reviewer
 from src.services.sales_writer import WriterRunError, run_sales_writer
 from src.services.workflow_events import log_workflow_event
+from src.services.workflow_recovery import cancel_workflow_run
 from src.services.workflow_state import InvalidTransitionError, transition
 
 router = APIRouter()
@@ -258,3 +259,14 @@ def update_workflow_status(
         return transition(run, body.status, db)
     except InvalidTransitionError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+@router.post("/{run_id}/cancel", response_model=WorkflowRunRead)
+def cancel_run(run_id: uuid.UUID, db: Session = Depends(get_db)) -> WorkflowRun:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return cancel_workflow_run(db, run)
+    except InvalidTransitionError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e

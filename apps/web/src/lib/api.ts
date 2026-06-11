@@ -188,6 +188,17 @@ export async function runSalesWriter(runId: string): Promise<AgentStep> {
   return res.json() as Promise<AgentStep>;
 }
 
+export async function cancelWorkflowRun(runId: string): Promise<WorkflowRun> {
+  const res = await fetch(apiUrl(`/workflow-runs/${runId}/cancel`), {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to cancel workflow run: ${detail}`);
+  }
+  return res.json() as Promise<WorkflowRun>;
+}
+
 export async function listHumanApprovals(): Promise<HumanApproval[]> {
   const res = await fetch(apiUrl("/human-approvals"), { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch human approvals: ${res.status}`);

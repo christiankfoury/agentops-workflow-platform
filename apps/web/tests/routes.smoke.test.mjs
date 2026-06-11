@@ -13,6 +13,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listWorkflowEvents/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listHumanApprovals/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Observability Timeline/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /RecoverySummary/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /final-output/);
   assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Final Executive Summary/);
   assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Workflow Trace/);
@@ -40,10 +41,12 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesBaseline/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesReviewer/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesWriter/);
+  assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /cancelWorkflowRun/);
   assert.match(read("src/app/workflow-runs/[id]/run-analyst-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-baseline-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-reviewer-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-writer-form.tsx"), /useActionState/);
+  assert.match(read("src/app/workflow-runs/[id]/cancel-workflow-form.tsx"), /Cancel Workflow/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /detectWorkflowType/);
@@ -79,6 +82,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function runSalesBaseline/);
   assert.match(api, /export async function runSalesReviewer/);
   assert.match(api, /export async function runSalesWriter/);
+  assert.match(api, /export async function cancelWorkflowRun/);
   assert.match(api, /export async function listHumanApprovals/);
   assert.match(api, /export async function getHumanApproval/);
   assert.match(api, /export async function approveHumanApproval/);

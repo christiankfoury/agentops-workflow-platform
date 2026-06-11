@@ -15,6 +15,7 @@ class WorkflowEventType(StrEnum):
     workflow_started = "workflow_started"
     workflow_completed = "workflow_completed"
     workflow_failed = "workflow_failed"
+    workflow_cancelled = "workflow_cancelled"
     agent_started = "agent_started"
     agent_completed = "agent_completed"
     agent_failed = "agent_failed"

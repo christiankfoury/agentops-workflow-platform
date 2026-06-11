@@ -8,6 +8,7 @@ import {
   listHumanApprovals,
 } from "@/lib/api";
 import type { AgentStep, WorkflowEvent } from "@/lib/types";
+import { CancelWorkflowForm } from "./cancel-workflow-form";
 import { RunAnalystForm } from "./run-analyst-form";
 import { RunBaselineForm } from "./run-baseline-form";
 import { RunReviewerForm } from "./run-reviewer-form";
@@ -65,6 +66,9 @@ function getEventClass(eventType: WorkflowEvent["event_type"]): string {
   if (eventType.endsWith("failed") || eventType === "human_rejected") {
     return "border-destructive/30 bg-destructive/10 text-destructive";
   }
+  if (eventType === "workflow_cancelled") {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
+  }
   if (
     eventType === "workflow_completed" ||
     eventType === "agent_completed" ||
@@ -81,6 +85,50 @@ function getEventClass(eventType: WorkflowEvent["event_type"]): string {
     return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
   }
   return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300";
+}
+
+function getRecoveryMessages(runStatus: string, steps: AgentStep[], events: WorkflowEvent[]) {
+  const messages = [
+    ...steps
+      .filter((step) => step.status === "failed" && step.error_message)
+      .map((step) => `${step.agent_name}: ${step.error_message}`),
+    ...events
+      .filter((event) => event.error_message)
+      .map((event) => `${formatEventType(event.event_type)}: ${event.error_message}`),
+  ];
+
+  if (runStatus === "cancelled" && messages.length === 0) {
+    messages.push("Workflow was cancelled before it completed.");
+  }
+  if (runStatus === "failed" && messages.length === 0) {
+    messages.push("Workflow failed. Check the event timeline and agent steps for details.");
+  }
+  return Array.from(new Set(messages));
+}
+
+function RecoverySummary({
+  status,
+  messages,
+}: {
+  status: string;
+  messages: string[];
+}) {
+  if (status !== "failed" && status !== "cancelled" && messages.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+      <h2 className="text-lg font-semibold">
+        {status === "cancelled" ? "Workflow Cancelled" : "Workflow Needs Attention"}
+      </h2>
+      <ul className="mt-3 space-y-2 text-sm text-destructive">
+        {messages.map((message) => (
+          <li key={message}>{message}</li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function formatMetadata(metadata: WorkflowEvent["metadata_json"]): string {
@@ -303,6 +351,7 @@ export default async function WorkflowRunDetailPage({
   const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
   const agentSteps = await listAgentSteps(run.id);
   const workflowEvents = await listWorkflowEvents(run.id);
+  const recoveryMessages = getRecoveryMessages(run.status, agentSteps, workflowEvents);
   const humanApprovals =
     run.status === "waiting_for_human" ? await listHumanApprovals() : [];
   const pendingApproval = humanApprovals.find(
@@ -349,6 +398,7 @@ export default async function WorkflowRunDetailPage({
         step.agent_type === "writer" &&
         (step.status === "running" || step.status === "completed"),
     );
+  const canCancelWorkflow = !["completed", "failed", "cancelled"].includes(run.status);
 
   const fields = [
     { label: "Status", value: run.status },
@@ -423,6 +473,10 @@ export default async function WorkflowRunDetailPage({
           </Link>
         </div>
       )}
+
+      {canCancelWorkflow && <CancelWorkflowForm runId={run.id} />}
+
+      <RecoverySummary status={run.status} messages={recoveryMessages} />
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map(({ label, value }) => (

@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 42 - Error Handling and Failure Recovery
+Current next phase: Phase 43 - Schema Validation and Guardrails
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -51,17 +51,18 @@ Target range status: In progress.
 | 39 | Complete | Incident evaluation case seeding with timeline expectations, baseline and multi-agent incident evaluation runner support, and incident workflow metrics in evaluation summaries. |
 | 40 | Complete | Optional Router Agent workflow detection endpoint plus new workflow form controls for manual selection or auto-detect before creating uploaded inputs and workflow runs. |
 | 41 | Complete | Router confidence thresholds for auto-select, confirmation, and manual-selection fallback plus router accuracy/confidence tracking in evaluation results and dashboard summaries. |
+| 42 | Complete | Workflow cancellation recovery with cancellation events, in-flight step failure messages, cancel UI action, and workflow detail recovery summaries for failed or cancelled runs. |
 
 ## Next Phase
 
-### Phase 42: Error Handling and Failure Recovery
+### Phase 43: Schema Validation and Guardrails
 
 Expected scope:
 
-- Improve system reliability for LLM timeouts, invalid JSON, schema validation failures, database errors, agent failures, reviewer/writer failures, and workflow cancellation.
-- Add graceful failure states and useful UI error messages.
+- Add strict validation for all agent outputs with Pydantic models.
+- Ensure invalid agent JSON can be repaired or fails safely.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 42.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 43.
 
 ## Last Known Validation Pattern
 
@@ -74,4 +75,4 @@ pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
 pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
 ```
 
-Note: the full API test suite passed quickly in Phase 41.
+Note: the full API test suite passed quickly in Phase 42.

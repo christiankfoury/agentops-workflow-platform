@@ -32,6 +32,7 @@ export type WorkflowEventType =
   | "workflow_started"
   | "workflow_completed"
   | "workflow_failed"
+  | "workflow_cancelled"
   | "agent_started"
   | "agent_completed"
   | "agent_failed"

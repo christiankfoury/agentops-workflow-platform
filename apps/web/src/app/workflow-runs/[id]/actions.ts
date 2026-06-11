@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import {
+  cancelWorkflowRun,
   runSalesAnalyst,
   runSalesBaseline,
   runSalesReviewer,
@@ -88,6 +89,26 @@ export async function runWriterAction(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to run writer.",
+    };
+  }
+
+  redirect(`/workflow-runs/${runId}`);
+}
+
+export async function cancelWorkflowAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  try {
+    await cancelWorkflowRun(runId);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to cancel workflow.",
     };
   }
 
