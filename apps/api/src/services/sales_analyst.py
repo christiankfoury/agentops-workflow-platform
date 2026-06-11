@@ -5,6 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
+from pydantic import BaseModel, ConfigDict, ValidationError
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
@@ -13,7 +14,6 @@ from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.llm_client import StructuredResponse
-from src.services.workflow_state import transition
 
 SALES_ANALYST_AGENT_NAME = "Sales Analyst Agent"
 
@@ -41,6 +41,16 @@ class AnalystRunError(Exception):
     pass
 
 
+class SalesAnalysisOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    key_findings: list[str]
+    risks: list[str]
+    opportunities: list[str]
+    recommendations: list[str]
+    supporting_evidence: list[str]
+
+
 class LLMClientLike(Protocol):
     def generate_structured(
         self,
@@ -61,6 +71,8 @@ def run_sales_analyst(
     uploaded_input = _validate_run_and_get_input(db, run)
     prompt = _get_active_sales_analyst_prompt(db)
     step_order = _next_step_order(db, run.id)
+    _set_run_status(run, WorkflowStatus.running, db)
+    _set_run_status(run, WorkflowStatus.analyst_running, db)
     agent_input = {
         "workflow_run_id": str(run.id),
         "input_id": str(uploaded_input.id),
@@ -82,10 +94,8 @@ def run_sales_analyst(
     db.commit()
     db.refresh(step)
 
+    started = time.perf_counter()
     try:
-        transition(run, WorkflowStatus.running, db)
-        transition(run, WorkflowStatus.analyst_running, db)
-        started = time.perf_counter()
         response = llm_client.generate_structured(
             messages=[
                 {
@@ -101,27 +111,51 @@ def run_sales_analyst(
             system=prompt.template,
             schema=SALES_ANALYSIS_SCHEMA,
         )
-        latency_ms = int((time.perf_counter() - started) * 1000)
-        step.status = AgentStepStatus.completed
-        step.output_json = response.data
-        step.model = response.model
-        step.tokens_input = response.usage.input_tokens
-        step.tokens_output = response.usage.output_tokens
-        step.total_tokens = response.usage.total_tokens
-        step.latency_ms = latency_ms
-        step.completed_at = datetime.now(UTC)
-        db.commit()
-        db.refresh(step)
-        transition(run, WorkflowStatus.reviewer_running, db)
+        output = SalesAnalysisOutput.model_validate(response.data)
+    except (Exception, ValidationError) as e:
+        _mark_step_failed(step, str(e), started, db)
+        _set_run_status(run, WorkflowStatus.failed, db)
         return step
-    except Exception as e:
-        step.status = AgentStepStatus.failed
-        step.error_message = str(e)
-        step.completed_at = datetime.now(UTC)
-        db.commit()
-        db.refresh(step)
-        transition(run, WorkflowStatus.failed, db)
-        return step
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    step.status = AgentStepStatus.completed
+    step.output_json = output.model_dump()
+    step.model = response.model
+    step.tokens_input = response.usage.input_tokens
+    step.tokens_output = response.usage.output_tokens
+    step.total_tokens = response.usage.total_tokens
+    step.latency_ms = latency_ms
+    step.completed_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(step)
+    _set_run_status(run, WorkflowStatus.reviewer_running, db)
+    return step
+
+
+def _mark_step_failed(
+    step: AgentStep,
+    error_message: str,
+    started: float,
+    db: Session,
+) -> None:
+    step.status = AgentStepStatus.failed
+    step.error_message = error_message
+    step.latency_ms = int((time.perf_counter() - started) * 1000)
+    step.completed_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(step)
+
+
+def _set_run_status(run: WorkflowRun, status: WorkflowStatus, db: Session) -> None:
+    run.status = status
+    if status in {
+        WorkflowStatus.completed,
+        WorkflowStatus.failed,
+        WorkflowStatus.cancelled,
+    }:
+        run.completed_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(run)
 
 
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:

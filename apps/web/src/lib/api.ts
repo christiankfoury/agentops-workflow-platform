@@ -72,6 +72,10 @@ export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
   const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-analyst`), {
     method: "POST",
   });
-  if (!res.ok) throw new Error(`Failed to run analyst: ${res.status}`);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof body?.detail === "string" ? body.detail : String(res.status);
+    throw new Error(`Failed to run analyst: ${detail}`);
+  }
   return res.json() as Promise<AgentStep>;
 }

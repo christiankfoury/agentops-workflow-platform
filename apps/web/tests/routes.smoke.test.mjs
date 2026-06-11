@@ -10,7 +10,8 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getWorkflowRun/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getUploadedInput/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listAgentSteps/);
-  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /runAnalystAction/);
+  assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesAnalyst/);
+  assert.match(read("src/app/workflow-runs/[id]/run-analyst-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /useActionState/);

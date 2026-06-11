@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUploadedInput, getWorkflowRun, listAgentSteps } from "@/lib/api";
-import { runAnalystAction } from "./actions";
+import { RunAnalystForm } from "./run-analyst-form";
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -16,7 +16,9 @@ export default async function WorkflowRunDetailPage({
   const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
   const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
   const agentSteps = await listAgentSteps(run.id);
-  const analystStep = agentSteps.find((step) => step.agent_type === "analyst");
+  const analystStep = agentSteps
+    .filter((step) => step.agent_type === "analyst")
+    .at(-1);
   const canRunAnalyst =
     run.status === "created" &&
     run.workflow_type === "sales_report" &&
@@ -66,15 +68,7 @@ export default async function WorkflowRunDetailPage({
       <p className="font-mono text-sm text-muted-foreground">{run.id}</p>
 
       {canRunAnalyst && (
-        <form action={runAnalystAction} className="mt-4">
-          <input type="hidden" name="run_id" value={run.id} />
-          <button
-            type="submit"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            Run Analyst
-          </button>
-        </form>
+        <RunAnalystForm runId={run.id} />
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
