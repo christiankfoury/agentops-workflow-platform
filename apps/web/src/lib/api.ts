@@ -10,6 +10,7 @@ import type {
   CreateWorkflowRunRequest,
   DetectWorkflowRequest,
   EvaluationMetricsSummary,
+  EvaluationResult,
   HumanApproval,
   HumanApprovalActionRequest,
   HumanApprovalEditRequest,
@@ -125,6 +126,14 @@ export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
   return res.json() as Promise<EvaluationMetricsSummary[]>;
+}
+
+export async function listEvaluationResults(): Promise<EvaluationResult[]> {
+  const res = await fetch(apiUrl("/evaluation-results"), {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch evaluation results: ${res.status}`);
+  return res.json() as Promise<EvaluationResult[]>;
 }
 
 export async function getEvaluationComparisons(): Promise<EvaluationComparison[]> {

@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 56 - Improvement Tracking Over Time
+Current next phase: Phase 57 - Seed Demo Dataset
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 55 complete; Phase 56 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 56 complete; Phase 57 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -65,17 +65,18 @@ Target range status: Phase 46 through Phase 55 complete; Phase 56 through Phase 
 | 53 | Complete | Incident log parser that normalizes timestamped pasted or uploaded logs into ordered event lines while preserving ambiguous raw lines for timeline analysis. |
 | 54 | Complete | Deterministic evaluation checks now include expected customer feedback themes, incident timeline timestamps/events, unsupported generated numbers, and runner judge notes. |
 | 55 | Complete | Failure case explorer dashboard for low-scoring runs, failed agent steps, schema validation failures, common failure types, and human-rejected outputs. |
+| 56 | Complete | Improvement tracking dashboard with evaluation trends over time for factual accuracy, unsupported claims, completeness, approval rate, cost, and latency. |
 
 ## Next Phase
 
-### Phase 56: Improvement Tracking Over Time
+### Phase 57: Seed Demo Dataset
 
 Expected scope:
 
-- Track whether the system improves across prompt versions and agent settings.
-- Show factual accuracy, unsupported claim rate, cost, latency, and human approval rate trends over time.
+- Create a polished demo dataset.
+- Include demo inputs, gold-standard expected outputs, baseline outputs, multi-agent outputs, and evaluation results where feasible.
 
-Do not implement background jobs, auth, deployment work, or broad alerting in Phase 56.
+Do not implement background jobs, auth, deployment work, or broad alerting in Phase 57.
 
 ## Last Known Validation Pattern
 

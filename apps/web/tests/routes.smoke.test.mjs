@@ -39,6 +39,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/components/nav.tsx"), /href="\/agent-performance"/);
   assert.match(read("src/components/nav.tsx"), /href="\/workflow-comparison"/);
   assert.match(read("src/components/nav.tsx"), /href="\/failures"/);
+  assert.match(read("src/components/nav.tsx"), /href="\/improvements"/);
   assert.match(read("src/components/nav.tsx"), /href="\/prompt-versions"/);
   assert.match(read("src/components/nav.tsx"), /href="\/settings"/);
   assert.match(read("src/app/evaluation/page.tsx"), /Evaluation Dashboard/);
@@ -56,6 +57,9 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/failures/page.tsx"), /Failure Case Explorer/);
   assert.match(read("src/app/failures/page.tsx"), /listWorkflowRuns/);
   assert.match(read("src/app/failures/page.tsx"), /Schema Validation Failures/);
+  assert.match(read("src/app/improvements/page.tsx"), /Improvement Tracking/);
+  assert.match(read("src/app/improvements/page.tsx"), /listEvaluationResults/);
+  assert.match(read("src/app/improvements/page.tsx"), /Evaluation Trends/);
   assert.match(read("src/app/prompt-versions/page.tsx"), /Prompt Versions/);
   assert.match(read("src/app/prompt-versions/page.tsx"), /listPromptVersions/);
   assert.match(read("src/app/prompt-versions/form.tsx"), /useActionState/);
@@ -105,6 +109,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function listAgentSteps/);
   assert.match(api, /export async function listWorkflowEvents/);
   assert.match(api, /export async function getEvaluationSummary/);
+  assert.match(api, /export async function listEvaluationResults/);
   assert.match(api, /export async function getEvaluationComparisons/);
   assert.match(api, /export async function getAgentPerformanceSummary/);
   assert.match(api, /export async function listPromptVersions/);

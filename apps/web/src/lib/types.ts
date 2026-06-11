@@ -124,6 +124,29 @@ export interface EvaluationMetricsSummary {
   average_retries: number;
 }
 
+export interface EvaluationResult {
+  id: string;
+  evaluation_case_id: string;
+  workflow_run_id: string | null;
+  run_mode: RunMode;
+  status: "pending" | "completed" | "failed";
+  prompt_version_summary_json: Record<string, unknown> | null;
+  factual_accuracy: number | null;
+  unsupported_claim_rate: number | null;
+  completeness_score: number | null;
+  router_detected_workflow_type: WorkflowType | null;
+  router_confidence: number | null;
+  router_correct: boolean | null;
+  human_approval_required: boolean | null;
+  human_approved: boolean | null;
+  retry_count: number | null;
+  cost: number | null;
+  latency_ms: number | null;
+  judge_notes: string | null;
+  error_message: string | null;
+  created_at: string;
+}
+
 export interface EvaluationComparisonRun {
   workflow_run_id: string;
   final_output: string | null;

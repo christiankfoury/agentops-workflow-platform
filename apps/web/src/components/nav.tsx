@@ -57,6 +57,12 @@ export function Nav() {
             Failures
           </Link>
           <Link
+            href="/improvements"
+            className="transition-colors hover:text-foreground"
+          >
+            Trends
+          </Link>
+          <Link
             href="/prompt-versions"
             className="transition-colors hover:text-foreground"
           >
