@@ -3,6 +3,7 @@ import { createUploadedInput, createWorkflowRun } from "@/lib/api";
 import type { RunMode } from "@/lib/types";
 
 const allowedFileExtensions = [".txt", ".md"];
+const maxUploadBytes = 250 * 1024;
 
 function cleanOptional(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
@@ -18,6 +19,10 @@ async function readInputText(formData: FormData): Promise<{
 }> {
   const file = formData.get("input_file");
   if (file instanceof File && file.size > 0) {
+    if (file.size > maxUploadBytes) {
+      throw new Error("Uploaded file must be 250 KB or smaller.");
+    }
+
     const fileName = file.name;
     const lowerFileName = fileName.toLowerCase();
     const isAllowed = allowedFileExtensions.some((extension) =>

@@ -31,6 +31,11 @@ def create_workflow_run(body: WorkflowRunCreate, db: Session = Depends(get_db)) 
         uploaded_input = db.query(UploadedInput).filter(UploadedInput.id == body.input_id).first()
         if uploaded_input is None:
             raise HTTPException(status_code=422, detail="Uploaded input not found")
+        if uploaded_input.input_type != body.workflow_type:
+            raise HTTPException(
+                status_code=422,
+                detail="Uploaded input type must match workflow type",
+            )
 
     run = WorkflowRun(
         workflow_type=body.workflow_type,

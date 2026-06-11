@@ -88,3 +88,47 @@ def test_missing_uploaded_input_returns_404():
 
     assert response.status_code == 404
     app.dependency_overrides.clear()
+
+
+def test_uploaded_input_rejects_blank_required_text():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs",
+        json={
+            "title": "   ",
+            "input_type": "sales_report",
+            "raw_text": "   ",
+        },
+    )
+
+    assert response.status_code == 422
+    app.dependency_overrides.clear()
+
+
+def test_uploaded_input_strips_text_fields():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs",
+        json={
+            "title": "  Q1 Sales Report  ",
+            "input_type": "sales_report",
+            "raw_text": "  Revenue increased 12%.  ",
+            "notes": "  Review for leadership.  ",
+            "file_name": "  q1.md  ",
+            "file_type": "  text/markdown  ",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["title"] == "Q1 Sales Report"
+    assert body["raw_text"] == "Revenue increased 12%."
+    assert body["notes"] == "Review for leadership."
+    assert body["file_name"] == "q1.md"
+    assert body["file_type"] == "text/markdown"
+    app.dependency_overrides.clear()

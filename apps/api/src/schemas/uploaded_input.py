@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models.uploaded_input import InputType
 
@@ -16,6 +16,21 @@ class UploadedInputCreate(BaseModel):
     file_size: int | None = Field(default=None, ge=0)
     organization_id: uuid.UUID | None = None
     created_by_user_id: uuid.UUID | None = None
+
+    @field_validator("title", "raw_text", mode="before")
+    @classmethod
+    def strip_required_text(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("notes", "file_name", "file_type", mode="before")
+    @classmethod
+    def strip_optional_text(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped if stripped else None
+        return value
 
 
 class UploadedInputRead(BaseModel):

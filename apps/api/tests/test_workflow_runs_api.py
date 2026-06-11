@@ -122,6 +122,33 @@ def test_create_workflow_run_with_missing_input_id_returns_422():
     app.dependency_overrides.clear()
 
 
+def test_create_workflow_run_with_mismatched_input_type_returns_422():
+    uploaded_input = UploadedInput(
+        id=uuid.uuid4(),
+        title="Feedback Export",
+        input_type=InputType.customer_feedback,
+        raw_text="Customers requested export improvements.",
+        created_at=datetime.now(UTC),
+    )
+    db = FakeSession()
+    db.inputs.append(uploaded_input)
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/workflow-runs",
+        json={
+            "workflow_type": "sales_report",
+            "run_mode": "multi_agent",
+            "input_id": str(uploaded_input.id),
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Uploaded input type must match workflow type"
+    app.dependency_overrides.clear()
+
+
 def test_missing_workflow_run_returns_404():
     app.dependency_overrides[get_db] = lambda: FakeSession()
     client = TestClient(app)
