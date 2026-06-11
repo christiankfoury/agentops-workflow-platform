@@ -26,6 +26,12 @@ export function Nav() {
           >
             Approvals
           </Link>
+          <Link
+            href="/costs"
+            className="transition-colors hover:text-foreground"
+          >
+            Costs
+          </Link>
         </div>
       </nav>
     </header>

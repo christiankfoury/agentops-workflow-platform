@@ -1,8 +1,8 @@
 # Phase Progress
 
-Current next phase: Phase 20 - Cost Dashboard
+Current next phase: Phase 21 - Observability Logs
 
-Autonomous trial target: complete Phase 17 through Phase 20 in order.
+Autonomous trial target: Phase 17 through Phase 20 complete.
 
 ## Completed Phases
 
@@ -27,19 +27,20 @@ Autonomous trial target: complete Phase 17 through Phase 20 in order.
 | 17 | Complete | Writer Agent backend, final output persistence, completion transition, focused tests, and workflow detail trigger. |
 | 18 | Complete | Dedicated final output page with summary metrics, approval status, and expandable workflow trace. |
 | 19 | Complete | Agent-level cost estimation, cost event persistence, workflow cost totals, and focused backend coverage. |
+| 20 | Complete | Cost dashboard with spend metrics, workflow and agent cost breakdowns, token usage, and expensive-run table. |
 
 ## Next Phase
 
-### Phase 20: Cost Dashboard
+### Phase 21: Observability Logs
 
 Expected scope:
 
-- Create a cost dashboard.
-- Show total spend, average cost per workflow, cost by workflow type, cost by agent, most expensive runs, and average retry cost.
-- Include useful charts or tables for cost over time, cost per agent, cost per workflow type, and tokens by agent.
-- Use the existing workflow and agent-step data; add backend read endpoints only if needed for the dashboard.
+- Add structured observability logging.
+- Persist workflow events such as workflow started, agent started/completed/failed, retry triggered, human approval required/approved, workflow completed, and workflow failed.
+- Include workflow run ID, optional agent step ID, event type, timestamp, metadata, and error message.
+- Keep UI work for the following phase unless minimal backend visibility is required for validation.
 
-Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 20.
+Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 21.
 
 ## Last Known Validation Pattern
 
