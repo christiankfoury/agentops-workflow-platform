@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 57 - Seed Demo Dataset
+Current next phase: Phase 58 - Demo Mode
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 56 complete; Phase 57 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 57 complete; Phase 58 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -66,17 +66,18 @@ Target range status: Phase 46 through Phase 56 complete; Phase 57 through Phase 
 | 54 | Complete | Deterministic evaluation checks now include expected customer feedback themes, incident timeline timestamps/events, unsupported generated numbers, and runner judge notes. |
 | 55 | Complete | Failure case explorer dashboard for low-scoring runs, failed agent steps, schema validation failures, common failure types, and human-rejected outputs. |
 | 56 | Complete | Improvement tracking dashboard with evaluation trends over time for factual accuracy, unsupported claims, completeness, approval rate, cost, and latency. |
+| 57 | Complete | Polished demo dataset seeding with 10 cases per workflow, demo uploaded inputs, baseline and multi-agent runs, evaluation results, and agent trace steps. |
 
 ## Next Phase
 
-### Phase 57: Seed Demo Dataset
+### Phase 58: Demo Mode
 
 Expected scope:
 
-- Create a polished demo dataset.
-- Include demo inputs, gold-standard expected outputs, baseline outputs, multi-agent outputs, and evaluation results where feasible.
+- Add a demo mode.
+- Provide controls to run demo sales, feedback, incident, and full evaluation workflows.
 
-Do not implement background jobs, auth, deployment work, or broad alerting in Phase 57.
+Do not implement background jobs, auth, deployment work, or broad alerting in Phase 58.
 
 ## Last Known Validation Pattern
 

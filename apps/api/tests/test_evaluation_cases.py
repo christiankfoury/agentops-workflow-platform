@@ -65,10 +65,10 @@ def test_seed_default_evaluation_cases_creates_all_workflow_cases():
 
     cases = seed_default_evaluation_cases(db)
 
-    assert len(cases) == 25
-    assert len(db.cases) == 25
+    assert len(cases) == 30
+    assert len(db.cases) == 30
     assert db.commits == 1
-    assert sum(case.workflow_type == WorkflowType.sales_report for case in cases) == 5
+    assert sum(case.workflow_type == WorkflowType.sales_report for case in cases) == 10
     assert sum(case.workflow_type == WorkflowType.customer_feedback for case in cases) == 10
     assert sum(case.workflow_type == WorkflowType.incident_log for case in cases) == 10
     assert all(case.expected_facts_json for case in cases)
@@ -99,8 +99,8 @@ def test_seed_default_evaluation_cases_is_idempotent_and_updates_existing_case()
 
     cases = seed_default_evaluation_cases(db)
 
-    assert len(cases) == 25
-    assert len(db.cases) == 25
+    assert len(cases) == 30
+    assert len(db.cases) == 30
     assert db.cases[0] is existing
     assert existing.input_text == DEFAULT_SALES_EVALUATION_CASES[0]["input_text"]
     assert existing.expected_facts_json == DEFAULT_SALES_EVALUATION_CASES[0][
@@ -125,7 +125,7 @@ def test_seed_default_evaluation_cases_updates_existing_customer_feedback_case()
 
     seed_default_evaluation_cases(db)
 
-    assert len(db.cases) == 25
+    assert len(db.cases) == 30
     assert db.cases[0] is existing
     assert existing.input_text == DEFAULT_CUSTOMER_FEEDBACK_EVALUATION_CASES[0]["input_text"]
     assert existing.expected_themes_json == DEFAULT_CUSTOMER_FEEDBACK_EVALUATION_CASES[0][
@@ -150,7 +150,7 @@ def test_seed_default_evaluation_cases_updates_existing_incident_case():
 
     seed_default_evaluation_cases(db)
 
-    assert len(db.cases) == 25
+    assert len(db.cases) == 30
     assert db.cases[0] is existing
     assert existing.input_text == DEFAULT_INCIDENT_EVALUATION_CASES[0]["input_text"]
     assert existing.expected_timeline_json == DEFAULT_INCIDENT_EVALUATION_CASES[0][

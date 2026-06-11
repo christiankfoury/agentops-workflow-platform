@@ -121,6 +121,141 @@ DEFAULT_SALES_EVALUATION_CASES = [
         ],
         "expected_output_notes": "Summary should not describe churn as increasing.",
     },
+    {
+        "title": "Channel growth with onboarding drag",
+        "input_text": (
+            "Channel Sales Report\n"
+            "Partner-sourced revenue increased 22% to $1.8M. Direct sales revenue "
+            "grew 4%. New reseller onboarding took an average of 41 days, up from "
+            "29 days last quarter. The Northeast region exceeded target by 12%. "
+            "Attach rate for premium support fell from 33% to 25%."
+        ),
+        "expected_facts_json": [
+            "Partner-sourced revenue increased 22% to $1.8M",
+            "Direct sales revenue grew 4%",
+            "Reseller onboarding increased from 29 days to 41 days",
+            "Northeast region exceeded target by 12%",
+            "Premium support attach rate fell from 33% to 25%",
+        ],
+        "expected_risks_json": [
+            "Reseller onboarding slowed",
+            "Premium support attach rate declined",
+        ],
+        "expected_recommendations_json": [
+            "Streamline reseller onboarding",
+            "Review premium support attach motion",
+        ],
+        "expected_output_notes": "Summary should not treat all revenue as partner-sourced.",
+    },
+    {
+        "title": "Public sector bookings delayed",
+        "input_text": (
+            "Public Sector Sales Update\n"
+            "Total bookings were $3.4M, 8% below forecast. Two state government "
+            "contracts worth $900K moved to legal review. Education segment revenue "
+            "grew 16%. Federal pipeline coverage improved from 2.1x to 2.8x. "
+            "Average sales cycle lengthened from 74 to 89 days."
+        ),
+        "expected_facts_json": [
+            "Total bookings were $3.4M, 8% below forecast",
+            "Two state government contracts worth $900K moved to legal review",
+            "Education segment revenue grew 16%",
+            "Federal pipeline coverage improved from 2.1x to 2.8x",
+            "Average sales cycle lengthened from 74 to 89 days",
+        ],
+        "expected_risks_json": [
+            "Bookings were below forecast",
+            "State government contracts moved to legal review",
+            "Sales cycle lengthened",
+        ],
+        "expected_recommendations_json": [
+            "Unblock legal review for state contracts",
+            "Monitor public sector cycle time",
+        ],
+        "expected_output_notes": (
+            "Summary should separate education growth from total booking miss."
+        ),
+    },
+    {
+        "title": "Expansion lift with implementation backlog",
+        "input_text": (
+            "Expansion Sales Report\n"
+            "Expansion ARR increased 19% from existing customers. New logo ARR "
+            "declined 6%. Implementation backlog reached 37 active projects, compared "
+            "with 24 last month. Financial services expansion contributed $760K. "
+            "Customer satisfaction among recently onboarded accounts was 82%."
+        ),
+        "expected_facts_json": [
+            "Expansion ARR increased 19%",
+            "New logo ARR declined 6%",
+            "Implementation backlog reached 37 active projects, up from 24",
+            "Financial services expansion contributed $760K",
+            "Recently onboarded customer satisfaction was 82%",
+        ],
+        "expected_risks_json": [
+            "New logo ARR declined",
+            "Implementation backlog increased",
+        ],
+        "expected_recommendations_json": [
+            "Add implementation capacity",
+            "Rebuild new logo demand generation",
+        ],
+        "expected_output_notes": (
+            "Summary should not describe satisfaction as poor without context."
+        ),
+    },
+    {
+        "title": "Healthcare win rate falls despite pipeline",
+        "input_text": (
+            "Healthcare Sales Snapshot\n"
+            "Healthcare pipeline grew 31% quarter over quarter. Win rate fell from "
+            "28% to 21%. Competitor displacement deals generated $510K. Security "
+            "questionnaire delays were cited in five lost opportunities. South region "
+            "bookings finished 5% above plan."
+        ),
+        "expected_facts_json": [
+            "Healthcare pipeline grew 31%",
+            "Win rate fell from 28% to 21%",
+            "Competitor displacement deals generated $510K",
+            "Security questionnaire delays were cited in five lost opportunities",
+            "South region bookings finished 5% above plan",
+        ],
+        "expected_risks_json": [
+            "Healthcare win rate declined",
+            "Security questionnaire delays contributed to lost opportunities",
+        ],
+        "expected_recommendations_json": [
+            "Improve security questionnaire turnaround",
+            "Analyze healthcare win-rate decline",
+        ],
+        "expected_output_notes": "Summary should not infer pipeline growth caused higher bookings.",
+    },
+    {
+        "title": "Usage-based pricing adoption",
+        "input_text": (
+            "Usage Pricing Sales Report\n"
+            "Forty-two customers moved to usage-based pricing. Net revenue retention "
+            "rose from 108% to 114%. Three large accounts requested spend guardrails "
+            "before expanding. Self-serve upgrades increased 26%. EMEA enterprise "
+            "renewals were flat at $1.1M."
+        ),
+        "expected_facts_json": [
+            "Forty-two customers moved to usage-based pricing",
+            "Net revenue retention rose from 108% to 114%",
+            "Three large accounts requested spend guardrails before expanding",
+            "Self-serve upgrades increased 26%",
+            "EMEA enterprise renewals were flat at $1.1M",
+        ],
+        "expected_risks_json": [
+            "Large accounts requested spend guardrails before expanding",
+            "EMEA enterprise renewals were flat",
+        ],
+        "expected_recommendations_json": [
+            "Add spend guardrails for usage-based pricing",
+            "Investigate flat EMEA enterprise renewals",
+        ],
+        "expected_output_notes": "Summary should not claim EMEA renewals declined.",
+    },
 ]
 
 DEFAULT_CUSTOMER_FEEDBACK_EVALUATION_CASES = [
