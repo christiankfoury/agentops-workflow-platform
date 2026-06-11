@@ -33,6 +33,12 @@ CUSTOMER_FEEDBACK_BASELINE_SYSTEM_PROMPT = (
     "logic, or human approval. Use only themes, requests, risks, and examples supported "
     "by the source feedback."
 )
+INCIDENT_BASELINE_SYSTEM_PROMPT = (
+    "Generate a concise post-incident report directly from the supplied incident log. "
+    "This is a single-agent baseline: do not mention reviewer checks, retry logic, or "
+    "human approval. Use only timeline events, impact, root-cause claims, and follow-up "
+    "actions supported by the source incident log."
+)
 
 
 class BaselineRunError(Exception):
@@ -155,9 +161,13 @@ def run_sales_baseline(
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
     if run.status != WorkflowStatus.created:
         raise BaselineRunError("Baseline can only run from created workflows")
-    if run.workflow_type not in {WorkflowType.sales_report, WorkflowType.customer_feedback}:
+    if run.workflow_type not in {
+        WorkflowType.sales_report,
+        WorkflowType.customer_feedback,
+        WorkflowType.incident_log,
+    }:
         raise BaselineRunError(
-            "Baseline only supports sales report and customer feedback workflows"
+            "Baseline only supports sales report, customer feedback, and incident log workflows"
         )
     if run.run_mode != RunMode.baseline:
         raise BaselineRunError("Baseline only runs for baseline workflows")
@@ -182,6 +192,16 @@ def _baseline_prompt(uploaded_input: UploadedInput) -> dict[str, str]:
                 f"Title: {uploaded_input.title}\n\n"
                 f"Notes: {uploaded_input.notes or 'None'}\n\n"
                 f"Customer feedback:\n{uploaded_input.raw_text}"
+            ),
+        }
+    if uploaded_input.input_type == InputType.incident_log:
+        return {
+            "system": INCIDENT_BASELINE_SYSTEM_PROMPT,
+            "content": (
+                "Create a post-incident report directly from this incident log.\n\n"
+                f"Title: {uploaded_input.title}\n\n"
+                f"Notes: {uploaded_input.notes or 'None'}\n\n"
+                f"Incident log:\n{uploaded_input.raw_text}"
             ),
         }
     return {

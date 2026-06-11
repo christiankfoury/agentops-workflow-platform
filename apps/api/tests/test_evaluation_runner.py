@@ -64,6 +64,67 @@ class EvaluationLLMClient:
                 model="gpt-eval-reviewer",
                 usage=LLMUsage(input_tokens=80, output_tokens=20),
             )
+        if "timeline" in schema["required"]:
+            return StructuredResponse(
+                data={
+                    "timeline": [
+                        {
+                            "time": "10:04",
+                            "event": "API latency rose to 2.8s.",
+                            "source_evidence": "10:04 - Latency rose to 2.8s.",
+                        },
+                        {
+                            "time": "10:15",
+                            "event": "Database pool saturation reached 100%.",
+                            "source_evidence": "10:15 - Database connection pool saturation.",
+                        },
+                    ],
+                    "ambiguous_events": [],
+                },
+                model="gpt-eval-timeline",
+                usage=LLMUsage(input_tokens=100, output_tokens=50),
+            )
+        if "suspected_root_cause" in schema["required"]:
+            return StructuredResponse(
+                data={
+                    "impact": [
+                        {
+                            "description": "API latency affected checkout.",
+                            "severity": "medium",
+                            "affected_systems": ["api"],
+                        }
+                    ],
+                    "suspected_root_cause": "Database connection pool saturation.",
+                    "confirmed_facts": [
+                        {
+                            "claim": "Database pool saturation reached 100%.",
+                            "support": "10:15 - Database connection pool saturation.",
+                        }
+                    ],
+                    "likely_causes": [
+                        {
+                            "claim": "Pool saturation likely caused API latency.",
+                            "support": "Latency rose before saturation was observed.",
+                        }
+                    ],
+                    "inferred_claims": [
+                        {
+                            "claim": "Worker restart may have contributed to recovery.",
+                            "support": "Latency recovered after workers restarted.",
+                        }
+                    ],
+                    "unknowns": ["The log does not show why pool usage spiked."],
+                    "follow_up_actions": [
+                        {
+                            "action": "Add connection pool saturation alerts.",
+                            "owner": "platform",
+                            "priority": "high",
+                        }
+                    ],
+                },
+                model="gpt-eval-root-cause",
+                usage=LLMUsage(input_tokens=120, output_tokens=80),
+            )
         if "themes" in schema["required"]:
             return StructuredResponse(
                 data={
@@ -160,6 +221,17 @@ class EvaluationLLMClient:
                 model="gpt-eval-writer",
                 usage=LLMUsage(input_tokens=120, output_tokens=60),
             )
+        if "incident log" in content.lower():
+            return TextResponse(
+                content=(
+                    "Post-Incident Report\n"
+                    "API latency rose to 2.8s and database connection pool saturation "
+                    "reached 100%. Root cause was database connection pool saturation. "
+                    "Add connection pool saturation alerts."
+                ),
+                model="gpt-eval-writer",
+                usage=LLMUsage(input_tokens=140, output_tokens=70),
+            )
         return TextResponse(
             content="Executive Summary\nRevenue increased 12%.",
             model="gpt-eval-writer",
@@ -193,6 +265,31 @@ def make_customer_feedback_case() -> EvaluationCase:
             "Add bulk export",
         ],
         expected_themes_json=["performance", "feature_requests"],
+        created_at=datetime.now(UTC),
+    )
+
+
+def make_incident_case() -> EvaluationCase:
+    return EvaluationCase(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.incident_log,
+        title="API latency from database pool saturation",
+        input_text=(
+            "10:04 - API latency rose to 2.8s. "
+            "10:15 - Database connection pool saturation reached 100%. "
+            "10:27 - API latency recovered."
+        ),
+        expected_facts_json=[
+            "API latency rose to 2.8s",
+            "Database connection pool saturation reached 100%",
+            "Root cause was database connection pool saturation",
+        ],
+        expected_risks_json=["Do not claim a database outage occurred"],
+        expected_recommendations_json=["Add connection pool saturation alerts"],
+        expected_timeline_json=[
+            {"time": "10:04", "event": "API latency rose to 2.8s"},
+            {"time": "10:15", "event": "Database pool saturation reached 100%"},
+        ],
         created_at=datetime.now(UTC),
     )
 
@@ -325,3 +422,63 @@ def test_run_customer_feedback_evaluation_case_stores_multi_agent_result():
         "writer",
     ]
     assert db.runs[0].final_output.startswith("Product Insights Report")
+
+
+def test_run_incident_evaluation_case_stores_baseline_result():
+    db = EvaluationFakeSession()
+    evaluation_case = make_incident_case()
+
+    result = run_sales_evaluation_case(
+        db,
+        evaluation_case,
+        RunMode.baseline,
+        EvaluationLLMClient(),
+    )
+
+    assert result.status == EvaluationRunStatus.completed
+    assert result.run_mode == RunMode.baseline
+    assert db.inputs[0].input_type.value == WorkflowType.incident_log.value
+    assert db.runs[0].workflow_type == WorkflowType.incident_log
+    assert db.runs[0].final_output.startswith("Post-Incident Report")
+
+
+def test_run_incident_evaluation_case_stores_multi_agent_result():
+    db = EvaluationFakeSession()
+    db.prompts.extend(
+        [
+            make_agent_prompt(AgentType.timeline),
+            make_agent_prompt(AgentType.root_cause),
+            make_reviewer_prompt(),
+            make_writer_prompt(),
+        ]
+    )
+    evaluation_case = make_incident_case()
+
+    result = run_sales_evaluation_case(
+        db,
+        evaluation_case,
+        RunMode.multi_agent,
+        EvaluationLLMClient(),
+    )
+
+    assert result.status == EvaluationRunStatus.completed
+    assert result.run_mode == RunMode.multi_agent
+    assert result.workflow_run_id == db.runs[0].id
+    assert result.human_approval_required is True
+    assert result.human_approved is True
+    assert result.retry_count == 0
+    assert result.factual_accuracy == 1.0
+    assert result.prompt_version_summary_json == {
+        "timeline": str(db.prompts[0].id),
+        "root_cause": str(db.prompts[1].id),
+        "reviewer": str(db.prompts[2].id),
+        "writer": str(db.prompts[3].id),
+    }
+    assert db.approvals[0].human_feedback == "Evaluation runner auto-approved for comparison."
+    assert [step.agent_type for step in db.steps] == [
+        "timeline",
+        "root_cause",
+        "reviewer",
+        "writer",
+    ]
+    assert db.runs[0].final_output.startswith("Post-Incident Report")

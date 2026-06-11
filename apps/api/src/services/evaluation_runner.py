@@ -17,6 +17,10 @@ from src.services.customer_feedback_reviewer import run_customer_feedback_review
 from src.services.customer_feedback_writer import run_customer_feedback_writer
 from src.services.evaluation_metrics import calculate_sales_evaluation_scores
 from src.services.human_approvals import approve_human_approval
+from src.services.incident_reviewer import run_incident_reviewer
+from src.services.incident_root_cause import run_incident_root_cause
+from src.services.incident_timeline import run_incident_timeline
+from src.services.incident_writer import run_incident_writer
 from src.services.llm_client import StructuredResponse, TextResponse
 from src.services.sales_analyst import run_sales_analyst
 from src.services.sales_baseline import run_sales_baseline
@@ -58,9 +62,11 @@ def run_sales_evaluation_case(
     if evaluation_case.workflow_type not in {
         WorkflowType.sales_report,
         WorkflowType.customer_feedback,
+        WorkflowType.incident_log,
     }:
         raise EvaluationRunnerError(
-            "Evaluation runner only supports sales report and customer feedback cases"
+            "Evaluation runner only supports sales report, customer feedback, "
+            "and incident log cases"
         )
 
     result = EvaluationResult(
@@ -157,6 +163,8 @@ def _run_multi_agent_case(
 ) -> tuple[bool, bool | None]:
     if run.workflow_type == WorkflowType.customer_feedback:
         return _run_customer_feedback_multi_agent_case(db, run, llm_client)
+    if run.workflow_type == WorkflowType.incident_log:
+        return _run_incident_multi_agent_case(db, run, llm_client)
 
     run_sales_analyst(db, run, llm_client)
     if run.status == WorkflowStatus.failed:
@@ -183,6 +191,42 @@ def _run_multi_agent_case(
 
     if run.status == WorkflowStatus.writer_running:
         run_sales_writer(db, run, llm_client)
+        return False, None
+
+    return False, None
+
+
+def _run_incident_multi_agent_case(
+    db: Session,
+    run: WorkflowRun,
+    llm_client: LLMClientLike,
+) -> tuple[bool, bool | None]:
+    run_incident_timeline(db, run, llm_client)
+    if run.status == WorkflowStatus.failed:
+        return False, None
+
+    run_incident_root_cause(db, run, llm_client)
+    if run.status == WorkflowStatus.failed:
+        return False, None
+
+    run_incident_reviewer(db, run, llm_client)
+    if run.status == WorkflowStatus.failed:
+        return False, None
+
+    if run.status == WorkflowStatus.waiting_for_human:
+        approval = _get_pending_approval(db, run.id)
+        if approval is None:
+            raise EvaluationRunnerError("Pending human approval not found")
+        approve_human_approval(
+            db,
+            approval,
+            human_feedback="Evaluation runner auto-approved for comparison.",
+        )
+        run_incident_writer(db, run, llm_client)
+        return True, True
+
+    if run.status == WorkflowStatus.writer_running:
+        run_incident_writer(db, run, llm_client)
         return False, None
 
     return False, None

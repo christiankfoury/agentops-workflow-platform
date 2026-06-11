@@ -343,12 +343,335 @@ DEFAULT_CUSTOMER_FEEDBACK_EVALUATION_CASES = [
     },
 ]
 
+DEFAULT_INCIDENT_EVALUATION_CASES = [
+    {
+        "title": "API latency from database pool saturation",
+        "input_text": (
+            "09:58 - API p95 latency was 180ms. 10:04 - Latency rose to 2.8s on "
+            "checkout and account endpoints. 10:08 - Error budget alert fired. "
+            "10:15 - Database connection pool saturation reached 100%. 10:21 - "
+            "On-call increased pool size and restarted two API workers. 10:27 - "
+            "API p95 returned below 250ms. Unknown: the log does not show why pool "
+            "usage spiked."
+        ),
+        "expected_facts_json": [
+            "Latency rose to 2.8s on checkout and account endpoints",
+            "Database connection pool saturation reached 100%",
+            "API p95 returned below 250ms after pool size increase and worker restart",
+            "Root cause is database connection pool saturation",
+        ],
+        "expected_risks_json": [
+            "Do not claim a database outage occurred",
+            "Label worker restart causality as inferred if mentioned",
+        ],
+        "expected_recommendations_json": [
+            "Add connection pool saturation alerts",
+            "Review pool sizing under checkout load",
+        ],
+        "expected_timeline_json": [
+            {"time": "09:58", "event": "API p95 latency was 180ms"},
+            {"time": "10:04", "event": "Latency rose to 2.8s"},
+            {"time": "10:15", "event": "Database pool saturation reached 100%"},
+            {"time": "10:27", "event": "API p95 returned below 250ms"},
+        ],
+        "expected_output_notes": (
+            "Incident report should identify pool saturation as the supported root cause "
+            "and not invent a database outage."
+        ),
+    },
+    {
+        "title": "Payment webhook backlog after deploy",
+        "input_text": (
+            "14:02 - Payment webhook deploy completed. 14:07 - Queue depth increased "
+            "from 200 to 12,000 messages. 14:12 - Merchants reported delayed payment "
+            "status updates. 14:18 - Logs showed webhook workers rejecting events with "
+            "schema version v3. 14:30 - Deploy rolled back. 14:42 - Queue depth dropped "
+            "below 500. Unknown: the log does not include the schema change owner."
+        ),
+        "expected_facts_json": [
+            "Queue depth increased from 200 to 12,000 messages",
+            "Webhook workers rejected events with schema version v3",
+            "Rollback reduced queue depth below 500",
+            "Root cause is incompatible webhook schema handling after deploy",
+        ],
+        "expected_risks_json": [
+            "Do not claim payments were lost",
+            "Do not assign ownership when the log says owner is unknown",
+        ],
+        "expected_recommendations_json": [
+            "Add schema compatibility checks before deploy",
+            "Alert on webhook queue depth growth",
+        ],
+        "expected_timeline_json": [
+            {"time": "14:02", "event": "Payment webhook deploy completed"},
+            {"time": "14:07", "event": "Queue depth increased to 12,000"},
+            {"time": "14:18", "event": "Workers rejected schema version v3"},
+            {"time": "14:30", "event": "Deploy rolled back"},
+        ],
+        "expected_output_notes": "Report should separate delayed status updates from payment loss.",
+    },
+    {
+        "title": "Search outage from expired certificate",
+        "input_text": (
+            "01:00 - Search TLS certificate expired. 01:03 - Search API health checks "
+            "failed in us-east. 01:09 - Users saw empty search results. 01:17 - New "
+            "certificate was issued and deployed. 01:23 - Health checks recovered. "
+            "Impact: search unavailable for 20 minutes in us-east. Unknown: renewal "
+            "automation did not log its last run."
+        ),
+        "expected_facts_json": [
+            "Search TLS certificate expired at 01:00",
+            "Users saw empty search results",
+            "Search was unavailable for 20 minutes in us-east",
+            "Root cause is expired TLS certificate",
+        ],
+        "expected_risks_json": [
+            "Do not claim all regions were affected",
+            "Do not assert renewal automation failed without labeling it unknown",
+        ],
+        "expected_recommendations_json": [
+            "Monitor certificate expiration",
+            "Audit renewal automation logging",
+        ],
+        "expected_timeline_json": [
+            {"time": "01:00", "event": "Search TLS certificate expired"},
+            {"time": "01:03", "event": "Health checks failed in us-east"},
+            {"time": "01:17", "event": "New certificate deployed"},
+            {"time": "01:23", "event": "Health checks recovered"},
+        ],
+        "expected_output_notes": "Incident report should limit impact to us-east search.",
+    },
+    {
+        "title": "Analytics delay from warehouse lock",
+        "input_text": (
+            "06:10 - Nightly analytics pipeline started. 06:45 - Customer dashboards "
+            "stopped refreshing. 07:05 - Warehouse logs showed a long-running migration "
+            "holding an exclusive lock on events_daily. 07:18 - Migration was canceled. "
+            "07:36 - Backfill completed and dashboards refreshed. Unknown: migration "
+            "approval record was not attached to the incident."
+        ),
+        "expected_facts_json": [
+            "Dashboards stopped refreshing at 06:45",
+            "Migration held an exclusive lock on events_daily",
+            "Canceling migration and backfill restored dashboards",
+            "Root cause is warehouse table lock from long-running migration",
+        ],
+        "expected_risks_json": [
+            "Do not claim source event ingestion stopped",
+            "Do not infer who approved the migration",
+        ],
+        "expected_recommendations_json": [
+            "Block exclusive-lock migrations during analytics windows",
+            "Require migration approval links in incident records",
+        ],
+        "expected_timeline_json": [
+            {"time": "06:10", "event": "Analytics pipeline started"},
+            {"time": "06:45", "event": "Dashboards stopped refreshing"},
+            {"time": "07:05", "event": "Exclusive lock found"},
+            {"time": "07:36", "event": "Dashboards refreshed"},
+        ],
+        "expected_output_notes": (
+            "Report should distinguish analytics refresh delay from ingestion loss."
+        ),
+    },
+    {
+        "title": "Email delivery degradation from provider rate limit",
+        "input_text": (
+            "11:00 - Marketing email campaign began. 11:06 - Email provider returned "
+            "429 rate-limit responses. 11:14 - Password reset emails were delayed up "
+            "to 18 minutes. 11:22 - Campaign sending was paused. 11:31 - Password reset "
+            "latency returned below two minutes. Unknown: campaign owner was not listed."
+        ),
+        "expected_facts_json": [
+            "Email provider returned 429 rate-limit responses",
+            "Password reset emails were delayed up to 18 minutes",
+            "Pausing campaign sending restored password reset latency",
+            "Root cause is provider rate limiting triggered during campaign sending",
+        ],
+        "expected_risks_json": [
+            "Do not claim password resets failed permanently",
+            "Do not name a campaign owner",
+        ],
+        "expected_recommendations_json": [
+            "Reserve provider capacity for transactional email",
+            "Throttle marketing campaigns during peak auth periods",
+        ],
+        "expected_timeline_json": [
+            {"time": "11:00", "event": "Marketing campaign began"},
+            {"time": "11:06", "event": "Provider returned 429 responses"},
+            {"time": "11:14", "event": "Password reset emails delayed"},
+            {"time": "11:31", "event": "Latency returned below two minutes"},
+        ],
+        "expected_output_notes": "Report should call out transactional email impact.",
+    },
+    {
+        "title": "Mobile login failure from feature flag rollout",
+        "input_text": (
+            "16:00 - Login redesign feature flag enabled for 25% of mobile users. "
+            "16:08 - Crash-free sessions dropped from 99.8% to 93.1% on Android. "
+            "16:12 - Support tickets mentioned login screen crash. 16:20 - Feature "
+            "flag disabled. 16:29 - Crash-free sessions recovered to 99.7%. Unknown: "
+            "iOS impact was not observed in the log."
+        ),
+        "expected_facts_json": [
+            "Feature flag enabled for 25% of mobile users",
+            "Crash-free sessions dropped to 93.1% on Android",
+            "Support tickets mentioned login screen crash",
+            "Root cause is Android crash from login redesign feature flag rollout",
+        ],
+        "expected_risks_json": [
+            "Do not claim iOS was affected",
+            "Do not say all mobile users were impacted",
+        ],
+        "expected_recommendations_json": [
+            "Gate mobile feature flags by platform",
+            "Add crash-rate automatic rollback for login changes",
+        ],
+        "expected_timeline_json": [
+            {"time": "16:00", "event": "Login flag enabled"},
+            {"time": "16:08", "event": "Android crash-free sessions dropped"},
+            {"time": "16:20", "event": "Feature flag disabled"},
+            {"time": "16:29", "event": "Crash-free sessions recovered"},
+        ],
+        "expected_output_notes": (
+            "Report should scope impact to Android users in the rollout cohort."
+        ),
+    },
+    {
+        "title": "Cache stampede during pricing update",
+        "input_text": (
+            "12:00 - Pricing table update published. 12:03 - Cache hit rate dropped "
+            "from 94% to 22%. 12:06 - Product pages timed out for 14% of requests. "
+            "12:11 - Application logs showed repeated price recomputation for the same "
+            "SKUs. 12:19 - Hot SKU cache prewarm completed. 12:24 - Timeouts returned "
+            "below 1%. Unknown: cache invalidation batch size was not recorded."
+        ),
+        "expected_facts_json": [
+            "Cache hit rate dropped from 94% to 22%",
+            "Product pages timed out for 14% of requests",
+            "Repeated price recomputation occurred for the same SKUs",
+            "Root cause is cache stampede after pricing update",
+        ],
+        "expected_risks_json": [
+            "Do not claim checkout payments failed",
+            "Do not state the invalidation batch size",
+        ],
+        "expected_recommendations_json": [
+            "Prewarm hot SKU cache before pricing updates",
+            "Record and limit cache invalidation batch size",
+        ],
+        "expected_timeline_json": [
+            {"time": "12:00", "event": "Pricing update published"},
+            {"time": "12:03", "event": "Cache hit rate dropped"},
+            {"time": "12:11", "event": "Repeated recomputation observed"},
+            {"time": "12:24", "event": "Timeouts returned below 1%"},
+        ],
+        "expected_output_notes": "Report should connect timeouts to cache stampede evidence.",
+    },
+    {
+        "title": "Support portal errors from missing secret",
+        "input_text": (
+            "08:30 - Support portal deploy completed. 08:34 - Agents saw 500 errors "
+            "opening customer profiles. 08:39 - Logs showed CUSTOMER_PROFILE_TOKEN was "
+            "missing in the new deployment environment. 08:47 - Secret restored and "
+            "pods restarted. 08:53 - Profile open success returned to 99%. Unknown: "
+            "secret rotation status was not documented."
+        ),
+        "expected_facts_json": [
+            "Support agents saw 500 errors opening customer profiles",
+            "CUSTOMER_PROFILE_TOKEN was missing",
+            "Restoring the secret and restarting pods recovered profile opens",
+            "Root cause is missing deployment secret",
+        ],
+        "expected_risks_json": [
+            "Do not claim customer data was exposed",
+            "Do not assert secret rotation status",
+        ],
+        "expected_recommendations_json": [
+            "Add deployment checks for required secrets",
+            "Document secret rotation status in incident records",
+        ],
+        "expected_timeline_json": [
+            {"time": "08:30", "event": "Support portal deploy completed"},
+            {"time": "08:34", "event": "Agents saw 500 errors"},
+            {"time": "08:39", "event": "Missing token found"},
+            {"time": "08:53", "event": "Profile opens recovered"},
+        ],
+        "expected_output_notes": "Report should avoid unsupported security claims.",
+    },
+    {
+        "title": "Data import failures from CSV parser regression",
+        "input_text": (
+            "13:15 - CSV parser version 2.4 deployed. 13:27 - Enterprise imports "
+            "began failing validation. 13:35 - Error logs showed quoted newline fields "
+            "parsed as separate rows. 13:50 - Parser rolled back to version 2.3. "
+            "14:05 - Failed imports were retried successfully. Unknown: no data loss "
+            "was reported in the log."
+        ),
+        "expected_facts_json": [
+            "CSV parser version 2.4 deployed",
+            "Enterprise imports failed validation",
+            "Quoted newline fields were parsed as separate rows",
+            "Root cause is CSV parser regression",
+        ],
+        "expected_risks_json": [
+            "Do not claim data loss occurred",
+            "Do not say all imports failed",
+        ],
+        "expected_recommendations_json": [
+            "Add regression tests for quoted newline fields",
+            "Canary CSV parser releases on enterprise import samples",
+        ],
+        "expected_timeline_json": [
+            {"time": "13:15", "event": "Parser version 2.4 deployed"},
+            {"time": "13:27", "event": "Enterprise imports failed validation"},
+            {"time": "13:35", "event": "Quoted newline parsing bug found"},
+            {"time": "14:05", "event": "Failed imports retried successfully"},
+        ],
+        "expected_output_notes": (
+            "Report should state validation failures without inventing data loss."
+        ),
+    },
+    {
+        "title": "Notification duplication from retry misconfiguration",
+        "input_text": (
+            "17:40 - Notification retry policy changed from exponential to fixed 10s. "
+            "17:52 - Users reported duplicate push notifications. 17:58 - Metrics "
+            "showed retry attempts tripled for transient APNS failures. 18:07 - Retry "
+            "policy reverted. 18:18 - Duplicate notification rate returned to baseline. "
+            "Unknown: exact number of affected users was not captured."
+        ),
+        "expected_facts_json": [
+            "Retry policy changed from exponential to fixed 10s",
+            "Users reported duplicate push notifications",
+            "Retry attempts tripled for transient APNS failures",
+            "Root cause is notification retry misconfiguration",
+        ],
+        "expected_risks_json": [
+            "Do not invent exact affected user count",
+            "Do not claim notifications were not delivered",
+        ],
+        "expected_recommendations_json": [
+            "Require retry policy review before notification changes",
+            "Alert on duplicate notification rate",
+        ],
+        "expected_timeline_json": [
+            {"time": "17:40", "event": "Retry policy changed"},
+            {"time": "17:52", "event": "Duplicate notifications reported"},
+            {"time": "17:58", "event": "Retry attempts tripled"},
+            {"time": "18:18", "event": "Duplicate rate returned to baseline"},
+        ],
+        "expected_output_notes": "Report should mention unknown affected-user count.",
+    },
+]
+
 
 def seed_default_evaluation_cases(db: Session) -> list[EvaluationCase]:
     seeded: list[EvaluationCase] = []
     defaults_by_workflow = {
         WorkflowType.sales_report: DEFAULT_SALES_EVALUATION_CASES,
         WorkflowType.customer_feedback: DEFAULT_CUSTOMER_FEEDBACK_EVALUATION_CASES,
+        WorkflowType.incident_log: DEFAULT_INCIDENT_EVALUATION_CASES,
     }
     for workflow_type, defaults in defaults_by_workflow.items():
         seeded.extend(_seed_cases_for_workflow(db, workflow_type, defaults))
@@ -383,6 +706,7 @@ def _seed_cases_for_workflow(
                 expected_risks_json=default["expected_risks_json"],
                 expected_recommendations_json=default["expected_recommendations_json"],
                 expected_themes_json=default.get("expected_themes_json"),
+                expected_timeline_json=default.get("expected_timeline_json"),
                 expected_output_notes=default["expected_output_notes"],
             )
             db.add(case)
@@ -392,6 +716,7 @@ def _seed_cases_for_workflow(
             case.expected_risks_json = default["expected_risks_json"]
             case.expected_recommendations_json = default["expected_recommendations_json"]
             case.expected_themes_json = default.get("expected_themes_json")
+            case.expected_timeline_json = default.get("expected_timeline_json")
             case.expected_output_notes = default["expected_output_notes"]
         seeded.append(case)
     return seeded

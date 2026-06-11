@@ -22,7 +22,11 @@ def get_evaluation_summary(db: Session = Depends(get_db)) -> list[EvaluationMetr
     cases = db.query(EvaluationCase).all()
     case_workflows = {case.id: case.workflow_type for case in cases}
     summaries: list[EvaluationMetricsSummaryRead] = []
-    for workflow_type in (WorkflowType.sales_report, WorkflowType.customer_feedback):
+    for workflow_type in (
+        WorkflowType.sales_report,
+        WorkflowType.customer_feedback,
+        WorkflowType.incident_log,
+    ):
         workflow_results = [
             result
             for result in results

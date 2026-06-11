@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 39 - Incident Evaluation Cases
+Current next phase: Phase 40 - Router Agent
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -48,17 +48,19 @@ Target range status: In progress.
 | 36 | Complete | Incident Timeline Agent backend endpoint that extracts chronological events, validates timeline JSON, and persists timeline steps with cost/event tracking. |
 | 37 | Complete | Incident Root Cause Agent backend endpoint that consumes timeline output, separates confirmed facts from likely/inferred claims, tracks unknowns, and persists root cause steps. |
 | 38 | Complete | Incident reviewer and writer support through existing run endpoints, including human approval handoff, final post-incident report persistence, and end-to-end workflow coverage. |
+| 39 | Complete | Incident evaluation case seeding with timeline expectations, baseline and multi-agent incident evaluation runner support, and incident workflow metrics in evaluation summaries. |
 
 ## Next Phase
 
-### Phase 39: Incident Evaluation Cases
+### Phase 40: Router Agent
 
 Expected scope:
 
-- Add 10 incident report evaluation cases.
-- Expected outputs should include timeline events, impact, root cause, unsupported claim checks, and follow-up actions.
+- Add the optional Router Agent.
+- Router should inspect input and suggest workflow type, confidence, and reasoning summary.
+- Users should still be able to manually choose workflow type.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 39.
+Do not implement low-confidence fallback logic, background jobs, auth, deployment work, or export/reporting features in Phase 40.
 
 ## Last Known Validation Pattern
 
@@ -71,4 +73,4 @@ pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
 pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
 ```
 
-Note: the full API test suite passed quickly in Phase 38.
+Note: the full API test suite passed quickly in Phase 39.

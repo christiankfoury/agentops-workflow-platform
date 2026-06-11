@@ -112,7 +112,8 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
     db = FakeSession()
     sales_case = make_case(WorkflowType.sales_report)
     feedback_case = make_case(WorkflowType.customer_feedback)
-    db.cases.extend([sales_case, feedback_case])
+    incident_case = make_case(WorkflowType.incident_log)
+    db.cases.extend([sales_case, feedback_case, incident_case])
     db.results.extend(
         [
             make_result(
@@ -145,6 +146,15 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
                 factual_accuracy=0.7,
                 cost=0.2,
             ),
+            make_result(
+                run_mode=RunMode.multi_agent,
+                evaluation_case_id=incident_case.id,
+                factual_accuracy=0.8,
+                unsupported_claim_rate=0.1,
+                completeness_score=0.9,
+                human_approval_required=True,
+                human_approved=True,
+            ),
         ]
     )
     override_db(db)
@@ -167,4 +177,9 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
     assert body[("customer_feedback", "baseline")]["run_count"] == 1
     assert body[("customer_feedback", "baseline")]["factual_accuracy"] == 0.7
     assert body[("customer_feedback", "multi_agent")]["run_count"] == 0
+    assert body[("incident_log", "baseline")]["run_count"] == 0
+    assert body[("incident_log", "multi_agent")]["run_count"] == 1
+    assert body[("incident_log", "multi_agent")]["factual_accuracy"] == 0.8
+    assert body[("incident_log", "multi_agent")]["unsupported_claim_rate"] == 0.1
+    assert body[("incident_log", "multi_agent")]["completeness_score"] == 0.9
     clear_overrides()

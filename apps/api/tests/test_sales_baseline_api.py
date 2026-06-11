@@ -132,9 +132,9 @@ def test_run_baseline_supports_customer_feedback_workflow():
     clear_overrides()
 
 
-def test_run_sales_baseline_rejects_unsupported_workflow():
+def test_run_baseline_supports_incident_log_workflow():
     db = FakeSession()
-    uploaded_input = make_input()
+    uploaded_input = make_input(InputType.incident_log)
     run = make_run(
         workflow_type=WorkflowType.incident_log,
         run_mode=RunMode.baseline,
@@ -143,15 +143,16 @@ def test_run_sales_baseline_rejects_unsupported_workflow():
     )
     db.inputs.append(uploaded_input)
     db.runs.append(run)
-    override_dependencies(db)
+    llm = FakeBaselineLLMClient()
+    override_dependencies(db, llm)
     client = TestClient(app)
 
     response = client.post(f"/workflow-runs/{run.id}/run-baseline")
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == (
-        "Baseline only supports sales report and customer feedback workflows"
-    )
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.completed
+    assert "Incident log:" in llm.messages[0]["content"]
+    assert "post-incident report" in (llm.system or "")
     clear_overrides()
 
 
