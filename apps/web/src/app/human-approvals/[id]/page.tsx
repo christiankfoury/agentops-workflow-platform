@@ -38,6 +38,230 @@ function getLatestStep(steps: AgentStep[], agentType: string): AgentStep | undef
   return steps.filter((step) => step.agent_type === agentType).at(-1);
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function listText(value: unknown): string {
+  return asStringArray(value).join("\n");
+}
+
+function jsonArrayText(value: unknown): string {
+  return JSON.stringify(Array.isArray(value) ? value : [], null, 2);
+}
+
+function getEditableStep(steps: AgentStep[], workflowType: string): AgentStep | undefined {
+  if (workflowType === "customer_feedback") return getLatestStep(steps, "insight");
+  if (workflowType === "incident_log") return getLatestStep(steps, "root_cause");
+  return getLatestStep(steps, "analyst");
+}
+
+function getEditableAnalysis(
+  approval: HumanApproval,
+  editableStep: AgentStep | undefined,
+): Record<string, unknown> {
+  return asRecord(approval.edited_analysis_json ?? editableStep?.output_json);
+}
+
+function TextEditField({
+  disabled,
+  label,
+  name,
+  value,
+}: {
+  disabled: boolean;
+  label: string;
+  name: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium" htmlFor={name}>
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        defaultValue={value}
+        disabled={disabled}
+        className="mt-2 min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-60"
+      />
+    </div>
+  );
+}
+
+function JsonArrayEditField({
+  disabled,
+  label,
+  name,
+  value,
+}: {
+  disabled: boolean;
+  label: string;
+  name: string;
+  value: unknown;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium" htmlFor={name}>
+        {label}
+      </label>
+      <textarea
+        id={name}
+        name={name}
+        defaultValue={jsonArrayText(value)}
+        disabled={disabled}
+        className="mt-2 min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm disabled:opacity-60"
+      />
+    </div>
+  );
+}
+
+function StructuredAnalysisEditor({
+  analysis,
+  disabled,
+  workflowType,
+}: {
+  analysis: Record<string, unknown>;
+  disabled: boolean;
+  workflowType: string;
+}) {
+  if (workflowType === "customer_feedback") {
+    return (
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <TextEditField
+          disabled={disabled}
+          label="Top Insights"
+          name="analysis_top_insights"
+          value={listText(analysis.top_insights)}
+        />
+        <TextEditField
+          disabled={disabled}
+          label="Customer Pain Points"
+          name="analysis_customer_pain_points"
+          value={listText(analysis.customer_pain_points)}
+        />
+        <TextEditField
+          disabled={disabled}
+          label="Risks"
+          name="analysis_risks"
+          value={listText(analysis.risks)}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Feature Requests JSON"
+          name="analysis_feature_requests_json"
+          value={analysis.feature_requests}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Recommendations JSON"
+          name="analysis_recommendations_json"
+          value={analysis.recommendations}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Supporting Examples JSON"
+          name="analysis_supporting_examples_json"
+          value={analysis.supporting_examples}
+        />
+      </div>
+    );
+  }
+
+  if (workflowType === "incident_log") {
+    return (
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <TextEditField
+          disabled={disabled}
+          label="Suspected Root Cause"
+          name="analysis_suspected_root_cause"
+          value={typeof analysis.suspected_root_cause === "string" ? analysis.suspected_root_cause : ""}
+        />
+        <TextEditField
+          disabled={disabled}
+          label="Unknowns"
+          name="analysis_unknowns"
+          value={listText(analysis.unknowns)}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Impact JSON"
+          name="analysis_impact_json"
+          value={analysis.impact}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Confirmed Facts JSON"
+          name="analysis_confirmed_facts_json"
+          value={analysis.confirmed_facts}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Likely Causes JSON"
+          name="analysis_likely_causes_json"
+          value={analysis.likely_causes}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Inferred Claims JSON"
+          name="analysis_inferred_claims_json"
+          value={analysis.inferred_claims}
+        />
+        <JsonArrayEditField
+          disabled={disabled}
+          label="Follow-up Actions JSON"
+          name="analysis_follow_up_actions_json"
+          value={analysis.follow_up_actions}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <TextEditField
+        disabled={disabled}
+        label="Key Findings"
+        name="analysis_key_findings"
+        value={listText(analysis.key_findings)}
+      />
+      <TextEditField
+        disabled={disabled}
+        label="Risks"
+        name="analysis_risks"
+        value={listText(analysis.risks)}
+      />
+      <TextEditField
+        disabled={disabled}
+        label="Opportunities"
+        name="analysis_opportunities"
+        value={listText(analysis.opportunities)}
+      />
+      <TextEditField
+        disabled={disabled}
+        label="Recommendations"
+        name="analysis_recommendations"
+        value={listText(analysis.recommendations)}
+      />
+      <TextEditField
+        disabled={disabled}
+        label="Supporting Evidence"
+        name="analysis_supporting_evidence"
+        value={listText(analysis.supporting_evidence)}
+      />
+    </div>
+  );
+}
+
 export default async function HumanApprovalDetailPage({
   params,
 }: {
@@ -55,9 +279,10 @@ export default async function HumanApprovalDetailPage({
     run.input_id ? getUploadedInput(run.input_id) : Promise.resolve(null),
     listAgentSteps(run.id),
   ]);
-  const analystStep = getLatestStep(agentSteps, "analyst");
+  const editableStep = getEditableStep(agentSteps, run.workflow_type);
   const reviewerStep = getLatestStep(agentSteps, "reviewer");
   const isPending = approval.status === "pending";
+  const editableAnalysis = getEditableAnalysis(approval, editableStep);
 
   return (
     <div>
@@ -117,9 +342,9 @@ export default async function HumanApprovalDetailPage({
       )}
 
       <section className="mt-6">
-        <h2 className="text-lg font-semibold">Analyst Output</h2>
+        <h2 className="text-lg font-semibold">Analysis Output</h2>
         <pre className="mt-2 max-h-96 overflow-auto rounded-lg border border-border bg-muted p-4 text-sm whitespace-pre-wrap">
-          {formatJson(analystStep?.output_json)}
+          {formatJson(editableStep?.output_json)}
         </pre>
       </section>
 
@@ -141,6 +366,7 @@ export default async function HumanApprovalDetailPage({
         <h2 className="text-lg font-semibold">Edit Analysis</h2>
         <form action={editAction} className="mt-2 rounded-lg border border-border bg-card p-4">
           <input type="hidden" name="approval_id" value={approval.id} />
+          <input type="hidden" name="workflow_type" value={run.workflow_type} />
           <label className="block text-sm font-medium" htmlFor="human_feedback">
             Human Feedback
           </label>
@@ -151,23 +377,19 @@ export default async function HumanApprovalDetailPage({
             disabled={!isPending}
             className="mt-2 min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-60"
           />
-          <label
-            className="mt-4 block text-sm font-medium"
-            htmlFor="edited_analysis_json"
-          >
-            Edited Analysis JSON
-          </label>
-          <textarea
-            id="edited_analysis_json"
-            name="edited_analysis_json"
-            defaultValue={
-              approval.edited_analysis_json
-                ? formatJson(approval.edited_analysis_json)
-                : ""
-            }
+          <StructuredAnalysisEditor
+            analysis={editableAnalysis}
             disabled={!isPending}
-            className="mt-2 min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm disabled:opacity-60"
+            workflowType={run.workflow_type}
           />
+          <details className="mt-4 rounded-md border border-border bg-muted p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Edited JSON Preview
+            </summary>
+            <pre className="mt-3 max-h-72 overflow-auto text-sm whitespace-pre-wrap">
+              {formatJson(editableAnalysis)}
+            </pre>
+          </details>
           <button
             type="submit"
             disabled={!isPending}

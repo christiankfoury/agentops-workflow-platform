@@ -24,6 +24,11 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/human-approvals/[id]/actions.ts"), /requestHumanApprovalRetry/);
   assert.match(read("src/app/human-approvals/[id]/actions.ts"), /rejectHumanApproval/);
   assert.match(read("src/app/human-approvals/[id]/actions.ts"), /editHumanApproval/);
+  assert.match(read("src/app/human-approvals/[id]/page.tsx"), /StructuredAnalysisEditor/);
+  assert.match(read("src/app/human-approvals/[id]/page.tsx"), /analysis_key_findings/);
+  assert.match(read("src/app/human-approvals/[id]/page.tsx"), /analysis_top_insights/);
+  assert.match(read("src/app/human-approvals/[id]/page.tsx"), /analysis_suspected_root_cause/);
+  assert.match(read("src/app/human-approvals/[id]/actions.ts"), /getEditedAnalysis/);
   assert.match(read("src/app/costs/page.tsx"), /Cost Dashboard/);
   assert.match(read("src/app/costs/page.tsx"), /listWorkflowRuns/);
   assert.match(read("src/app/costs/page.tsx"), /listAgentSteps/);

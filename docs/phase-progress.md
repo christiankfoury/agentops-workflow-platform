@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 46 - Advanced Human Review Editing
+Current next phase: Phase 47 - Human Feedback Loop
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 65 complete.
+Target range status: Phase 46 complete; Phase 47 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -55,16 +55,19 @@ Target range status: Phase 46 through Phase 65 complete.
 | 43 | Complete | Structured output guardrails with strict Pydantic validation, repair prompts for invalid structured agent JSON, safe failure after failed repairs, router output repair, and typed writer inputs. |
 | 44 | Complete | Agent settings persistence and runtime resolution for model, temperature, max tokens, timeout, max retries, and active prompt overrides, with LLM request-option plumbing and focused backend coverage. |
 | 45 | Complete | Admin settings UI and API for per-agent model, temperature, max tokens, timeout, retry limit, reviewer/human thresholds, and active prompt version configuration. |
+| 46 | Complete | Advanced human review editing with workflow-aware structured edit controls, JSON payload assembly for writer input, and frontend smoke coverage. |
 
 ## Next Phase
 
-### Phase 46: Advanced Human Review Editing
+### Phase 47: Human Feedback Loop
 
 Expected scope:
 
-- Improve human approval editing workflows.
+- Store human feedback and edits for future analysis.
+- Track reviewer flags, human changes, approval decisions, and edited claims.
+- Add a dashboard section for common reviewer issues, common human edits, and approval rate over time.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 46.
+Do not implement agent performance dashboards, baseline comparison views, export/reporting features, file uploads, background jobs, auth, or deployment work in Phase 47.
 
 ## Last Known Validation Pattern
 
