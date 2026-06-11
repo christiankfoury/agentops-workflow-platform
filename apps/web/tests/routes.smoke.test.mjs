@@ -77,6 +77,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /Auto-detect workflow type/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /\.csv/);
+  assert.match(read("src/app/workflow-runs/new/form.tsx"), /CSV Preview/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Input Missing/);
 });
 

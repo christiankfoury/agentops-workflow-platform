@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 52 - CSV Parsing for Customer Feedback
+Current next phase: Phase 53 - Incident Log Parser
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 51 complete; Phase 52 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 52 complete; Phase 53 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -61,17 +61,18 @@ Target range status: Phase 46 through Phase 51 complete; Phase 52 through Phase 
 | 49 | Complete | Workflow comparison API and UI pairing baseline and multi-agent evaluation runs with outputs, reviewer issues, scores, cost deltas, and latency deltas. |
 | 50 | Complete | Evaluation export endpoints and dashboard links for CSV, JSON, and Markdown reports with aggregate metrics and failure cases. |
 | 51 | Complete | Multipart text, Markdown, and CSV upload endpoint with UTF-8 extraction, file metadata persistence, frontend upload wiring, and focused API/frontend coverage. |
+| 52 | Complete | Customer feedback CSV parsing with feedback-column validation, normalized feedback text extraction, CSV preview table, and focused upload/frontend coverage. |
 
 ## Next Phase
 
-### Phase 52: CSV Parsing for Customer Feedback
+### Phase 53: Incident Log Parser
 
 Expected scope:
 
-- Improve customer feedback input handling.
-- Allow users to upload a CSV with columns such as customer_id, date, rating, feedback, and source, then parse and preview it before running the workflow.
+- Improve incident log input handling.
+- Support timestamped logs and normalize them into structured events before timeline analysis.
 
-Do not implement PDF parsing, background jobs, auth, or deployment work in Phase 52.
+Do not implement PDF parsing, background jobs, auth, or deployment work in Phase 53.
 
 ## Last Known Validation Pattern
 

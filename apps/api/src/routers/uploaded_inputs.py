@@ -1,3 +1,5 @@
+import csv
+import io
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -70,7 +72,7 @@ async def upload_input_file(
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=422, detail="Uploaded file must be 250 KB or smaller")
 
-    raw_text = _decode_uploaded_text(content)
+    raw_text = _extract_uploaded_text(content, input_type, extension)
     if not raw_text:
         raise HTTPException(status_code=422, detail="Uploaded file is empty")
 
@@ -127,11 +129,57 @@ def _file_extension(file_name: str) -> str:
     return f".{file_name.rsplit('.', 1)[-1].lower()}"
 
 
+def _extract_uploaded_text(content: bytes, input_type: InputType, extension: str) -> str:
+    text = _decode_uploaded_text(content)
+    if input_type == InputType.customer_feedback and extension == ".csv":
+        return _parse_customer_feedback_csv(text)
+    return text
+
+
 def _decode_uploaded_text(content: bytes) -> str:
     try:
         return content.decode("utf-8-sig").strip()
     except UnicodeDecodeError as e:
         raise HTTPException(status_code=422, detail="Uploaded file must be UTF-8 text") from e
+
+
+def _parse_customer_feedback_csv(value: str) -> str:
+    reader = csv.DictReader(io.StringIO(value))
+    fieldnames = [field.strip().lower() for field in reader.fieldnames or [] if field]
+    if "feedback" not in fieldnames:
+        raise HTTPException(
+            status_code=422,
+            detail="Customer feedback CSV uploads must include a feedback column",
+        )
+
+    parsed_rows: list[str] = []
+    for index, row in enumerate(reader, start=1):
+        normalized = {
+            (key or "").strip().lower(): (item or "").strip()
+            for key, item in row.items()
+        }
+        feedback = normalized.get("feedback", "")
+        if not feedback:
+            continue
+        details = [
+            f"customer_id={normalized['customer_id']}"
+            if normalized.get("customer_id")
+            else None,
+            f"date={normalized['date']}" if normalized.get("date") else None,
+            f"rating={normalized['rating']}" if normalized.get("rating") else None,
+            f"source={normalized['source']}" if normalized.get("source") else None,
+        ]
+        prefix = "; ".join(detail for detail in details if detail is not None)
+        parsed_rows.append(
+            f"Feedback {index}: {prefix}. {feedback}" if prefix else f"Feedback {index}: {feedback}"
+        )
+
+    if not parsed_rows:
+        raise HTTPException(
+            status_code=422,
+            detail="Customer feedback CSV uploads must include at least one feedback row",
+        )
+    return "\n".join(parsed_rows)
 
 
 def _clean_optional_text(value: str | None) -> str | None:

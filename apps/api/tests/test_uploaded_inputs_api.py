@@ -179,8 +179,47 @@ def test_upload_csv_file_creates_uploaded_input():
 
     assert response.status_code == 201
     body = response.json()
-    assert body["raw_text"] == "customer_id,feedback\n1,Mobile checkout is slow"
+    assert body["raw_text"] == "Feedback 1: customer_id=1. Mobile checkout is slow"
     assert body["file_name"] == "feedback.csv"
+    app.dependency_overrides.clear()
+
+
+def test_customer_feedback_csv_upload_requires_feedback_column():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "Feedback CSV", "input_type": "customer_feedback"},
+        files={
+            "file": (
+                "feedback.csv",
+                b"customer_id,comment\n1,Mobile checkout is slow\n",
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "Customer feedback CSV uploads must include a feedback column"
+    )
+    app.dependency_overrides.clear()
+
+
+def test_sales_csv_upload_preserves_raw_text_until_feedback_workflow():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "Sales CSV", "input_type": "sales_report"},
+        files={"file": ("sales.csv", b"region,revenue\nNA,120\n", "text/csv")},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["raw_text"] == "region,revenue\nNA,120"
     app.dependency_overrides.clear()
 
 

@@ -1,16 +1,77 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import type { ChangeEvent } from "react";
 import { createWorkflow } from "./actions";
 
 const initialState = { error: null };
+const previewColumns = ["customer_id", "date", "rating", "feedback", "source"];
+
+function parseCsvLine(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      values.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current.trim());
+  return values;
+}
+
+function parseCsvPreview(value: string): Record<string, string>[] {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+  return lines.slice(1, 6).map((line) => {
+    const values = parseCsvLine(line);
+    return Object.fromEntries(
+      headers.map((header, index) => [header, values[index] ?? ""]),
+    );
+  });
+}
 
 export function NewWorkflowForm() {
   const [state, formAction, pending] = useActionState(
     createWorkflow,
     initialState,
   );
+  const [csvPreviewRows, setCsvPreviewRows] = useState<Record<string, string>[]>([]);
+  const [csvPreviewError, setCsvPreviewError] = useState<string | null>(null);
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    setCsvPreviewRows([]);
+    setCsvPreviewError(null);
+    if (!file || !file.name.toLowerCase().endsWith(".csv")) return;
+
+    const text = await file.text();
+    const rows = parseCsvPreview(text);
+    if (rows.length === 0) {
+      setCsvPreviewError("CSV preview is unavailable.");
+      return;
+    }
+    if (!Object.keys(rows[0]).includes("feedback")) {
+      setCsvPreviewError("CSV must include a feedback column.");
+      return;
+    }
+    setCsvPreviewRows(rows);
+  }
 
   return (
     <form action={formAction} className="mt-6 space-y-5">
@@ -50,9 +111,44 @@ export function NewWorkflowForm() {
           name="input_file"
           type="file"
           accept=".txt,.md,.csv,text/plain,text/markdown,text/csv"
+          onChange={handleFileChange}
           className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
         />
       </div>
+
+      {(csvPreviewRows.length > 0 || csvPreviewError) && (
+        <section className="rounded-lg border border-border p-4">
+          <h2 className="text-sm font-semibold">CSV Preview</h2>
+          {csvPreviewError ? (
+            <p className="mt-2 text-sm text-destructive">{csvPreviewError}</p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs uppercase text-muted-foreground">
+                  <tr>
+                    {previewColumns.map((column) => (
+                      <th key={column} className="px-2 py-2 font-medium">
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {csvPreviewRows.map((row, index) => (
+                    <tr key={`${row.feedback}-${index}`}>
+                      {previewColumns.map((column) => (
+                        <td key={column} className="max-w-64 px-2 py-2 align-top">
+                          {row[column] || "-"}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       <div>
         <label htmlFor="notes" className="block text-sm font-medium">
