@@ -2,7 +2,7 @@
 
 Current next phase: Phase 17 - Writer Agent for Sales Reports
 
-Autonomous trial target: complete Phase 17 through Phase 30 in order.
+Autonomous trial target: complete Phase 17 through Phase 20 in order.
 
 ## Completed Phases
 
