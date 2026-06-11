@@ -95,6 +95,18 @@ export async function runSalesReviewer(runId: string): Promise<AgentStep> {
   return res.json() as Promise<AgentStep>;
 }
 
+export async function runSalesWriter(runId: string): Promise<AgentStep> {
+  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-writer`), {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof body?.detail === "string" ? body.detail : String(res.status);
+    throw new Error(`Failed to run writer: ${detail}`);
+  }
+  return res.json() as Promise<AgentStep>;
+}
+
 export async function listHumanApprovals(): Promise<HumanApproval[]> {
   const res = await fetch(apiUrl("/human-approvals"), { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch human approvals: ${res.status}`);

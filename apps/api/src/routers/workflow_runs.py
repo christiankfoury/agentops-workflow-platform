@@ -13,6 +13,7 @@ from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead, Workflo
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
 from src.services.sales_reviewer import ReviewerRunError, run_sales_reviewer
+from src.services.sales_writer import WriterRunError, run_sales_writer
 from src.services.workflow_state import InvalidTransitionError, transition
 
 router = APIRouter()
@@ -71,6 +72,21 @@ def run_reviewer(
     try:
         return run_sales_reviewer(db, run, llm_client)
     except ReviewerRunError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.post("/{run_id}/run-writer", response_model=AgentStepRead)
+def run_writer(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> AgentStep:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return run_sales_writer(db, run, llm_client)
+    except (WriterRunError, InvalidTransitionError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

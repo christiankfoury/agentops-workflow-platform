@@ -19,8 +19,10 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/human-approvals/[id]/actions.ts"), /editHumanApproval/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesAnalyst/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesReviewer/);
+  assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesWriter/);
   assert.match(read("src/app/workflow-runs/[id]/run-analyst-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-reviewer-form.tsx"), /useActionState/);
+  assert.match(read("src/app/workflow-runs/[id]/run-writer-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /useActionState/);
@@ -38,6 +40,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function listAgentSteps/);
   assert.match(api, /export async function runSalesAnalyst/);
   assert.match(api, /export async function runSalesReviewer/);
+  assert.match(api, /export async function runSalesWriter/);
   assert.match(api, /export async function listHumanApprovals/);
   assert.match(api, /export async function getHumanApproval/);
   assert.match(api, /export async function approveHumanApproval/);

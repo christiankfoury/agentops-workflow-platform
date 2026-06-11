@@ -9,6 +9,7 @@ import {
 import type { AgentStep } from "@/lib/types";
 import { RunAnalystForm } from "./run-analyst-form";
 import { RunReviewerForm } from "./run-reviewer-form";
+import { RunWriterForm } from "./run-writer-form";
 
 function formatDateTime(value: string | null): string {
   return value ? new Date(value).toLocaleString() : "-";
@@ -201,6 +202,16 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed") &&
         step.input_json?.analyst_step_id === latestCompletedAnalystStep.id,
     );
+  const canRunWriter =
+    run.status === "writer_running" &&
+    run.workflow_type === "sales_report" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "writer" &&
+        (step.status === "running" || step.status === "completed"),
+    );
 
   const fields = [
     { label: "Status", value: run.status },
@@ -249,6 +260,8 @@ export default async function WorkflowRunDetailPage({
       )}
 
       {canRunReviewer && <RunReviewerForm runId={run.id} />}
+
+      {canRunWriter && <RunWriterForm runId={run.id} />}
 
       {pendingApproval && (
         <div className="mt-4">

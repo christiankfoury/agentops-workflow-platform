@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { runSalesAnalyst, runSalesReviewer } from "@/lib/api";
+import { runSalesAnalyst, runSalesReviewer, runSalesWriter } from "@/lib/api";
 
 
 export interface RunAnalystState {
@@ -43,6 +43,26 @@ export async function runReviewerAction(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to run reviewer.",
+    };
+  }
+
+  redirect(`/workflow-runs/${runId}`);
+}
+
+export async function runWriterAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  try {
+    await runSalesWriter(runId);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to run writer.",
     };
   }
 

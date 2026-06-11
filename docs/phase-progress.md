@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 17 - Writer Agent for Sales Reports
+Current next phase: Phase 18 - Final Output Page
 
 Autonomous trial target: complete Phase 17 through Phase 20 in order.
 
@@ -24,22 +24,20 @@ Autonomous trial target: complete Phase 17 through Phase 20 in order.
 | 14 | Complete | Score-based retry routing and analyst retry feedback. |
 | 15 | Complete | Human approval backend and approval state transitions. |
 | 16 | Complete | Human approval UI list/detail/actions. |
+| 17 | Complete | Writer Agent backend, final output persistence, completion transition, focused tests, and workflow detail trigger. |
 
 ## Next Phase
 
-### Phase 17: Writer Agent for Sales Reports
+### Phase 18: Final Output Page
 
 Expected scope:
 
-- Implement the Writer Agent for sales report workflows.
-- Run only after human approval moves a workflow to `writer_running`.
-- Use approved analyst output and any human-edited analysis when available.
-- Persist writer execution as an `agent_steps` row.
-- Store final executive summary on `workflow_runs.final_output`.
-- Move workflow status to `completed` on success.
-- Add focused backend tests and any minimal UI wiring needed to trigger or display the result.
+- Add a polished final output view.
+- Show final executive summary, workflow status, quality score, total cost, total latency, retry count, and human approval status.
+- Include a side-by-side expandable trace covering original input, analyst output, reviewer feedback, human feedback, and writer output.
+- Keep the scope to sales report final output presentation.
 
-Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 17.
+Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 18.
 
 ## Last Known Validation Pattern
 
