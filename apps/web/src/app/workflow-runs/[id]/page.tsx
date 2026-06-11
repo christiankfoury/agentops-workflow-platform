@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getUploadedInput, getWorkflowRun, listAgentSteps } from "@/lib/api";
 import type { AgentStep } from "@/lib/types";
 import { RunAnalystForm } from "./run-analyst-form";
+import { RunReviewerForm } from "./run-reviewer-form";
 
 function formatDateTime(value: string | null): string {
   return value ? new Date(value).toLocaleString() : "-";
@@ -174,6 +175,19 @@ export default async function WorkflowRunDetailPage({
     run.workflow_type === "sales_report" &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null;
+  const canRunReviewer =
+    run.status === "reviewer_running" &&
+    run.workflow_type === "sales_report" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    agentSteps.some(
+      (step) => step.agent_type === "analyst" && step.status === "completed",
+    ) &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "reviewer" &&
+        (step.status === "running" || step.status === "completed"),
+    );
 
   const fields = [
     { label: "Status", value: run.status },
@@ -220,6 +234,8 @@ export default async function WorkflowRunDetailPage({
       {canRunAnalyst && (
         <RunAnalystForm runId={run.id} />
       )}
+
+      {canRunReviewer && <RunReviewerForm runId={run.id} />}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {fields.map(({ label, value }) => (
