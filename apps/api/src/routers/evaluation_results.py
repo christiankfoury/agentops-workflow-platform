@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from src.database import get_db
@@ -12,6 +13,11 @@ from src.schemas.evaluation import (
     EvaluationResultRead,
 )
 from src.services.evaluation_comparisons import build_evaluation_comparisons
+from src.services.evaluation_exports import (
+    build_evaluation_csv_export,
+    build_evaluation_json_export,
+    build_evaluation_markdown_export,
+)
 from src.services.evaluation_metrics import summarize_evaluation_results
 
 router = APIRouter()
@@ -69,3 +75,35 @@ def get_evaluation_comparisons(
     runs = db.query(WorkflowRun).all()
     steps = db.query(AgentStep).all()
     return build_evaluation_comparisons(cases, results, runs, steps)
+
+
+@router.get("/export/json")
+def export_evaluation_json(db: Session = Depends(get_db)) -> JSONResponse:
+    cases = db.query(EvaluationCase).all()
+    results = db.query(EvaluationResult).all()
+    return JSONResponse(
+        build_evaluation_json_export(cases, results),
+        headers={"Content-Disposition": 'attachment; filename="evaluation-results.json"'},
+    )
+
+
+@router.get("/export/csv")
+def export_evaluation_csv(db: Session = Depends(get_db)) -> Response:
+    cases = db.query(EvaluationCase).all()
+    results = db.query(EvaluationResult).all()
+    return Response(
+        build_evaluation_csv_export(cases, results),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="evaluation-results.csv"'},
+    )
+
+
+@router.get("/export/markdown")
+def export_evaluation_markdown(db: Session = Depends(get_db)) -> Response:
+    cases = db.query(EvaluationCase).all()
+    results = db.query(EvaluationResult).all()
+    return Response(
+        build_evaluation_markdown_export(cases, results),
+        media_type="text/markdown",
+        headers={"Content-Disposition": 'attachment; filename="evaluation-report.md"'},
+    )

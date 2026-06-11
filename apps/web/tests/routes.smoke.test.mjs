@@ -43,6 +43,9 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/evaluation/page.tsx"), /Evaluation Dashboard/);
   assert.match(read("src/app/evaluation/page.tsx"), /getEvaluationSummary/);
   assert.match(read("src/app/evaluation/page.tsx"), /Router Accuracy/);
+  assert.match(read("src/app/evaluation/page.tsx"), /Export CSV/);
+  assert.match(read("src/app/evaluation/page.tsx"), /Export JSON/);
+  assert.match(read("src/app/evaluation/page.tsx"), /Export Markdown/);
   assert.match(read("src/app/agent-performance/page.tsx"), /Agent Performance Dashboard/);
   assert.match(read("src/app/agent-performance/page.tsx"), /getAgentPerformanceSummary/);
   assert.match(read("src/app/agent-performance/page.tsx"), /Schema Validation Failures/);

@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 50 - Evaluation Report Export
+Current next phase: Phase 51 - File Upload Support
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 49 complete; Phase 50 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 50 complete; Phase 51 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -59,17 +59,18 @@ Target range status: Phase 46 through Phase 49 complete; Phase 50 through Phase 
 | 47 | Complete | Human feedback loop summary with reviewer issue aggregation, edited-field tracking, approval decision trends, edit event logging, dashboard section, and focused API/frontend coverage. |
 | 48 | Complete | Agent performance API and dashboard with per-agent latency, cost, failure, retry, reviewer score, and schema validation failure metrics. |
 | 49 | Complete | Workflow comparison API and UI pairing baseline and multi-agent evaluation runs with outputs, reviewer issues, scores, cost deltas, and latency deltas. |
+| 50 | Complete | Evaluation export endpoints and dashboard links for CSV, JSON, and Markdown reports with aggregate metrics and failure cases. |
 
 ## Next Phase
 
-### Phase 50: Evaluation Report Export
+### Phase 51: File Upload Support
 
 Expected scope:
 
-- Add the ability to export evaluation results.
-- Support CSV export, JSON export, and Markdown report export.
+- Add real file upload support.
+- Support text and CSV uploads, store uploaded files and extracted text in the database.
 
-Do not implement file uploads, background jobs, auth, or deployment work in Phase 50.
+Do not implement PDF parsing, background jobs, auth, or deployment work in Phase 51.
 
 ## Last Known Validation Pattern
 

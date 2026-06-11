@@ -204,3 +204,68 @@ def test_get_evaluation_summary_groups_by_workflow_type_and_run_mode():
     assert body[("incident_log", "multi_agent")]["router_accuracy"] == 1.0
     assert body[("incident_log", "multi_agent")]["average_router_confidence"] == 0.88
     clear_overrides()
+
+
+def test_export_evaluation_results_as_json_csv_and_markdown():
+    db = FakeSession()
+    case = make_case(WorkflowType.sales_report)
+    db.cases.append(case)
+    db.results.extend(
+        [
+            make_result(
+                run_mode=RunMode.baseline,
+                evaluation_case_id=case.id,
+                factual_accuracy=0.7,
+                unsupported_claim_rate=0.2,
+                completeness_score=0.6,
+                cost=0.04,
+                latency_ms=1000,
+            ),
+            make_result(
+                run_mode=RunMode.multi_agent,
+                evaluation_case_id=case.id,
+                factual_accuracy=0.9,
+                unsupported_claim_rate=0.05,
+                completeness_score=0.8,
+                human_approval_required=True,
+                human_approved=True,
+                retry_count=1,
+                cost=0.12,
+                latency_ms=3000,
+            ),
+            make_result(
+                run_mode=RunMode.multi_agent,
+                evaluation_case_id=case.id,
+                status=EvaluationRunStatus.failed,
+                cost=0.01,
+            ),
+        ]
+    )
+    db.results[-1].error_message = "Evaluation runner failed"
+    override_db(db)
+    client = TestClient(app)
+
+    json_response = client.get("/evaluation-results/export/json")
+    csv_response = client.get("/evaluation-results/export/csv")
+    markdown_response = client.get("/evaluation-results/export/markdown")
+
+    assert json_response.status_code == 200
+    assert json_response.headers["content-disposition"] == (
+        'attachment; filename="evaluation-results.json"'
+    )
+    json_body = json_response.json()
+    assert json_body["result_count"] == 3
+    assert json_body["results"][0]["title"] == "Evaluation case"
+    assert any(item["run_count"] == 1 for item in json_body["summary"])
+
+    assert csv_response.status_code == 200
+    assert csv_response.headers["content-type"].startswith("text/csv")
+    assert "evaluation_result_id,evaluation_case_id,workflow_type" in csv_response.text
+    assert "sales_report" in csv_response.text
+
+    assert markdown_response.status_code == 200
+    assert markdown_response.headers["content-type"].startswith("text/markdown")
+    assert "# Evaluation Report" in markdown_response.text
+    assert "## Notable Failure Cases" in markdown_response.text
+    assert "Evaluation runner failed" in markdown_response.text
+    clear_overrides()
