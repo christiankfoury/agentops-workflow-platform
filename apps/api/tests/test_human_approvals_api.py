@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from src.database import get_db
 from src.main import app
 from src.models.human_approval import ApprovalStatus, HumanApproval
+from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from tests.test_sales_analyst_api import FakeSession
 
@@ -176,6 +177,74 @@ def test_edit_human_approval_saves_feedback_and_edited_analysis_without_resolvin
     }
     assert body["resolved_at"] is None
     assert run.status == WorkflowStatus.waiting_for_human
+    assert db.workflow_events[-1].event_type == WorkflowEventType.human_edited_analysis
+    assert db.workflow_events[-1].metadata_json["edited_fields"] == ["recommendations"]
+    clear_overrides()
+
+
+def test_human_feedback_summary_tracks_issues_edits_and_decisions():
+    db = FakeSession()
+    run = make_run()
+    approved = make_approval(run.id, status=ApprovalStatus.approved)
+    approved.human_feedback = "Tightened claims and recommendation."
+    approved.edited_analysis_json = {
+        "key_findings": ["Revenue increased 12%."],
+        "recommendations": ["Prioritize enterprise retention."],
+    }
+    approved.resolved_at = datetime(2026, 6, 10, tzinfo=UTC)
+    retry = make_approval(run.id, status=ApprovalStatus.retry_requested)
+    retry.human_feedback = "Retry with exact source language."
+    retry.edited_analysis_json = {"risks": ["Churn claim needs support."]}
+    retry.resolved_at = datetime(2026, 6, 11, tzinfo=UTC)
+    rejected = make_approval(run.id, status=ApprovalStatus.rejected)
+    rejected.issues_json = [
+        {
+            "claim": "Pipeline doubled",
+            "problem": "Pipeline only increased modestly",
+            "severity": "medium",
+        }
+    ]
+    rejected.resolved_at = datetime(2026, 6, 11, tzinfo=UTC)
+    db.runs.append(run)
+    db.approvals.extend([approved, retry, rejected])
+    override_db(db)
+    client = TestClient(app)
+
+    response = client.get("/human-approvals/feedback-summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_approvals"] == 3
+    assert body["resolved_approvals"] == 3
+    assert body["approvals_with_feedback"] == 2
+    assert body["approvals_with_edits"] == 2
+    assert body["approval_rate"] == 1 / 3
+    assert body["retry_request_rate"] == 1 / 3
+    assert body["rejection_rate"] == 1 / 3
+    assert body["common_reviewer_issues"][0] == {
+        "label": "Source only says churn increased",
+        "severity": "high",
+        "count": 2,
+    }
+    edit_fields = {edit["field"]: edit for edit in body["common_human_edits"]}
+    assert edit_fields["recommendations"]["count"] == 1
+    assert edit_fields["risks"]["examples"] == ["Churn claim needs support."]
+    assert body["approval_trend"] == [
+        {
+            "date": "2026-06-10",
+            "total": 1,
+            "approved": 1,
+            "retry_requested": 0,
+            "rejected": 0,
+        },
+        {
+            "date": "2026-06-11",
+            "total": 2,
+            "approved": 0,
+            "retry_requested": 1,
+            "rejected": 1,
+        },
+    ]
     clear_overrides()
 
 

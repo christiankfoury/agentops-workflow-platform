@@ -9,6 +9,7 @@ from src.schemas.human_approval import (
     HumanApprovalAction,
     HumanApprovalEdit,
     HumanApprovalRead,
+    HumanFeedbackSummaryRead,
 )
 from src.services.human_approvals import (
     HumanApprovalError,
@@ -17,6 +18,7 @@ from src.services.human_approvals import (
     reject_human_approval,
     request_human_approval_retry,
 )
+from src.services.human_feedback import summarize_human_feedback
 from src.services.workflow_state import InvalidTransitionError
 
 router = APIRouter()
@@ -25,6 +27,15 @@ router = APIRouter()
 @router.get("", response_model=list[HumanApprovalRead])
 def list_human_approvals(db: Session = Depends(get_db)) -> list[HumanApproval]:
     return db.query(HumanApproval).order_by(HumanApproval.created_at.desc()).all()
+
+
+@router.get("/feedback-summary", response_model=HumanFeedbackSummaryRead)
+def get_human_feedback_summary(db: Session = Depends(get_db)) -> HumanFeedbackSummaryRead:
+    approvals = db.query(HumanApproval).order_by(HumanApproval.created_at.asc()).all()
+    return HumanFeedbackSummaryRead.model_validate(
+        summarize_human_feedback(approvals),
+        from_attributes=True,
+    )
 
 
 @router.get("/{approval_id}", response_model=HumanApprovalRead)

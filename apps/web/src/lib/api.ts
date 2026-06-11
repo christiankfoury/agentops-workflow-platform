@@ -11,6 +11,7 @@ import type {
   HumanApproval,
   HumanApprovalActionRequest,
   HumanApprovalEditRequest,
+  HumanFeedbackSummary,
   CreatePromptVersionRequest,
   PromptVersion,
   UpdateAgentSettingRequest,
@@ -234,6 +235,16 @@ export async function getHumanApproval(id: string): Promise<HumanApproval | null
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch human approval: ${res.status}`);
   return res.json() as Promise<HumanApproval>;
+}
+
+export async function getHumanFeedbackSummary(): Promise<HumanFeedbackSummary> {
+  const res = await fetch(apiUrl("/human-approvals/feedback-summary"), {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch human feedback summary: ${res.status}`);
+  }
+  return res.json() as Promise<HumanFeedbackSummary>;
 }
 
 export async function approveHumanApproval(

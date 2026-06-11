@@ -39,6 +39,7 @@ export type WorkflowEventType =
   | "reviewer_rejected_output"
   | "retry_triggered"
   | "human_approval_required"
+  | "human_edited_analysis"
   | "human_approved"
   | "human_rejected"
   | "human_requested_retry";
@@ -134,6 +135,39 @@ export interface HumanApproval {
   approved_by_user_id: string | null;
   created_at: string;
   resolved_at: string | null;
+}
+
+export interface ReviewerIssueSummary {
+  label: string;
+  severity: string | null;
+  count: number;
+}
+
+export interface HumanEditSummary {
+  field: string;
+  count: number;
+  examples: string[];
+}
+
+export interface HumanApprovalTrendPoint {
+  date: string;
+  total: number;
+  approved: number;
+  retry_requested: number;
+  rejected: number;
+}
+
+export interface HumanFeedbackSummary {
+  total_approvals: number;
+  resolved_approvals: number;
+  approvals_with_feedback: number;
+  approvals_with_edits: number;
+  approval_rate: number;
+  retry_request_rate: number;
+  rejection_rate: number;
+  common_reviewer_issues: ReviewerIssueSummary[];
+  common_human_edits: HumanEditSummary[];
+  approval_trend: HumanApprovalTrendPoint[];
 }
 
 export interface PromptVersion {

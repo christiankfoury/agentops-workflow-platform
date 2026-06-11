@@ -22,6 +22,7 @@ class WorkflowEventType(StrEnum):
     reviewer_rejected_output = "reviewer_rejected_output"
     retry_triggered = "retry_triggered"
     human_approval_required = "human_approval_required"
+    human_edited_analysis = "human_edited_analysis"
     human_approved = "human_approved"
     human_rejected = "human_rejected"
     human_requested_retry = "human_requested_retry"

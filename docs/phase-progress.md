@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 47 - Human Feedback Loop
+Current next phase: Phase 48 - Agent Performance Dashboard
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 complete; Phase 47 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 47 complete; Phase 48 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -56,18 +56,18 @@ Target range status: Phase 46 complete; Phase 47 through Phase 65 remaining.
 | 44 | Complete | Agent settings persistence and runtime resolution for model, temperature, max tokens, timeout, max retries, and active prompt overrides, with LLM request-option plumbing and focused backend coverage. |
 | 45 | Complete | Admin settings UI and API for per-agent model, temperature, max tokens, timeout, retry limit, reviewer/human thresholds, and active prompt version configuration. |
 | 46 | Complete | Advanced human review editing with workflow-aware structured edit controls, JSON payload assembly for writer input, and frontend smoke coverage. |
+| 47 | Complete | Human feedback loop summary with reviewer issue aggregation, edited-field tracking, approval decision trends, edit event logging, dashboard section, and focused API/frontend coverage. |
 
 ## Next Phase
 
-### Phase 47: Human Feedback Loop
+### Phase 48: Agent Performance Dashboard
 
 Expected scope:
 
-- Store human feedback and edits for future analysis.
-- Track reviewer flags, human changes, approval decisions, and edited claims.
-- Add a dashboard section for common reviewer issues, common human edits, and approval rate over time.
+- Create a dedicated agent performance page.
+- Show metrics by agent, including average latency, average cost, failure rate, retry rate, average reviewer score, and schema validation failure rate where available.
 
-Do not implement agent performance dashboards, baseline comparison views, export/reporting features, file uploads, background jobs, auth, or deployment work in Phase 47.
+Do not implement baseline comparison views, export/reporting features, file uploads, background jobs, auth, or deployment work in Phase 48.
 
 ## Last Known Validation Pattern
 

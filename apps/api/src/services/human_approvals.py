@@ -9,6 +9,7 @@ from src.models.agent_type import AgentType
 from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
+from src.services.human_feedback import get_edited_fields
 from src.services.workflow_events import log_workflow_event
 from src.services.workflow_state import transition
 
@@ -152,6 +153,18 @@ def edit_human_approval(
         approval.edited_analysis_json = edited_analysis_json
     db.commit()
     db.refresh(approval)
+    log_workflow_event(
+        db,
+        run,
+        WorkflowEventType.human_edited_analysis,
+        "Human edited structured analysis.",
+        metadata={
+            "human_approval_id": approval.id,
+            "has_feedback": bool(approval.human_feedback),
+            "edited_fields": get_edited_fields(approval.edited_analysis_json),
+            "reviewer_issue_count": len(approval.issues_json or []),
+        },
+    )
     return approval
 
 

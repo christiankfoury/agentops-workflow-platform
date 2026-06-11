@@ -6,6 +6,8 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 
 test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/page.tsx"), /listWorkflowRuns/);
+  assert.match(read("src/app/page.tsx"), /getHumanFeedbackSummary/);
+  assert.match(read("src/app/page.tsx"), /Human Feedback Loop/);
   assert.match(read("src/app/workflow-runs/page.tsx"), /listWorkflowRuns/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getWorkflowRun/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getUploadedInput/);
@@ -97,6 +99,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function cancelWorkflowRun/);
   assert.match(api, /export async function listHumanApprovals/);
   assert.match(api, /export async function getHumanApproval/);
+  assert.match(api, /export async function getHumanFeedbackSummary/);
   assert.match(api, /export async function approveHumanApproval/);
   assert.match(api, /export async function requestHumanApprovalRetry/);
   assert.match(api, /export async function rejectHumanApproval/);

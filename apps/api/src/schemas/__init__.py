@@ -14,7 +14,15 @@ from src.schemas.evaluation import (
     EvaluationMetricsSummaryRead,
     EvaluationResultRead,
 )
-from src.schemas.human_approval import HumanApprovalAction, HumanApprovalEdit, HumanApprovalRead
+from src.schemas.human_approval import (
+    HumanApprovalAction,
+    HumanApprovalEdit,
+    HumanApprovalRead,
+    HumanApprovalTrendPointRead,
+    HumanEditSummaryRead,
+    HumanFeedbackSummaryRead,
+    ReviewerIssueSummaryRead,
+)
 from src.schemas.incident import (
     IncidentClaim,
     IncidentFollowUpAction,
@@ -40,6 +48,9 @@ __all__ = [
     "HumanApprovalAction",
     "HumanApprovalEdit",
     "HumanApprovalRead",
+    "HumanApprovalTrendPointRead",
+    "HumanEditSummaryRead",
+    "HumanFeedbackSummaryRead",
     "IncidentClaim",
     "IncidentFollowUpAction",
     "IncidentImpact",
@@ -49,6 +60,7 @@ __all__ = [
     "ProductRecommendation",
     "PromptVersionCreate",
     "PromptVersionRead",
+    "ReviewerIssueSummaryRead",
     "SentimentPattern",
     "TimelineEvent",
     "UploadedInputCreate",
