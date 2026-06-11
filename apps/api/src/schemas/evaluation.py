@@ -62,3 +62,25 @@ class EvaluationMetricsSummaryRead(BaseModel):
     average_cost: float
     average_latency_ms: float
     average_retries: float
+
+
+class EvaluationComparisonRunRead(BaseModel):
+    workflow_run_id: uuid.UUID
+    final_output: str | None
+    factual_accuracy: float | None
+    unsupported_claim_rate: float | None
+    completeness_score: float | None
+    cost: float
+    latency_ms: int
+
+
+class EvaluationComparisonRead(BaseModel):
+    evaluation_case_id: uuid.UUID
+    workflow_type: WorkflowType
+    title: str
+    input_preview: str
+    baseline: EvaluationComparisonRunRead
+    multi_agent: EvaluationComparisonRunRead
+    reviewer_issues: list[dict[str, Any]]
+    cost_difference: float
+    latency_difference_ms: int

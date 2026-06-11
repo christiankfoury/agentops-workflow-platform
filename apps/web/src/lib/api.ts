@@ -6,6 +6,7 @@ import type {
   AgentSetting,
   AgentPerformanceSummary,
   CreateUploadedInputRequest,
+  EvaluationComparison,
   CreateWorkflowRunRequest,
   DetectWorkflowRequest,
   EvaluationMetricsSummary,
@@ -103,6 +104,14 @@ export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
   return res.json() as Promise<EvaluationMetricsSummary[]>;
+}
+
+export async function getEvaluationComparisons(): Promise<EvaluationComparison[]> {
+  const res = await fetch(apiUrl("/evaluation-results/comparisons"), {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch evaluation comparisons: ${res.status}`);
+  return res.json() as Promise<EvaluationComparison[]>;
 }
 
 export async function getAgentPerformanceSummary(): Promise<AgentPerformanceSummary[]> {

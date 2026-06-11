@@ -124,6 +124,28 @@ export interface EvaluationMetricsSummary {
   average_retries: number;
 }
 
+export interface EvaluationComparisonRun {
+  workflow_run_id: string;
+  final_output: string | null;
+  factual_accuracy: number | null;
+  unsupported_claim_rate: number | null;
+  completeness_score: number | null;
+  cost: number;
+  latency_ms: number;
+}
+
+export interface EvaluationComparison {
+  evaluation_case_id: string;
+  workflow_type: WorkflowType;
+  title: string;
+  input_preview: string;
+  baseline: EvaluationComparisonRun;
+  multi_agent: EvaluationComparisonRun;
+  reviewer_issues: Record<string, unknown>[];
+  cost_difference: number;
+  latency_difference_ms: number;
+}
+
 export interface AgentPerformanceSummary {
   agent_type: string;
   agent_name: string;

@@ -2,10 +2,16 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.database import get_db
+from src.models.agent_step import AgentStep
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult
-from src.models.workflow_run import RunMode, WorkflowType
-from src.schemas.evaluation import EvaluationMetricsSummaryRead, EvaluationResultRead
+from src.models.workflow_run import RunMode, WorkflowRun, WorkflowType
+from src.schemas.evaluation import (
+    EvaluationComparisonRead,
+    EvaluationMetricsSummaryRead,
+    EvaluationResultRead,
+)
+from src.services.evaluation_comparisons import build_evaluation_comparisons
 from src.services.evaluation_metrics import summarize_evaluation_results
 
 router = APIRouter()
@@ -52,3 +58,14 @@ def get_evaluation_summary(db: Session = Depends(get_db)) -> list[EvaluationMetr
                 )
             )
     return summaries
+
+
+@router.get("/comparisons", response_model=list[EvaluationComparisonRead])
+def get_evaluation_comparisons(
+    db: Session = Depends(get_db),
+) -> list[EvaluationComparisonRead]:
+    cases = db.query(EvaluationCase).all()
+    results = db.query(EvaluationResult).all()
+    runs = db.query(WorkflowRun).all()
+    steps = db.query(AgentStep).all()
+    return build_evaluation_comparisons(cases, results, runs, steps)

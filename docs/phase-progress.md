@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 49 - Workflow Comparison View
+Current next phase: Phase 50 - Evaluation Report Export
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 48 complete; Phase 49 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 49 complete; Phase 50 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -58,17 +58,18 @@ Target range status: Phase 46 through Phase 48 complete; Phase 49 through Phase 
 | 46 | Complete | Advanced human review editing with workflow-aware structured edit controls, JSON payload assembly for writer input, and frontend smoke coverage. |
 | 47 | Complete | Human feedback loop summary with reviewer issue aggregation, edited-field tracking, approval decision trends, edit event logging, dashboard section, and focused API/frontend coverage. |
 | 48 | Complete | Agent performance API and dashboard with per-agent latency, cost, failure, retry, reviewer score, and schema validation failure metrics. |
+| 49 | Complete | Workflow comparison API and UI pairing baseline and multi-agent evaluation runs with outputs, reviewer issues, scores, cost deltas, and latency deltas. |
 
 ## Next Phase
 
-### Phase 49: Workflow Comparison View
+### Phase 50: Evaluation Report Export
 
 Expected scope:
 
-- Create a side-by-side comparison page for baseline vs multi-agent outputs.
-- For the same input, show baseline output, multi-agent output, reviewer issues, evaluation scores, cost difference, and latency difference.
+- Add the ability to export evaluation results.
+- Support CSV export, JSON export, and Markdown report export.
 
-Do not implement export/reporting features, file uploads, background jobs, auth, or deployment work in Phase 49.
+Do not implement file uploads, background jobs, auth, or deployment work in Phase 50.
 
 ## Last Known Validation Pattern
 

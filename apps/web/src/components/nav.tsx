@@ -45,6 +45,12 @@ export function Nav() {
             Agents
           </Link>
           <Link
+            href="/workflow-comparison"
+            className="transition-colors hover:text-foreground"
+          >
+            Compare
+          </Link>
+          <Link
             href="/prompt-versions"
             className="transition-colors hover:text-foreground"
           >
