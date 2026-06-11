@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 25 - Evaluation Runner for Sales Reports
+Current next phase: Phase 26 - Evaluation Metrics
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -32,19 +32,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 22 | Complete | Workflow run detail observability timeline UI backed by workflow event API client/types and smoke coverage. |
 | 23 | Complete | Sales report baseline single-agent execution path with API/UI trigger, cost/event persistence, final output storage, and focused tests. |
 | 24 | Complete | Evaluation case/result schema foundation, migration, read schemas, idempotent sales evaluation case seeding, and focused seed coverage. |
+| 25 | Complete | Sales evaluation runner service and CLI for baseline and multi-agent modes with persisted evaluation results and focused runner coverage. |
 
 ## Next Phase
 
-### Phase 25: Evaluation Runner for Sales Reports
+### Phase 26: Evaluation Metrics
 
 Expected scope:
 
-- Build a script or backend endpoint that runs sales report evaluation cases.
-- Support running both `baseline` and `multi_agent` modes against the same stored cases.
-- Store each run result in `evaluation_results`.
-- Keep evaluation scoring basic if needed; detailed metrics belong to Phase 26.
+- Implement first evaluation metrics for stored evaluation results.
+- Track factual accuracy, unsupported claim rate, completeness, human approval rate, average cost, average latency, and average retries.
+- Keep calculations focused on sales report evaluation results and existing stored fields.
+- Add focused tests for metric calculations and edge cases.
 
-Do not implement the evaluation dashboard, customer feedback workflows, incident workflows, background jobs, auth, or deployment work in Phase 25.
+Do not implement the evaluation dashboard, customer feedback workflows, incident workflows, background jobs, auth, or deployment work in Phase 26.
 
 ## Last Known Validation Pattern
 
