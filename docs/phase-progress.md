@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 32 - Customer Feedback Insight Agent
+Current next phase: Phase 33 - Reviewer and Writer for Customer Feedback
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -41,19 +41,20 @@ Target range status: In progress.
 | 29 | Complete | Prompt version management UI for listing, creating, viewing, and activating prompts with API client wiring and smoke coverage. |
 | 30 | Complete | Customer feedback classifier and product insight output schemas for themes, sentiment, feature requests, bug reports, recommendations, and supporting examples. |
 | 31 | Complete | Customer Feedback Classifier Agent backend endpoint, structured output validation, agent step persistence, cost/event tracking, and focused API coverage. |
+| 32 | Complete | Customer Feedback Insight Agent backend endpoint that consumes classifier output, validates product insight JSON, persists insight steps, and advances runs toward review. |
 
 ## Next Phase
 
-### Phase 32: Customer Feedback Insight Agent
+### Phase 33: Reviewer and Writer for Customer Feedback
 
 Expected scope:
 
-- Implement the Customer Feedback Insight Agent.
-- Consume completed customer feedback classifier output.
-- Produce product insights using the Phase 30 product insight schema.
-- Store insight outputs as agent steps.
+- Extend the Reviewer Agent and Writer Agent to support customer feedback workflows.
+- Reviewer should check whether insights are supported by actual feedback examples.
+- Writer should generate a polished product insights report.
+- The customer feedback workflow should run end-to-end by the end of the phase.
 
-Do not implement customer feedback reviewer/writer agents, incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 32.
+Do not implement incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 33.
 
 ## Last Known Validation Pattern
 

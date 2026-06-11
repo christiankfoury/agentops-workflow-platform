@@ -16,6 +16,7 @@ from src.services.customer_feedback_classifier import (
     ClassifierRunError,
     run_customer_feedback_classifier,
 )
+from src.services.customer_feedback_insight import InsightRunError, run_customer_feedback_insight
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
 from src.services.sales_baseline import BaselineRunError, run_sales_baseline
@@ -93,6 +94,21 @@ def run_classifier(
     try:
         return run_customer_feedback_classifier(db, run, llm_client)
     except ClassifierRunError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.post("/{run_id}/run-insight", response_model=AgentStepRead)
+def run_insight(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> AgentStep:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return run_customer_feedback_insight(db, run, llm_client)
+    except InsightRunError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
