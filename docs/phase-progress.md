@@ -2,9 +2,9 @@
 
 Current next phase: Phase 46 - Advanced Human Review Editing
 
-Autonomous trial target: Phase 31 through Phase 45 complete.
+Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 31 through Phase 45 complete.
+Target range status: Phase 46 through Phase 65 complete.
 
 ## Completed Phases
 

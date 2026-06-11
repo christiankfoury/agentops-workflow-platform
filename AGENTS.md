@@ -17,7 +17,7 @@ Target range:
 Phase 46 through Phase 65
 ```
 
-The agent should execute phases continuously in order from the current next phase until Phase 45 is completed, unless a stop condition is reached.
+The agent should execute phases continuously in order from the current next phase until Phase 65 is completed, unless a stop condition is reached.
 
 ## Operating Loop
 
