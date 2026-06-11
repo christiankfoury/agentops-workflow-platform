@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -25,6 +26,13 @@ ALLOWED_UPLOAD_EXTENSIONS = {
     ".md": "text/markdown",
     ".csv": "text/csv",
 }
+INCIDENT_EVENT_PATTERN = re.compile(
+    
+        r"^\s*(?P<time>(?:\d{1,2}:\d{2}(?:\s?(?:AM|PM|am|pm))?|"
+        r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?))"
+        r"\s*(?:-|:)\s*(?P<event>.+?)\s*$"
+    
+)
 
 
 @router.post("", response_model=UploadedInputRead, status_code=201)
@@ -36,7 +44,7 @@ def create_uploaded_input(
         created_by_user_id=body.created_by_user_id,
         title=body.title,
         input_type=body.input_type,
-        raw_text=body.raw_text,
+        raw_text=_normalize_input_text(body.raw_text, body.input_type),
         notes=body.notes,
         file_name=body.file_name,
         file_type=body.file_type,
@@ -72,7 +80,10 @@ async def upload_input_file(
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=422, detail="Uploaded file must be 250 KB or smaller")
 
-    raw_text = _extract_uploaded_text(content, input_type, extension)
+    raw_text = _normalize_input_text(
+        _extract_uploaded_text(content, input_type, extension),
+        input_type,
+    )
     if not raw_text:
         raise HTTPException(status_code=422, detail="Uploaded file is empty")
 
@@ -180,6 +191,40 @@ def _parse_customer_feedback_csv(value: str) -> str:
             detail="Customer feedback CSV uploads must include at least one feedback row",
         )
     return "\n".join(parsed_rows)
+
+
+def _normalize_input_text(value: str, input_type: InputType) -> str:
+    if input_type == InputType.incident_log:
+        return _parse_incident_log(value)
+    return value
+
+
+def _parse_incident_log(value: str) -> str:
+    parsed_events: list[str] = []
+    ambiguous_lines: list[str] = []
+    for line in (item.strip() for item in value.splitlines()):
+        if not line:
+            continue
+        match = INCIDENT_EVENT_PATTERN.match(line)
+        if match is None:
+            ambiguous_lines.append(line)
+            continue
+        parsed_events.append(
+            "Event {index}: time={time}; event={event}; raw_line={raw_line}".format(
+                index=len(parsed_events) + 1,
+                time=match.group("time").strip(),
+                event=match.group("event").strip(),
+                raw_line=line,
+            )
+        )
+
+    if not parsed_events:
+        return value
+
+    output = ["Parsed incident events:", *parsed_events]
+    if ambiguous_lines:
+        output.extend(["Ambiguous incident log lines:", *[f"- {line}" for line in ambiguous_lines]])
+    return "\n".join(output)
 
 
 def _clean_optional_text(value: str | None) -> str | None:

@@ -134,6 +134,32 @@ def test_uploaded_input_strips_text_fields():
     app.dependency_overrides.clear()
 
 
+def test_create_incident_input_normalizes_timestamped_events():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs",
+        json={
+            "title": "Incident log",
+            "input_type": "incident_log",
+            "raw_text": "10:02 AM - API latency increased\n10:08 AM - Error rate exceeded",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["raw_text"] == (
+        "Parsed incident events:\n"
+        "Event 1: time=10:02 AM; event=API latency increased; "
+        "raw_line=10:02 AM - API latency increased\n"
+        "Event 2: time=10:08 AM; event=Error rate exceeded; "
+        "raw_line=10:08 AM - Error rate exceeded"
+    )
+    app.dependency_overrides.clear()
+
+
 def test_upload_text_file_creates_uploaded_input():
     db = FakeSession()
     app.dependency_overrides[get_db] = lambda: db
@@ -181,6 +207,31 @@ def test_upload_csv_file_creates_uploaded_input():
     body = response.json()
     assert body["raw_text"] == "Feedback 1: customer_id=1. Mobile checkout is slow"
     assert body["file_name"] == "feedback.csv"
+    app.dependency_overrides.clear()
+
+
+def test_upload_incident_log_includes_ambiguous_lines():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "Incident Log", "input_type": "incident_log"},
+        files={
+            "file": (
+                "incident.txt",
+                b"10:02 AM - API latency increased\nNo timestamp here\n10:40 AM - Recovered\n",
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert "Parsed incident events:" in body["raw_text"]
+    assert "Event 2: time=10:40 AM; event=Recovered" in body["raw_text"]
+    assert "Ambiguous incident log lines:\n- No timestamp here" in body["raw_text"]
     app.dependency_overrides.clear()
 
 
