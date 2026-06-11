@@ -8,7 +8,7 @@ from src.dependencies import get_llm_client
 from src.models.agent_step import AgentStep
 from src.models.uploaded_input import UploadedInput
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
-from src.models.workflow_run import WorkflowRun
+from src.models.workflow_run import WorkflowRun, WorkflowType
 from src.schemas.agent_step import AgentStepRead
 from src.schemas.workflow_event import WorkflowEventRead
 from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead, WorkflowRunTransition
@@ -17,6 +17,14 @@ from src.services.customer_feedback_classifier import (
     run_customer_feedback_classifier,
 )
 from src.services.customer_feedback_insight import InsightRunError, run_customer_feedback_insight
+from src.services.customer_feedback_reviewer import (
+    CustomerFeedbackReviewerRunError,
+    run_customer_feedback_reviewer,
+)
+from src.services.customer_feedback_writer import (
+    CustomerFeedbackWriterRunError,
+    run_customer_feedback_writer,
+)
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
 from src.services.sales_baseline import BaselineRunError, run_sales_baseline
@@ -137,8 +145,10 @@ def run_reviewer(
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     try:
+        if run.workflow_type == WorkflowType.customer_feedback:
+            return run_customer_feedback_reviewer(db, run, llm_client)
         return run_sales_reviewer(db, run, llm_client)
-    except ReviewerRunError as e:
+    except (ReviewerRunError, CustomerFeedbackReviewerRunError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
@@ -152,8 +162,10 @@ def run_writer(
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     try:
+        if run.workflow_type == WorkflowType.customer_feedback:
+            return run_customer_feedback_writer(db, run, llm_client)
         return run_sales_writer(db, run, llm_client)
-    except (WriterRunError, InvalidTransitionError) as e:
+    except (WriterRunError, CustomerFeedbackWriterRunError, InvalidTransitionError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

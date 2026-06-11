@@ -279,7 +279,7 @@ def test_run_sales_writer_rejects_non_sales_workflow():
     db = FakeSession()
     uploaded_input = make_input()
     run = make_run(
-        workflow_type=WorkflowType.customer_feedback,
+        workflow_type=WorkflowType.incident_log,
         status=WorkflowStatus.writer_running,
         input_id=uploaded_input.id,
     )
