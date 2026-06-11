@@ -14,6 +14,7 @@ from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.workflow_run import RunMode, WorkflowStatus, WorkflowType
 from src.services.llm_client import LLMUsage, TextResponse
+from src.services.sales_writer import WriterRunError, run_sales_writer
 from tests.test_sales_analyst_api import (
     FakeSession,
     clear_overrides,
@@ -288,14 +289,9 @@ def test_run_sales_writer_rejects_non_sales_workflow():
     db.steps.append(make_completed_analyst_step(run.id))
     db.approvals.append(make_approved_human_approval(run.id))
     db.prompts.append(make_writer_prompt())
-    override_dependencies(db)
-    client = TestClient(app)
 
-    response = client.post(f"/workflow-runs/{run.id}/run-writer")
-
-    assert response.status_code == 422
-    assert response.json()["detail"] == "Writer only supports sales report workflows"
-    clear_overrides()
+    with pytest.raises(WriterRunError, match="Writer only supports sales report workflows"):
+        run_sales_writer(db, run, FakeWriterLLMClient())
 
 
 def test_run_sales_writer_without_active_prompt_returns_422():

@@ -25,8 +25,10 @@ from src.services.customer_feedback_writer import (
     CustomerFeedbackWriterRunError,
     run_customer_feedback_writer,
 )
+from src.services.incident_reviewer import IncidentReviewerRunError, run_incident_reviewer
 from src.services.incident_root_cause import RootCauseRunError, run_incident_root_cause
 from src.services.incident_timeline import TimelineRunError, run_incident_timeline
+from src.services.incident_writer import IncidentWriterRunError, run_incident_writer
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
 from src.services.sales_baseline import BaselineRunError, run_sales_baseline
@@ -179,8 +181,10 @@ def run_reviewer(
     try:
         if run.workflow_type == WorkflowType.customer_feedback:
             return run_customer_feedback_reviewer(db, run, llm_client)
+        if run.workflow_type == WorkflowType.incident_log:
+            return run_incident_reviewer(db, run, llm_client)
         return run_sales_reviewer(db, run, llm_client)
-    except (ReviewerRunError, CustomerFeedbackReviewerRunError) as e:
+    except (ReviewerRunError, CustomerFeedbackReviewerRunError, IncidentReviewerRunError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
@@ -196,8 +200,15 @@ def run_writer(
     try:
         if run.workflow_type == WorkflowType.customer_feedback:
             return run_customer_feedback_writer(db, run, llm_client)
+        if run.workflow_type == WorkflowType.incident_log:
+            return run_incident_writer(db, run, llm_client)
         return run_sales_writer(db, run, llm_client)
-    except (WriterRunError, CustomerFeedbackWriterRunError, InvalidTransitionError) as e:
+    except (
+        WriterRunError,
+        CustomerFeedbackWriterRunError,
+        IncidentWriterRunError,
+        InvalidTransitionError,
+    ) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

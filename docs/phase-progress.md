@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 38 - Reviewer and Writer for Incident Reports
+Current next phase: Phase 39 - Incident Evaluation Cases
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -47,18 +47,18 @@ Target range status: In progress.
 | 35 | Complete | Incident workflow schemas for timeline events, ambiguous events, impact, confirmed facts, inferred claims, suspected root cause, and follow-up actions. |
 | 36 | Complete | Incident Timeline Agent backend endpoint that extracts chronological events, validates timeline JSON, and persists timeline steps with cost/event tracking. |
 | 37 | Complete | Incident Root Cause Agent backend endpoint that consumes timeline output, separates confirmed facts from likely/inferred claims, tracks unknowns, and persists root cause steps. |
+| 38 | Complete | Incident reviewer and writer support through existing run endpoints, including human approval handoff, final post-incident report persistence, and end-to-end workflow coverage. |
 
 ## Next Phase
 
-### Phase 38: Reviewer and Writer for Incident Reports
+### Phase 39: Incident Evaluation Cases
 
 Expected scope:
 
-- Extend the Reviewer Agent and Writer Agent to support incident workflows.
-- Reviewer should check timeline accuracy, root-cause support, inferred-claim labeling, and follow-up action quality.
-- Writer should generate a polished incident report.
+- Add 10 incident report evaluation cases.
+- Expected outputs should include timeline events, impact, root cause, unsupported claim checks, and follow-up actions.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 38.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 39.
 
 ## Last Known Validation Pattern
 
@@ -71,4 +71,4 @@ pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
 pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
 ```
 
-Note: a bare `python -m pytest` timed out once, while the same explicit API test files passed quickly.
+Note: the full API test suite passed quickly in Phase 38.
