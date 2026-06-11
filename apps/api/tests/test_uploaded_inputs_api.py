@@ -132,3 +132,83 @@ def test_uploaded_input_strips_text_fields():
     assert body["file_name"] == "q1.md"
     assert body["file_type"] == "text/markdown"
     app.dependency_overrides.clear()
+
+
+def test_upload_text_file_creates_uploaded_input():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={
+            "title": "  Q1 Sales Report  ",
+            "input_type": "sales_report",
+            "notes": "  Uploaded report.  ",
+        },
+        files={"file": ("q1.txt", b"  Revenue increased 12%.\n", "text/plain")},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["title"] == "Q1 Sales Report"
+    assert body["raw_text"] == "Revenue increased 12%."
+    assert body["notes"] == "Uploaded report."
+    assert body["file_name"] == "q1.txt"
+    assert body["file_type"] == "text/plain"
+    assert body["file_size"] == 25
+    app.dependency_overrides.clear()
+
+
+def test_upload_csv_file_creates_uploaded_input():
+    db = FakeSession()
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "Feedback CSV", "input_type": "customer_feedback"},
+        files={
+            "file": (
+                "feedback.csv",
+                b"customer_id,feedback\n1,Mobile checkout is slow\n",
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["raw_text"] == "customer_id,feedback\n1,Mobile checkout is slow"
+    assert body["file_name"] == "feedback.csv"
+    app.dependency_overrides.clear()
+
+
+def test_upload_rejects_unsupported_file_type():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "PDF", "input_type": "sales_report"},
+        files={"file": ("report.pdf", b"%PDF", "application/pdf")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Only .txt, .md, and .csv uploads are supported"
+    app.dependency_overrides.clear()
+
+
+def test_upload_rejects_blank_title_after_trimming():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "   ", "input_type": "sales_report"},
+        files={"file": ("report.txt", b"Revenue increased 12%.", "text/plain")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Input title is required"
+    app.dependency_overrides.clear()

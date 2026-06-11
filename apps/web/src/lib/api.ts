@@ -17,6 +17,7 @@ import type {
   CreatePromptVersionRequest,
   PromptVersion,
   UpdateAgentSettingRequest,
+  UploadInputFileRequest,
   UploadedInput,
   WorkflowDetection,
   WorkflowEvent,
@@ -57,6 +58,26 @@ export async function createUploadedInput(
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Failed to create uploaded input: ${res.status}`);
+  return res.json() as Promise<UploadedInput>;
+}
+
+export async function uploadInputFile(
+  body: UploadInputFileRequest,
+): Promise<UploadedInput> {
+  const formData = new FormData();
+  formData.append("title", body.title);
+  formData.append("input_type", body.input_type);
+  if (body.notes) formData.append("notes", body.notes);
+  formData.append("file", body.file);
+
+  const res = await fetch(apiUrl("/uploaded-inputs/upload"), {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to upload input file: ${detail}`);
+  }
   return res.json() as Promise<UploadedInput>;
 }
 

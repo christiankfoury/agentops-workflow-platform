@@ -275,6 +275,13 @@ export interface CreateUploadedInputRequest {
   file_size?: number | null;
 }
 
+export interface UploadInputFileRequest {
+  title: string;
+  input_type: WorkflowType;
+  notes?: string | null;
+  file: File;
+}
+
 export interface DetectWorkflowRequest {
   title: string;
   raw_text: string;

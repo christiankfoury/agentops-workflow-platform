@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 51 - File Upload Support
+Current next phase: Phase 52 - CSV Parsing for Customer Feedback
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 50 complete; Phase 51 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 51 complete; Phase 52 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -60,17 +60,18 @@ Target range status: Phase 46 through Phase 50 complete; Phase 51 through Phase 
 | 48 | Complete | Agent performance API and dashboard with per-agent latency, cost, failure, retry, reviewer score, and schema validation failure metrics. |
 | 49 | Complete | Workflow comparison API and UI pairing baseline and multi-agent evaluation runs with outputs, reviewer issues, scores, cost deltas, and latency deltas. |
 | 50 | Complete | Evaluation export endpoints and dashboard links for CSV, JSON, and Markdown reports with aggregate metrics and failure cases. |
+| 51 | Complete | Multipart text, Markdown, and CSV upload endpoint with UTF-8 extraction, file metadata persistence, frontend upload wiring, and focused API/frontend coverage. |
 
 ## Next Phase
 
-### Phase 51: File Upload Support
+### Phase 52: CSV Parsing for Customer Feedback
 
 Expected scope:
 
-- Add real file upload support.
-- Support text and CSV uploads, store uploaded files and extracted text in the database.
+- Improve customer feedback input handling.
+- Allow users to upload a CSV with columns such as customer_id, date, rating, feedback, and source, then parse and preview it before running the workflow.
 
-Do not implement PDF parsing, background jobs, auth, or deployment work in Phase 51.
+Do not implement PDF parsing, background jobs, auth, or deployment work in Phase 52.
 
 ## Last Known Validation Pattern
 

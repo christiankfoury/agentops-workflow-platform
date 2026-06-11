@@ -72,9 +72,11 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/cancel-workflow-form.tsx"), /Cancel Workflow/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
+  assert.match(read("src/app/workflow-runs/new/actions.ts"), /uploadInputFile/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /detectWorkflowType/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /Auto-detect workflow type/);
+  assert.match(read("src/app/workflow-runs/new/form.tsx"), /\.csv/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Input Missing/);
 });
 
@@ -92,6 +94,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function getWorkflowRun/);
   assert.match(api, /export async function createWorkflowRun/);
   assert.match(api, /export async function createUploadedInput/);
+  assert.match(api, /export async function uploadInputFile/);
   assert.match(api, /export async function getUploadedInput/);
   assert.match(api, /export async function detectWorkflowType/);
   assert.match(api, /export async function listAgentSteps/);

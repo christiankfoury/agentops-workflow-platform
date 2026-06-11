@@ -1,14 +1,19 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createUploadedInput, createWorkflowRun, detectWorkflowType } from "@/lib/api";
+import {
+  createUploadedInput,
+  createWorkflowRun,
+  detectWorkflowType,
+  uploadInputFile,
+} from "@/lib/api";
 import type { RunMode, WorkflowType } from "@/lib/types";
 
 export interface CreateWorkflowFormState {
   error: string | null;
 }
 
-const allowedFileExtensions = [".txt", ".md"];
+const allowedFileExtensions = [".txt", ".md", ".csv"];
 const maxUploadBytes = 250 * 1024;
 
 function cleanOptional(value: FormDataEntryValue | null): string | null {
@@ -42,6 +47,7 @@ async function readInputText(formData: FormData): Promise<
       fileName: string | null;
       fileType: string | null;
       fileSize: number | null;
+      file: File | null;
     }
   | { ok: false; error: string }
 > {
@@ -72,6 +78,7 @@ async function readInputText(formData: FormData): Promise<
       fileName,
       fileType: file.type || null,
       fileSize: file.size,
+      file,
     };
   }
 
@@ -89,6 +96,7 @@ async function readInputText(formData: FormData): Promise<
     fileName: null,
     fileType: null,
     fileSize: null,
+    file: null,
   };
 }
 
@@ -150,15 +158,23 @@ export async function createWorkflow(
     }
   }
 
-  const uploadedInput = await createUploadedInput({
-    title,
-    input_type: workflowType,
-    raw_text: input.rawText,
-    notes,
-    file_name: input.fileName,
-    file_type: input.fileType,
-    file_size: input.fileSize,
-  });
+  const uploadedInput =
+    input.file !== null
+      ? await uploadInputFile({
+          title,
+          input_type: workflowType,
+          notes,
+          file: input.file,
+        })
+      : await createUploadedInput({
+          title,
+          input_type: workflowType,
+          raw_text: input.rawText,
+          notes,
+          file_name: input.fileName,
+          file_type: input.fileType,
+          file_size: input.fileSize,
+        });
 
   const run = await createWorkflowRun({
     workflow_type: workflowType,
