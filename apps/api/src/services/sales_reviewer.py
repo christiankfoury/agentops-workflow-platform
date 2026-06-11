@@ -31,10 +31,6 @@ from src.services.workflow_events import (
 )
 
 SALES_REVIEWER_AGENT_NAME = "Reviewer Agent"
-QUALITY_APPROVAL_THRESHOLD = 0.85
-HUMAN_REVIEW_THRESHOLD = 0.70
-MAX_AUTO_RETRIES = 2
-
 SALES_REVIEW_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -202,7 +198,7 @@ def run_sales_reviewer(
                 "retry_recommended": output.retry_recommended,
             },
         )
-    next_status = _next_status_after_review(run, output)
+    next_status = _next_status_after_review(run, output, runtime_config)
     if next_status == WorkflowStatus.retrying:
         log_workflow_event(
             db,
@@ -213,7 +209,7 @@ def run_sales_reviewer(
             metadata={
                 "quality_score": output.quality_score,
                 "retry_count": run.retry_count or 0,
-                "max_auto_retries": MAX_AUTO_RETRIES,
+                "max_auto_retries": runtime_config.max_retries,
             },
         )
     _set_run_status(run, next_status, db)
@@ -347,17 +343,21 @@ def _update_run_metrics(run: WorkflowRun, db: Session) -> None:
     db.refresh(run)
 
 
-def _next_status_after_review(run: WorkflowRun, output: SalesReviewOutput) -> WorkflowStatus:
+def _next_status_after_review(
+    run: WorkflowRun,
+    output: SalesReviewOutput,
+    runtime_config: AgentRuntimeConfig,
+) -> WorkflowStatus:
     has_high_severity_issue = any(issue.severity == "high" for issue in output.issues)
     needs_retry = (
-        output.quality_score < HUMAN_REVIEW_THRESHOLD
+        output.quality_score < runtime_config.human_approval_threshold
         or has_high_severity_issue
         or output.retry_recommended
     )
-    if needs_retry and (run.retry_count or 0) < MAX_AUTO_RETRIES:
+    if needs_retry and (run.retry_count or 0) < runtime_config.max_retries:
         return WorkflowStatus.retrying
 
-    if output.quality_score >= QUALITY_APPROVAL_THRESHOLD and output.approved:
+    if output.quality_score >= runtime_config.reviewer_approval_threshold and output.approved:
         return WorkflowStatus.waiting_for_human
 
     return WorkflowStatus.waiting_for_human

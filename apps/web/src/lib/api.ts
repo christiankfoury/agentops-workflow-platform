@@ -3,6 +3,7 @@ import "server-only";
 import { apiUrl } from "./api-url";
 import type {
   AgentStep,
+  AgentSetting,
   CreateUploadedInputRequest,
   CreateWorkflowRunRequest,
   DetectWorkflowRequest,
@@ -12,6 +13,7 @@ import type {
   HumanApprovalEditRequest,
   CreatePromptVersionRequest,
   PromptVersion,
+  UpdateAgentSettingRequest,
   UploadedInput,
   WorkflowDetection,
   WorkflowEvent,
@@ -138,6 +140,28 @@ export async function activatePromptVersion(id: string): Promise<PromptVersion> 
     throw new Error(`Failed to activate prompt version: ${detail}`);
   }
   return res.json() as Promise<PromptVersion>;
+}
+
+export async function listAgentSettings(): Promise<AgentSetting[]> {
+  const res = await fetch(apiUrl("/agent-settings"), { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch agent settings: ${res.status}`);
+  return res.json() as Promise<AgentSetting[]>;
+}
+
+export async function updateAgentSetting(
+  agentType: string,
+  body: UpdateAgentSettingRequest,
+): Promise<AgentSetting> {
+  const res = await fetch(apiUrl(`/agent-settings/${agentType}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to update agent setting: ${detail}`);
+  }
+  return res.json() as Promise<AgentSetting>;
 }
 
 export async function runSalesAnalyst(runId: string): Promise<AgentStep> {

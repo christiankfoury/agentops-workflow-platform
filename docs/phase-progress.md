@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 45 - Admin Settings UI
+Current next phase: Phase 46 - Advanced Human Review Editing
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
-Target range status: In progress.
+Target range status: Phase 31 through Phase 45 complete.
 
 ## Completed Phases
 
@@ -54,17 +54,17 @@ Target range status: In progress.
 | 42 | Complete | Workflow cancellation recovery with cancellation events, in-flight step failure messages, cancel UI action, and workflow detail recovery summaries for failed or cancelled runs. |
 | 43 | Complete | Structured output guardrails with strict Pydantic validation, repair prompts for invalid structured agent JSON, safe failure after failed repairs, router output repair, and typed writer inputs. |
 | 44 | Complete | Agent settings persistence and runtime resolution for model, temperature, max tokens, timeout, max retries, and active prompt overrides, with LLM request-option plumbing and focused backend coverage. |
+| 45 | Complete | Admin settings UI and API for per-agent model, temperature, max tokens, timeout, retry limit, reviewer/human thresholds, and active prompt version configuration. |
 
 ## Next Phase
 
-### Phase 45: Admin Settings UI
+### Phase 46: Advanced Human Review Editing
 
 Expected scope:
 
-- Create a settings page for agent configuration.
-- Allow users to configure model per agent, temperature, retry limit, reviewer approval threshold, human approval threshold, and active prompt version.
+- Improve human approval editing workflows.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 45.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 46.
 
 ## Last Known Validation Pattern
 

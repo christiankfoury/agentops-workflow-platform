@@ -44,6 +44,12 @@ export function Nav() {
           >
             Prompts
           </Link>
+          <Link
+            href="/settings"
+            className="transition-colors hover:text-foreground"
+          >
+            Settings
+          </Link>
         </div>
       </nav>
     </header>

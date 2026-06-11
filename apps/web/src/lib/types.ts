@@ -148,6 +148,31 @@ export interface PromptVersion {
   created_at: string;
 }
 
+export interface AgentSetting {
+  id: string | null;
+  agent_type: AgentType;
+  model: string;
+  temperature: number | null;
+  max_tokens: number;
+  timeout_seconds: number | null;
+  max_retries: number;
+  active_prompt_version_id: string | null;
+  active_prompt_name: string | null;
+  reviewer_approval_threshold: number | null;
+  human_approval_threshold: number | null;
+}
+
+export interface UpdateAgentSettingRequest {
+  model: string;
+  temperature?: number | null;
+  max_tokens: number;
+  timeout_seconds?: number | null;
+  max_retries: number;
+  active_prompt_version_id?: string | null;
+  reviewer_approval_threshold?: number | null;
+  human_approval_threshold?: number | null;
+}
+
 export interface CreatePromptVersionRequest {
   agent_type: AgentType;
   name: string;

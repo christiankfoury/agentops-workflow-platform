@@ -24,6 +24,16 @@ class AgentSetting(Base):
             name="ck_agent_settings_timeout_positive",
         ),
         CheckConstraint("max_retries >= 0", name="ck_agent_settings_max_retries_nonnegative"),
+        CheckConstraint(
+            "reviewer_approval_threshold IS NULL OR "
+            "(reviewer_approval_threshold >= 0 AND reviewer_approval_threshold <= 1)",
+            name="ck_agent_settings_reviewer_threshold_range",
+        ),
+        CheckConstraint(
+            "human_approval_threshold IS NULL OR "
+            "(human_approval_threshold >= 0 AND human_approval_threshold <= 1)",
+            name="ck_agent_settings_human_threshold_range",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -37,6 +47,8 @@ class AgentSetting(Base):
     max_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
     timeout_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False)
+    reviewer_approval_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
+    human_approval_threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
     active_prompt_version_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("prompt_versions.id", ondelete="SET NULL"),

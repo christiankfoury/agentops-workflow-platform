@@ -14,6 +14,8 @@ from src.services.llm_client import DEFAULT_MAX_TOKENS
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_MAX_RETRIES = 2
 ROUTER_MAX_TOKENS = 600
+DEFAULT_REVIEWER_APPROVAL_THRESHOLD = 0.85
+DEFAULT_HUMAN_APPROVAL_THRESHOLD = 0.70
 
 
 class AgentSettingsError(Exception):
@@ -29,6 +31,8 @@ class AgentRuntimeConfig:
     timeout_seconds: float | None
     max_retries: int
     uses_persisted_settings: bool
+    reviewer_approval_threshold: float
+    human_approval_threshold: float
 
     def generation_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
@@ -62,6 +66,16 @@ def get_agent_runtime_config(
         timeout_seconds=setting.timeout_seconds if setting is not None else None,
         max_retries=setting.max_retries if setting is not None else DEFAULT_MAX_RETRIES,
         uses_persisted_settings=setting is not None,
+        reviewer_approval_threshold=(
+            setting.reviewer_approval_threshold
+            if setting is not None and setting.reviewer_approval_threshold is not None
+            else DEFAULT_REVIEWER_APPROVAL_THRESHOLD
+        ),
+        human_approval_threshold=(
+            setting.human_approval_threshold
+            if setting is not None and setting.human_approval_threshold is not None
+            else DEFAULT_HUMAN_APPROVAL_THRESHOLD
+        ),
     )
 
 
