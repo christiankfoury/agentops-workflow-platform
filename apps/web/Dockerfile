@@ -11,4 +11,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "CI=true pnpm install --frozen-lockfile && pnpm dev"]
+CMD ["pnpm", "dev"]
