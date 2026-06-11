@@ -18,6 +18,7 @@ class FakeRouterLLMClient:
         self,
         data: dict[str, Any] | None = None,
         should_fail: bool = False,
+        responses: list[dict[str, Any]] | None = None,
     ) -> None:
         self.data = data or {
             "workflow_type": "incident_log",
@@ -25,7 +26,9 @@ class FakeRouterLLMClient:
             "reasoning_summary": "Input contains timestamped operational events.",
         }
         self.should_fail = should_fail
+        self.responses = responses or []
         self.messages: list[dict[str, Any]] = []
+        self.calls: list[list[dict[str, Any]]] = []
         self.system: str | None = None
         self.schema: dict[str, Any] | None = None
 
@@ -38,10 +41,18 @@ class FakeRouterLLMClient:
         max_tokens: int = 2048,
     ) -> StructuredResponse:
         self.messages = messages
+        self.calls.append(messages)
         self.system = system
         self.schema = schema
         if self.should_fail:
             raise RuntimeError("LLM unavailable")
+        if self.responses:
+            data = self.responses.pop(0)
+            return StructuredResponse(
+                data=data,
+                model="gpt-router-test",
+                usage=LLMUsage(input_tokens=40, output_tokens=12),
+            )
         return StructuredResponse(
             data=self.data,
             model="gpt-router-test",
@@ -164,17 +175,61 @@ def test_detect_workflow_type_requires_active_router_prompt():
     clear_overrides()
 
 
+def test_detect_workflow_type_repairs_invalid_router_output():
+    db = FakeSession()
+    llm = FakeRouterLLMClient(
+        responses=[
+            {
+                "workflow_type": "unknown",
+                "confidence": 1.4,
+                "reasoning_summary": "",
+            },
+            {
+                "workflow_type": "customer_feedback",
+                "confidence": 0.73,
+                "reasoning_summary": "Input contains product feedback and feature requests.",
+            },
+        ]
+    )
+    db.prompts.append(make_router_prompt())
+    override_dependencies(db, llm)
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/detect-workflow",
+        json={"title": "Feedback", "raw_text": "Review: Please add exports."},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "workflow_type": "customer_feedback",
+        "confidence": 0.73,
+        "reasoning_summary": "Input contains product feedback and feature requests.",
+        "recommended_action": "confirm",
+    }
+    assert len(llm.calls) == 2
+    assert "failed schema validation" in llm.calls[1][1]["content"]
+    clear_overrides()
+
+
 def test_detect_workflow_type_rejects_invalid_router_output():
     db = FakeSession()
     db.prompts.append(make_router_prompt())
     override_dependencies(
         db,
         FakeRouterLLMClient(
-            data={
-                "workflow_type": "unknown",
-                "confidence": 1.4,
-                "reasoning_summary": "",
-            }
+            responses=[
+                {
+                    "workflow_type": "unknown",
+                    "confidence": 1.4,
+                    "reasoning_summary": "",
+                },
+                {
+                    "workflow_type": "unknown",
+                    "confidence": 1.4,
+                    "reasoning_summary": "",
+                },
+            ]
         ),
     )
     client = TestClient(app)

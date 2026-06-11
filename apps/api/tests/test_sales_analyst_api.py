@@ -149,10 +149,17 @@ class FakeSession:
 
 
 class FakeLLMClient:
-    def __init__(self, should_fail: bool = False, invalid_output: bool = False) -> None:
+    def __init__(
+        self,
+        should_fail: bool = False,
+        invalid_output: bool = False,
+        responses: list[dict[str, Any]] | None = None,
+    ) -> None:
         self.should_fail = should_fail
         self.invalid_output = invalid_output
+        self.responses = responses or []
         self.messages: list[dict[str, Any]] = []
+        self.calls: list[list[dict[str, Any]]] = []
 
     def generate_structured(
         self,
@@ -163,8 +170,16 @@ class FakeLLMClient:
         max_tokens: int = 2048,
     ) -> StructuredResponse:
         self.messages = messages
+        self.calls.append(messages)
         if self.should_fail:
             raise RuntimeError("LLM unavailable")
+        if self.responses:
+            data = self.responses.pop(0)
+            return StructuredResponse(
+                data=data,
+                model="gpt-test",
+                usage=LLMUsage(input_tokens=100, output_tokens=50),
+            )
         if self.invalid_output:
             return StructuredResponse(
                 data={"key_findings": ["Revenue increased 12%"]},
@@ -451,14 +466,56 @@ def test_run_sales_analyst_llm_failure_creates_failed_step_and_fails_run():
     clear_overrides()
 
 
-def test_run_sales_analyst_invalid_output_creates_failed_step_and_fails_run():
+def test_run_sales_analyst_repairs_invalid_output_before_completing_step():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(input_id=uploaded_input.id)
+    llm = FakeLLMClient(
+        responses=[
+            {"key_findings": ["Revenue increased 12%"]},
+            {
+                "key_findings": ["Revenue increased 12%"],
+                "risks": ["Enterprise churn increased"],
+                "opportunities": ["Analytics Suite growth remains strong"],
+                "recommendations": ["Prioritize enterprise retention"],
+                "supporting_evidence": ["Revenue increased from $4.2M to $4.7M"],
+            },
+        ]
+    )
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.prompts.append(make_prompt())
+    override_dependencies(db, llm)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-analyst")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == AgentStepStatus.completed
+    assert body["output_json"]["risks"] == ["Enterprise churn increased"]
+    assert len(llm.calls) == 2
+    assert "failed schema validation" in llm.calls[1][1]["content"]
+    assert run.status == WorkflowStatus.reviewer_running
+    clear_overrides()
+
+
+def test_run_sales_analyst_invalid_output_after_repair_creates_failed_step_and_fails_run():
     db = FakeSession()
     uploaded_input = make_input()
     run = make_run(input_id=uploaded_input.id)
     db.inputs.append(uploaded_input)
     db.runs.append(run)
     db.prompts.append(make_prompt())
-    override_dependencies(db, FakeLLMClient(invalid_output=True))
+    override_dependencies(
+        db,
+        FakeLLMClient(
+            responses=[
+                {"key_findings": ["Revenue increased 12%"]},
+                {"key_findings": ["Revenue increased 12%"]},
+            ]
+        ),
+    )
     client = TestClient(app)
 
     response = client.post(f"/workflow-runs/{run.id}/run-analyst")

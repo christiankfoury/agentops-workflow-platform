@@ -20,6 +20,7 @@ from src.schemas.customer_feedback import (
 )
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import StructuredResponse
+from src.services.structured_output_guardrails import validate_or_repair_structured_response
 from src.services.workflow_events import (
     log_agent_completed,
     log_agent_failed,
@@ -151,24 +152,32 @@ def run_customer_feedback_insight(
 
     started = time.perf_counter()
     try:
+        messages = [
+            {
+                "role": "user",
+                "content": (
+                    "Turn this classified customer feedback into product insights. "
+                    "Use only the source feedback and classifier output as support.\n\n"
+                    f"Title: {uploaded_input.title}\n\n"
+                    f"Notes: {uploaded_input.notes or 'None'}\n\n"
+                    f"Customer feedback:\n{uploaded_input.raw_text}\n\n"
+                    f"Classifier output JSON:\n{classifier_output.model_dump()}"
+                ),
+            }
+        ]
         response = llm_client.generate_structured(
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        "Turn this classified customer feedback into product insights. "
-                        "Use only the source feedback and classifier output as support.\n\n"
-                        f"Title: {uploaded_input.title}\n\n"
-                        f"Notes: {uploaded_input.notes or 'None'}\n\n"
-                        f"Customer feedback:\n{uploaded_input.raw_text}\n\n"
-                        f"Classifier output JSON:\n{classifier_output.model_dump()}"
-                    ),
-                }
-            ],
+            messages=messages,
             system=prompt.template,
             schema=CUSTOMER_FEEDBACK_INSIGHT_SCHEMA,
         )
-        output = ProductInsightOutput.model_validate(response.data)
+        output, response = validate_or_repair_structured_response(
+            response=response,
+            output_model=ProductInsightOutput,
+            llm_client=llm_client,
+            messages=messages,
+            system=prompt.template,
+            schema=CUSTOMER_FEEDBACK_INSIGHT_SCHEMA,
+        )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
         log_agent_failed(db, run, step, str(e))

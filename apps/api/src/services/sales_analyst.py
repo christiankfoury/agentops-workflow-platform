@@ -17,6 +17,7 @@ from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import StructuredResponse
+from src.services.structured_output_guardrails import validate_or_repair_structured_response
 from src.services.workflow_events import (
     log_agent_completed,
     log_agent_failed,
@@ -140,17 +141,20 @@ def run_sales_analyst(
                     "\n\nHuman-edited analysis JSON: "
                     f"{retry_context['edited_analysis_json']}"
                 )
+        messages = [{"role": "user", "content": user_content}]
         response = llm_client.generate_structured(
-            messages=[
-                {
-                    "role": "user",
-                    "content": user_content,
-                }
-            ],
+            messages=messages,
             system=prompt.template,
             schema=SALES_ANALYSIS_SCHEMA,
         )
-        output = SalesAnalysisOutput.model_validate(response.data)
+        output, response = validate_or_repair_structured_response(
+            response=response,
+            output_model=SalesAnalysisOutput,
+            llm_client=llm_client,
+            messages=messages,
+            system=prompt.template,
+            schema=SALES_ANALYSIS_SCHEMA,
+        )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
         log_agent_failed(db, run, step, str(e))

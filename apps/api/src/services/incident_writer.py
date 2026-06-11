@@ -25,6 +25,7 @@ from src.services.workflow_events import (
     log_workflow_event,
 )
 from src.services.workflow_state import transition
+from src.services.writer_inputs import IncidentWriterInput
 
 INCIDENT_WRITER_AGENT_NAME = "Writer Agent"
 
@@ -57,23 +58,22 @@ def run_incident_writer(db: Session, run: WorkflowRun, llm_client: LLMClientLike
     _ensure_no_writer_started(db, run.id)
     prompt = _get_active_writer_prompt(db)
     step_order = _next_step_order(db, run.id)
-    agent_input = {
-        "workflow_run_id": str(run.id),
-        "input_id": str(uploaded_input.id),
-        "source_title": uploaded_input.title,
-        "source_text": uploaded_input.raw_text,
-        "timeline_step_id": str(timeline_step.id),
-        "root_cause_step_id": str(root_step.id),
-        "reviewer_step_id": str(reviewer_step.id) if reviewer_step is not None else None,
-        "timeline": timeline_output.model_dump(),
-        "root_cause": root_output.model_dump(),
-        "root_cause_source": "human_edited"
+    agent_input = IncidentWriterInput(
+        workflow_run_id=str(run.id),
+        input_id=str(uploaded_input.id),
+        source_title=uploaded_input.title,
+        source_text=uploaded_input.raw_text,
+        timeline_step_id=str(timeline_step.id),
+        root_cause_step_id=str(root_step.id),
+        reviewer_step_id=str(reviewer_step.id) if reviewer_step is not None else None,
+        timeline=timeline_output,
+        root_cause=root_output,
+        root_cause_source="human_edited"
         if approval is not None and approval.edited_analysis_json is not None
         else "root_cause",
-    }
-    if approval is not None:
-        agent_input["human_approval_id"] = str(approval.id)
-        agent_input["human_feedback"] = approval.human_feedback
+        human_approval_id=str(approval.id) if approval is not None else None,
+        human_feedback=approval.human_feedback if approval is not None else None,
+    ).model_dump(mode="json", exclude_none=True)
 
     step = AgentStep(
         workflow_run_id=run.id,

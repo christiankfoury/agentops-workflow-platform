@@ -19,6 +19,7 @@ from src.services.cost_tracking import record_agent_cost, update_workflow_cost_t
 from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
 from src.services.sales_reviewer import SALES_REVIEW_SCHEMA, SalesReviewOutput
+from src.services.structured_output_guardrails import validate_or_repair_structured_response
 from src.services.workflow_events import (
     log_agent_completed,
     log_agent_failed,
@@ -82,27 +83,35 @@ def run_customer_feedback_reviewer(
 
     started = time.perf_counter()
     try:
+        messages = [
+            {
+                "role": "user",
+                "content": (
+                    "Review the Customer Feedback Insight Agent output against the "
+                    "source feedback. Check whether insights, risks, feature requests, "
+                    "and recommendations are supported by actual feedback examples. "
+                    "Return structured JSON with approval, quality score, issues, and "
+                    "retry recommendation.\n\n"
+                    f"Source title: {uploaded_input.title}\n\n"
+                    f"Source notes: {uploaded_input.notes or 'None'}\n\n"
+                    f"Source customer feedback:\n{uploaded_input.raw_text}\n\n"
+                    f"Insight output JSON:\n{insight_output.model_dump()}"
+                ),
+            }
+        ]
         response = llm_client.generate_structured(
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        "Review the Customer Feedback Insight Agent output against the "
-                        "source feedback. Check whether insights, risks, feature requests, "
-                        "and recommendations are supported by actual feedback examples. "
-                        "Return structured JSON with approval, quality score, issues, and "
-                        "retry recommendation.\n\n"
-                        f"Source title: {uploaded_input.title}\n\n"
-                        f"Source notes: {uploaded_input.notes or 'None'}\n\n"
-                        f"Source customer feedback:\n{uploaded_input.raw_text}\n\n"
-                        f"Insight output JSON:\n{insight_output.model_dump()}"
-                    ),
-                }
-            ],
+            messages=messages,
             system=prompt.template,
             schema=SALES_REVIEW_SCHEMA,
         )
-        output = SalesReviewOutput.model_validate(response.data)
+        output, response = validate_or_repair_structured_response(
+            response=response,
+            output_model=SalesReviewOutput,
+            llm_client=llm_client,
+            messages=messages,
+            system=prompt.template,
+            schema=SALES_REVIEW_SCHEMA,
+        )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
         log_agent_failed(db, run, step, str(e))

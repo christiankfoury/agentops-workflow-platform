@@ -9,6 +9,10 @@ from src.models.agent_type import AgentType
 from src.models.prompt_version import PromptVersion
 from src.models.workflow_run import WorkflowType
 from src.services.llm_client import StructuredResponse
+from src.services.structured_output_guardrails import (
+    StructuredOutputRepairError,
+    validate_or_repair_structured_response,
+)
 
 HIGH_CONFIDENCE_THRESHOLD = 0.85
 MEDIUM_CONFIDENCE_THRESHOLD = 0.60
@@ -70,34 +74,43 @@ def detect_workflow_type(
 ) -> RouterOutput:
     prompt = _get_active_router_prompt(db)
     try:
+        messages = [
+            {
+                "role": "user",
+                "content": (
+                    "Inspect this business input and choose the best workflow type. "
+                    "Use sales_report for revenue, pipeline, churn, sales, or "
+                    "commercial performance updates. Use customer_feedback for "
+                    "reviews, surveys, tickets, feature requests, bugs, sentiment, "
+                    "or product feedback. Use incident_log for timestamped "
+                    "operational events, outages, alerts, mitigations, impact, "
+                    "recovery, or root-cause notes.\n\n"
+                    f"Title: {title}\n\n"
+                    f"Notes: {notes or 'None'}\n\n"
+                    f"Input:\n{raw_text}"
+                ),
+            }
+        ]
         response = llm_client.generate_structured(
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        "Inspect this business input and choose the best workflow type. "
-                        "Use sales_report for revenue, pipeline, churn, sales, or "
-                        "commercial performance updates. Use customer_feedback for "
-                        "reviews, surveys, tickets, feature requests, bugs, sentiment, "
-                        "or product feedback. Use incident_log for timestamped "
-                        "operational events, outages, alerts, mitigations, impact, "
-                        "recovery, or root-cause notes.\n\n"
-                        f"Title: {title}\n\n"
-                        f"Notes: {notes or 'None'}\n\n"
-                        f"Input:\n{raw_text}"
-                    ),
-                }
-            ],
+            messages=messages,
             system=prompt.template,
             schema=ROUTER_SCHEMA,
             max_tokens=600,
         )
-        raw_output = RawRouterOutput.model_validate(response.data)
+        raw_output, _response = validate_or_repair_structured_response(
+            response=response,
+            output_model=RawRouterOutput,
+            llm_client=llm_client,
+            messages=messages,
+            system=prompt.template,
+            schema=ROUTER_SCHEMA,
+            max_tokens=600,
+        )
         return RouterOutput(
             **raw_output.model_dump(),
             recommended_action=_recommended_action(raw_output.confidence),
         )
-    except ValidationError as e:
+    except (StructuredOutputRepairError, ValidationError) as e:
         raise RouterRunError("Router returned invalid workflow detection output") from e
     except Exception as e:
         raise RouterRunError(str(e)) from e

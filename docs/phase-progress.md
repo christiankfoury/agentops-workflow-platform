@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 43 - Schema Validation and Guardrails
+Current next phase: Phase 44 - Model Configuration and Agent Settings
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -52,17 +52,18 @@ Target range status: In progress.
 | 40 | Complete | Optional Router Agent workflow detection endpoint plus new workflow form controls for manual selection or auto-detect before creating uploaded inputs and workflow runs. |
 | 41 | Complete | Router confidence thresholds for auto-select, confirmation, and manual-selection fallback plus router accuracy/confidence tracking in evaluation results and dashboard summaries. |
 | 42 | Complete | Workflow cancellation recovery with cancellation events, in-flight step failure messages, cancel UI action, and workflow detail recovery summaries for failed or cancelled runs. |
+| 43 | Complete | Structured output guardrails with strict Pydantic validation, repair prompts for invalid structured agent JSON, safe failure after failed repairs, router output repair, and typed writer inputs. |
 
 ## Next Phase
 
-### Phase 43: Schema Validation and Guardrails
+### Phase 44: Model Configuration and Agent Settings
 
 Expected scope:
 
-- Add strict validation for all agent outputs with Pydantic models.
-- Ensure invalid agent JSON can be repaired or fails safely.
+- Add configurable model settings for each agent.
+- Support model, temperature, max tokens, timeout, max retries, and active prompt version.
 
-Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 43.
+Do not implement the admin settings UI, background jobs, auth, deployment work, or export/reporting features in Phase 44.
 
 ## Last Known Validation Pattern
 

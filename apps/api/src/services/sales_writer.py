@@ -25,6 +25,7 @@ from src.services.workflow_events import (
     log_workflow_event,
 )
 from src.services.workflow_state import transition
+from src.services.writer_inputs import SalesWriterInput
 
 SALES_WRITER_AGENT_NAME = "Writer Agent"
 
@@ -59,21 +60,20 @@ def run_sales_writer(
     _ensure_no_writer_started(db, run.id)
     prompt = _get_active_writer_prompt(db)
     step_order = _next_step_order(db, run.id)
-    agent_input = {
-        "workflow_run_id": str(run.id),
-        "input_id": str(uploaded_input.id),
-        "source_title": uploaded_input.title,
-        "source_text": uploaded_input.raw_text,
-        "analyst_step_id": str(analyst_step.id),
-        "reviewer_step_id": str(reviewer_step.id) if reviewer_step is not None else None,
-        "analysis": analyst_output.model_dump(),
-        "analysis_source": "human_edited"
+    agent_input = SalesWriterInput(
+        workflow_run_id=str(run.id),
+        input_id=str(uploaded_input.id),
+        source_title=uploaded_input.title,
+        source_text=uploaded_input.raw_text,
+        analyst_step_id=str(analyst_step.id),
+        reviewer_step_id=str(reviewer_step.id) if reviewer_step is not None else None,
+        analysis=analyst_output,
+        analysis_source="human_edited"
         if approval is not None and approval.edited_analysis_json is not None
         else "analyst",
-    }
-    if approval is not None:
-        agent_input["human_approval_id"] = str(approval.id)
-        agent_input["human_feedback"] = approval.human_feedback
+        human_approval_id=str(approval.id) if approval is not None else None,
+        human_feedback=approval.human_feedback if approval is not None else None,
+    ).model_dump(mode="json", exclude_none=True)
 
     step = AgentStep(
         workflow_run_id=run.id,
