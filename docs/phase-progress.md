@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 24 - Evaluation Dataset Foundation
+Current next phase: Phase 25 - Evaluation Runner for Sales Reports
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -31,19 +31,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 21 | Complete | Structured workflow event model, migration, logging service, run event endpoint, and lifecycle logging across workflow creation, agents, retries, human approvals, completion, and failures. |
 | 22 | Complete | Workflow run detail observability timeline UI backed by workflow event API client/types and smoke coverage. |
 | 23 | Complete | Sales report baseline single-agent execution path with API/UI trigger, cost/event persistence, final output storage, and focused tests. |
+| 24 | Complete | Evaluation case/result schema foundation, migration, read schemas, idempotent sales evaluation case seeding, and focused seed coverage. |
 
 ## Next Phase
 
-### Phase 24: Evaluation Dataset Foundation
+### Phase 25: Evaluation Runner for Sales Reports
 
 Expected scope:
 
-- Create the evaluation dataset foundation.
-- Add database tables and schemas for evaluation cases and evaluation results as needed.
-- Store sales report evaluation cases with expected facts, risks, recommendations, and notes.
-- Seed the first 5-10 sales report evaluation cases.
+- Build a script or backend endpoint that runs sales report evaluation cases.
+- Support running both `baseline` and `multi_agent` modes against the same stored cases.
+- Store each run result in `evaluation_results`.
+- Keep evaluation scoring basic if needed; detailed metrics belong to Phase 26.
 
-Do not implement the evaluation runner, evaluation dashboard, customer feedback workflows, incident workflows, background jobs, auth, or deployment work in Phase 24.
+Do not implement the evaluation dashboard, customer feedback workflows, incident workflows, background jobs, auth, or deployment work in Phase 25.
 
 ## Last Known Validation Pattern
 
