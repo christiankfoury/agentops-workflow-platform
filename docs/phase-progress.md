@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 23 - Baseline Single-Agent Workflow
+Current next phase: Phase 24 - Evaluation Dataset Foundation
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -30,19 +30,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 20 | Complete | Cost dashboard with spend metrics, workflow and agent cost breakdowns, token usage, and expensive-run table. |
 | 21 | Complete | Structured workflow event model, migration, logging service, run event endpoint, and lifecycle logging across workflow creation, agents, retries, human approvals, completion, and failures. |
 | 22 | Complete | Workflow run detail observability timeline UI backed by workflow event API client/types and smoke coverage. |
+| 23 | Complete | Sales report baseline single-agent execution path with API/UI trigger, cost/event persistence, final output storage, and focused tests. |
 
 ## Next Phase
 
-### Phase 23: Baseline Single-Agent Workflow
+### Phase 24: Evaluation Dataset Foundation
 
 Expected scope:
 
-- Implement the baseline workflow for sales reports.
-- Run a single LLM prompt directly from sales report input to final executive summary.
-- Do not use reviewer, retry logic, human approval, or specialized intermediate agents.
-- Store baseline runs with `run_mode = baseline` and persist final output, cost, latency, and agent step details as appropriate.
+- Create the evaluation dataset foundation.
+- Add database tables and schemas for evaluation cases and evaluation results as needed.
+- Store sales report evaluation cases with expected facts, risks, recommendations, and notes.
+- Seed the first 5-10 sales report evaluation cases.
 
-Do not implement evaluation datasets, evaluation dashboards, customer feedback, incident workflows, background jobs, auth, or deployment work in Phase 23.
+Do not implement the evaluation runner, evaluation dashboard, customer feedback workflows, incident workflows, background jobs, auth, or deployment work in Phase 24.
 
 ## Last Known Validation Pattern
 

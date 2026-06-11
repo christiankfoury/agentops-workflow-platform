@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import type { AgentStep, WorkflowEvent } from "@/lib/types";
 import { RunAnalystForm } from "./run-analyst-form";
+import { RunBaselineForm } from "./run-baseline-form";
 import { RunReviewerForm } from "./run-reviewer-form";
 import { RunWriterForm } from "./run-writer-form";
 
@@ -316,6 +317,16 @@ export default async function WorkflowRunDetailPage({
     run.workflow_type === "sales_report" &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null;
+  const canRunBaseline =
+    run.status === "created" &&
+    run.workflow_type === "sales_report" &&
+    run.run_mode === "baseline" &&
+    uploadedInput !== null &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "baseline" &&
+        (step.status === "running" || step.status === "completed"),
+    );
   const canRunReviewer =
     run.status === "reviewer_running" &&
     run.workflow_type === "sales_report" &&
@@ -384,6 +395,8 @@ export default async function WorkflowRunDetailPage({
       {canRunAnalyst && (
         <RunAnalystForm runId={run.id} />
       )}
+
+      {canRunBaseline && <RunBaselineForm runId={run.id} />}
 
       {canRunReviewer && <RunReviewerForm runId={run.id} />}
 

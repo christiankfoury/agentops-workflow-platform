@@ -92,6 +92,18 @@ export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
   return res.json() as Promise<AgentStep>;
 }
 
+export async function runSalesBaseline(runId: string): Promise<AgentStep> {
+  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-baseline`), {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof body?.detail === "string" ? body.detail : String(res.status);
+    throw new Error(`Failed to run baseline: ${detail}`);
+  }
+  return res.json() as Promise<AgentStep>;
+}
+
 export async function runSalesReviewer(runId: string): Promise<AgentStep> {
   const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-reviewer`), {
     method: "POST",

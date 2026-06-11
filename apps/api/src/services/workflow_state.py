@@ -12,6 +12,7 @@ VALID_TRANSITIONS: dict[WorkflowStatus, set[WorkflowStatus]] = {
     WorkflowStatus.running: {
         WorkflowStatus.routing,
         WorkflowStatus.analyst_running,
+        WorkflowStatus.completed,
         WorkflowStatus.failed,
         WorkflowStatus.cancelled,
     },

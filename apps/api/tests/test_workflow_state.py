@@ -33,6 +33,15 @@ def test_terminal_transition_sets_completed_at():
     assert run.completed_at.tzinfo == UTC
 
 
+def test_running_can_complete_for_baseline_workflow():
+    run = WorkflowRun(status=WorkflowStatus.running)
+
+    transition(run, WorkflowStatus.completed, FakeSession())
+
+    assert run.status == WorkflowStatus.completed
+    assert run.completed_at is not None
+
+
 def test_invalid_transition_is_rejected():
     run = WorkflowRun(status=WorkflowStatus.created)
 

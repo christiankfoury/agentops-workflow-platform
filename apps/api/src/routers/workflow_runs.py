@@ -14,6 +14,7 @@ from src.schemas.workflow_event import WorkflowEventRead
 from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead, WorkflowRunTransition
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
+from src.services.sales_baseline import BaselineRunError, run_sales_baseline
 from src.services.sales_reviewer import ReviewerRunError, run_sales_reviewer
 from src.services.sales_writer import WriterRunError, run_sales_writer
 from src.services.workflow_events import log_workflow_event
@@ -73,6 +74,21 @@ def run_analyst(
     try:
         return run_sales_analyst(db, run, llm_client)
     except AnalystRunError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.post("/{run_id}/run-baseline", response_model=AgentStepRead)
+def run_baseline(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> AgentStep:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return run_sales_baseline(db, run, llm_client)
+    except (BaselineRunError, InvalidTransitionError) as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
