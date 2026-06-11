@@ -14,7 +14,7 @@ The goal is to let an engineering agent continue implementation autonomously whi
 Target range:
 
 ```text
-Phase 31 through Phase 45
+Phase 46 through Phase 65
 ```
 
 The agent should execute phases continuously in order from the current next phase until Phase 45 is completed, unless a stop condition is reached.
