@@ -98,6 +98,18 @@ export interface WorkflowEvent {
   created_at: string;
 }
 
+export interface EvaluationMetricsSummary {
+  run_mode: RunMode;
+  run_count: number;
+  factual_accuracy: number;
+  unsupported_claim_rate: number;
+  completeness_score: number;
+  human_approval_rate: number;
+  average_cost: number;
+  average_latency_ms: number;
+  average_retries: number;
+}
+
 export interface HumanApproval {
   id: string;
   workflow_run_id: string;

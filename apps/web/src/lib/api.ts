@@ -4,6 +4,7 @@ import type {
   AgentStep,
   CreateUploadedInputRequest,
   CreateWorkflowRunRequest,
+  EvaluationMetricsSummary,
   HumanApproval,
   HumanApprovalActionRequest,
   HumanApprovalEditRequest,
@@ -78,6 +79,14 @@ export async function listWorkflowEvents(runId: string): Promise<WorkflowEvent[]
   });
   if (!res.ok) throw new Error(`Failed to fetch workflow events: ${res.status}`);
   return res.json() as Promise<WorkflowEvent[]>;
+}
+
+export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]> {
+  const res = await fetch(apiUrl("/evaluation-results/summary"), {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
+  return res.json() as Promise<EvaluationMetricsSummary[]>;
 }
 
 export async function runSalesAnalyst(runId: string): Promise<AgentStep> {

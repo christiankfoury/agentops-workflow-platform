@@ -44,3 +44,15 @@ class EvaluationResultRead(BaseModel):
     judge_notes: str | None
     error_message: str | None
     created_at: datetime
+
+
+class EvaluationMetricsSummaryRead(BaseModel):
+    run_mode: RunMode
+    run_count: int
+    factual_accuracy: float
+    unsupported_claim_rate: float
+    completeness_score: float
+    human_approval_rate: float
+    average_cost: float
+    average_latency_ms: float
+    average_retries: float

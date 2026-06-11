@@ -32,6 +32,12 @@ export function Nav() {
           >
             Costs
           </Link>
+          <Link
+            href="/evaluation"
+            className="transition-colors hover:text-foreground"
+          >
+            Evaluation
+          </Link>
         </div>
       </nav>
     </header>
