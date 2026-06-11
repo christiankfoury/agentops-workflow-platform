@@ -1,6 +1,11 @@
 import "server-only";
 
-import type { CreateWorkflowRunRequest, WorkflowRun } from "./types";
+import type {
+  CreateUploadedInputRequest,
+  CreateWorkflowRunRequest,
+  UploadedInput,
+  WorkflowRun,
+} from "./types";
 
 function apiUrl(path: string): string {
   const base =
@@ -33,4 +38,23 @@ export async function createWorkflowRun(
   });
   if (!res.ok) throw new Error(`Failed to create workflow run: ${res.status}`);
   return res.json() as Promise<WorkflowRun>;
+}
+
+export async function createUploadedInput(
+  body: CreateUploadedInputRequest,
+): Promise<UploadedInput> {
+  const res = await fetch(apiUrl("/uploaded-inputs"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Failed to create uploaded input: ${res.status}`);
+  return res.json() as Promise<UploadedInput>;
+}
+
+export async function getUploadedInput(id: string): Promise<UploadedInput | null> {
+  const res = await fetch(apiUrl(`/uploaded-inputs/${id}`), { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch uploaded input: ${res.status}`);
+  return res.json() as Promise<UploadedInput>;
 }

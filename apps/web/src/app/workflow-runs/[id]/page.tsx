@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getWorkflowRun } from "@/lib/api";
+import { getUploadedInput, getWorkflowRun } from "@/lib/api";
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -11,6 +11,8 @@ export default async function WorkflowRunDetailPage({
   const run = await getWorkflowRun(id);
 
   if (!run) notFound();
+
+  const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
 
   const fields = [
     { label: "Status", value: run.status },
@@ -65,6 +67,32 @@ export default async function WorkflowRunDetailPage({
           </div>
         ))}
       </div>
+
+      {uploadedInput && (
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold">Input</h2>
+          <div className="mt-2 rounded-lg border border-border bg-card p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+              <div>
+                <p className="font-medium">{uploadedInput.title}</p>
+                {uploadedInput.notes && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {uploadedInput.notes}
+                  </p>
+                )}
+              </div>
+              {uploadedInput.file_name && (
+                <p className="text-xs text-muted-foreground">
+                  {uploadedInput.file_name}
+                </p>
+              )}
+            </div>
+            <pre className="mt-4 max-h-96 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
+              {uploadedInput.raw_text}
+            </pre>
+          </div>
+        </section>
+      )}
 
       {run.final_output && (
         <div className="mt-6">

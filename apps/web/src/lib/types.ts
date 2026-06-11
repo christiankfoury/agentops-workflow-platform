@@ -31,6 +31,30 @@ export interface WorkflowRun {
   completed_at: string | null;
 }
 
+export interface UploadedInput {
+  id: string;
+  organization_id: string | null;
+  created_by_user_id: string | null;
+  title: string;
+  input_type: WorkflowType;
+  raw_text: string;
+  notes: string | null;
+  file_name: string | null;
+  file_type: string | null;
+  file_size: number | null;
+  created_at: string;
+}
+
+export interface CreateUploadedInputRequest {
+  title: string;
+  input_type: WorkflowType;
+  raw_text: string;
+  notes?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
+  file_size?: number | null;
+}
+
 export interface CreateWorkflowRunRequest {
   workflow_type: WorkflowType;
   run_mode?: RunMode;

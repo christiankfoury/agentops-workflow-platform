@@ -29,6 +29,7 @@ class UploadedInput(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     input_type: Mapped[InputType] = mapped_column(Enum(InputType), nullable=False)
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     file_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)

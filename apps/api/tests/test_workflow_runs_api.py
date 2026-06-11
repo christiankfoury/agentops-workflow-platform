@@ -5,33 +5,37 @@ from fastapi.testclient import TestClient
 
 from src.database import get_db
 from src.main import app
+from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 
 
 class FakeQuery:
-    def __init__(self, runs: list[WorkflowRun]) -> None:
-        self.runs = runs
-        self.run_id: uuid.UUID | None = None
+    def __init__(self, items: list[WorkflowRun] | list[UploadedInput]) -> None:
+        self.items = items
+        self.item_id: uuid.UUID | None = None
 
     def order_by(self, *_args: object) -> "FakeQuery":
         return self
 
     def filter(self, criterion: object) -> "FakeQuery":
-        self.run_id = criterion.right.value
+        self.item_id = criterion.right.value
         return self
 
-    def all(self) -> list[WorkflowRun]:
-        return self.runs
+    def all(self) -> list[WorkflowRun] | list[UploadedInput]:
+        return self.items
 
-    def first(self) -> WorkflowRun | None:
-        return next((run for run in self.runs if run.id == self.run_id), None)
+    def first(self) -> WorkflowRun | UploadedInput | None:
+        return next((item for item in self.items if item.id == self.item_id), None)
 
 
 class FakeSession:
     def __init__(self) -> None:
         self.runs: list[WorkflowRun] = []
+        self.inputs: list[UploadedInput] = []
 
-    def query(self, _model: type[WorkflowRun]) -> FakeQuery:
+    def query(self, model: type[WorkflowRun] | type[UploadedInput]) -> FakeQuery:
+        if model is UploadedInput:
+            return FakeQuery(self.inputs)
         return FakeQuery(self.runs)
 
     def add(self, run: WorkflowRun) -> None:
@@ -71,6 +75,50 @@ def test_create_list_and_get_workflow_run():
     assert detail.status_code == 200
     assert detail.json()["workflow_type"] == WorkflowType.sales_report
 
+    app.dependency_overrides.clear()
+
+
+def test_create_workflow_run_with_input_id():
+    uploaded_input = UploadedInput(
+        id=uuid.uuid4(),
+        title="Q1 Sales Report",
+        input_type=InputType.sales_report,
+        raw_text="Revenue increased 12%.",
+        created_at=datetime.now(UTC),
+    )
+    db = FakeSession()
+    db.inputs.append(uploaded_input)
+    app.dependency_overrides[get_db] = lambda: db
+    client = TestClient(app)
+
+    created = client.post(
+        "/workflow-runs",
+        json={
+            "workflow_type": "sales_report",
+            "run_mode": "multi_agent",
+            "input_id": str(uploaded_input.id),
+        },
+    )
+
+    assert created.status_code == 201
+    assert created.json()["input_id"] == str(uploaded_input.id)
+    app.dependency_overrides.clear()
+
+
+def test_create_workflow_run_with_missing_input_id_returns_422():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/workflow-runs",
+        json={
+            "workflow_type": "sales_report",
+            "run_mode": "multi_agent",
+            "input_id": str(uuid.uuid4()),
+        },
+    )
+
+    assert response.status_code == 422
     app.dependency_overrides.clear()
 
 

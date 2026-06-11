@@ -1,13 +1,82 @@
 import { redirect } from "next/navigation";
-import { createWorkflowRun } from "@/lib/api";
-import type { RunMode, WorkflowType } from "@/lib/types";
+import { createUploadedInput, createWorkflowRun } from "@/lib/api";
+import type { RunMode } from "@/lib/types";
+
+const allowedFileExtensions = [".txt", ".md"];
+
+function cleanOptional(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+async function readInputText(formData: FormData): Promise<{
+  rawText: string;
+  fileName: string | null;
+  fileType: string | null;
+  fileSize: number | null;
+}> {
+  const file = formData.get("input_file");
+  if (file instanceof File && file.size > 0) {
+    const fileName = file.name;
+    const lowerFileName = fileName.toLowerCase();
+    const isAllowed = allowedFileExtensions.some((extension) =>
+      lowerFileName.endsWith(extension),
+    );
+
+    if (!isAllowed) {
+      throw new Error("Only .txt and .md uploads are supported.");
+    }
+
+    const rawText = (await file.text()).trim();
+    if (rawText.length === 0) {
+      throw new Error("Uploaded file is empty.");
+    }
+
+    return {
+      rawText,
+      fileName,
+      fileType: file.type || null,
+      fileSize: file.size,
+    };
+  }
+
+  const pastedText = cleanOptional(formData.get("raw_text"));
+  if (pastedText === null) {
+    throw new Error("Paste sales report text or upload a .txt/.md file.");
+  }
+
+  return {
+    rawText: pastedText,
+    fileName: null,
+    fileType: null,
+    fileSize: null,
+  };
+}
 
 async function handleCreate(formData: FormData) {
   "use server";
 
+  const title = cleanOptional(formData.get("title"));
+  if (title === null) {
+    throw new Error("Input title is required.");
+  }
+
+  const input = await readInputText(formData);
+  const uploadedInput = await createUploadedInput({
+    title,
+    input_type: "sales_report",
+    raw_text: input.rawText,
+    notes: cleanOptional(formData.get("notes")),
+    file_name: input.fileName,
+    file_type: input.fileType,
+    file_size: input.fileSize,
+  });
+
   const run = await createWorkflowRun({
-    workflow_type: formData.get("workflow_type") as WorkflowType,
+    workflow_type: "sales_report",
     run_mode: formData.get("run_mode") as RunMode,
+    input_id: uploadedInput.id,
   });
 
   redirect(`/workflow-runs/${run.id}`);
@@ -16,29 +85,63 @@ async function handleCreate(formData: FormData) {
 export default function NewWorkflowPage() {
   return (
     <div className="max-w-lg">
-      <h1 className="text-2xl font-bold tracking-tight">New Workflow Run</h1>
+      <h1 className="text-2xl font-bold tracking-tight">New Sales Workflow</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Create a placeholder workflow run without executing agents.
+        Store a sales report input for the upcoming agent pipeline.
       </p>
 
-      <form action={handleCreate} className="mt-6 space-y-4">
+      <form action={handleCreate} className="mt-6 space-y-5">
         <div>
-          <label
-            htmlFor="workflow_type"
-            className="block text-sm font-medium"
-          >
-            Workflow Type
+          <label htmlFor="title" className="block text-sm font-medium">
+            Input Title
           </label>
-          <select
-            id="workflow_type"
-            name="workflow_type"
+          <input
+            id="title"
+            name="title"
+            type="text"
             required
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="sales_report">Sales Report</option>
-            <option value="customer_feedback">Customer Feedback</option>
-            <option value="incident_log">Incident Log</option>
-          </select>
+            placeholder="Q1 Sales Report"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="raw_text" className="block text-sm font-medium">
+            Sales Report Text
+          </label>
+          <textarea
+            id="raw_text"
+            name="raw_text"
+            rows={10}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Paste revenue, regional performance, churn notes, pipeline updates..."
+          />
+        </div>
+
+        <div>
+          <label htmlFor="input_file" className="block text-sm font-medium">
+            Upload Text File
+          </label>
+          <input
+            id="input_file"
+            name="input_file"
+            type="file"
+            accept=".txt,.md,text/plain,text/markdown"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium">
+            Notes
+          </label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows={3}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Optional context for this run"
+          />
         </div>
 
         <div>

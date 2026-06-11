@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from src.database import check_db
-from src.routers import prompt_versions, workflow_runs
+from src.routers import prompt_versions, uploaded_inputs, workflow_runs
 
 app = FastAPI(
     title="AgentOps Workflow Platform API",
@@ -11,6 +11,7 @@ app = FastAPI(
 
 app.include_router(workflow_runs.router, prefix="/workflow-runs", tags=["workflow-runs"])
 app.include_router(prompt_versions.router, prefix="/prompt-versions", tags=["prompt-versions"])
+app.include_router(uploaded_inputs.router, prefix="/uploaded-inputs", tags=["uploaded-inputs"])
 
 
 @app.get("/health")
