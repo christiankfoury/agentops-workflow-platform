@@ -39,6 +39,12 @@ export function Nav() {
             Evaluation
           </Link>
           <Link
+            href="/agent-performance"
+            className="transition-colors hover:text-foreground"
+          >
+            Agents
+          </Link>
+          <Link
             href="/prompt-versions"
             className="transition-colors hover:text-foreground"
           >

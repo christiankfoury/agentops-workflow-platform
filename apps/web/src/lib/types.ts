@@ -124,6 +124,22 @@ export interface EvaluationMetricsSummary {
   average_retries: number;
 }
 
+export interface AgentPerformanceSummary {
+  agent_type: string;
+  agent_name: string;
+  step_count: number;
+  completed_count: number;
+  failed_count: number;
+  retry_count: number;
+  schema_validation_failure_count: number;
+  average_latency_ms: number;
+  average_cost: number;
+  failure_rate: number;
+  retry_rate: number;
+  average_reviewer_score: number | null;
+  schema_validation_failure_rate: number;
+}
+
 export interface HumanApproval {
   id: string;
   workflow_run_id: string;

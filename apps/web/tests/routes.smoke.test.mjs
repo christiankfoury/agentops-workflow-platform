@@ -36,11 +36,15 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/costs/page.tsx"), /listAgentSteps/);
   assert.match(read("src/components/nav.tsx"), /href="\/costs"/);
   assert.match(read("src/components/nav.tsx"), /href="\/evaluation"/);
+  assert.match(read("src/components/nav.tsx"), /href="\/agent-performance"/);
   assert.match(read("src/components/nav.tsx"), /href="\/prompt-versions"/);
   assert.match(read("src/components/nav.tsx"), /href="\/settings"/);
   assert.match(read("src/app/evaluation/page.tsx"), /Evaluation Dashboard/);
   assert.match(read("src/app/evaluation/page.tsx"), /getEvaluationSummary/);
   assert.match(read("src/app/evaluation/page.tsx"), /Router Accuracy/);
+  assert.match(read("src/app/agent-performance/page.tsx"), /Agent Performance Dashboard/);
+  assert.match(read("src/app/agent-performance/page.tsx"), /getAgentPerformanceSummary/);
+  assert.match(read("src/app/agent-performance/page.tsx"), /Schema Validation Failures/);
   assert.match(read("src/app/prompt-versions/page.tsx"), /Prompt Versions/);
   assert.match(read("src/app/prompt-versions/page.tsx"), /listPromptVersions/);
   assert.match(read("src/app/prompt-versions/form.tsx"), /useActionState/);
@@ -86,6 +90,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function listAgentSteps/);
   assert.match(api, /export async function listWorkflowEvents/);
   assert.match(api, /export async function getEvaluationSummary/);
+  assert.match(api, /export async function getAgentPerformanceSummary/);
   assert.match(api, /export async function listPromptVersions/);
   assert.match(api, /export async function getPromptVersion/);
   assert.match(api, /export async function createPromptVersion/);

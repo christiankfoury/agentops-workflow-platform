@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 48 - Agent Performance Dashboard
+Current next phase: Phase 49 - Workflow Comparison View
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 47 complete; Phase 48 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 48 complete; Phase 49 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -57,17 +57,18 @@ Target range status: Phase 46 through Phase 47 complete; Phase 48 through Phase 
 | 45 | Complete | Admin settings UI and API for per-agent model, temperature, max tokens, timeout, retry limit, reviewer/human thresholds, and active prompt version configuration. |
 | 46 | Complete | Advanced human review editing with workflow-aware structured edit controls, JSON payload assembly for writer input, and frontend smoke coverage. |
 | 47 | Complete | Human feedback loop summary with reviewer issue aggregation, edited-field tracking, approval decision trends, edit event logging, dashboard section, and focused API/frontend coverage. |
+| 48 | Complete | Agent performance API and dashboard with per-agent latency, cost, failure, retry, reviewer score, and schema validation failure metrics. |
 
 ## Next Phase
 
-### Phase 48: Agent Performance Dashboard
+### Phase 49: Workflow Comparison View
 
 Expected scope:
 
-- Create a dedicated agent performance page.
-- Show metrics by agent, including average latency, average cost, failure rate, retry rate, average reviewer score, and schema validation failure rate where available.
+- Create a side-by-side comparison page for baseline vs multi-agent outputs.
+- For the same input, show baseline output, multi-agent output, reviewer issues, evaluation scores, cost difference, and latency difference.
 
-Do not implement baseline comparison views, export/reporting features, file uploads, background jobs, auth, or deployment work in Phase 48.
+Do not implement export/reporting features, file uploads, background jobs, auth, or deployment work in Phase 49.
 
 ## Last Known Validation Pattern
 

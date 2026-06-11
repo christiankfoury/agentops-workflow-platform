@@ -4,6 +4,7 @@ import { apiUrl } from "./api-url";
 import type {
   AgentStep,
   AgentSetting,
+  AgentPerformanceSummary,
   CreateUploadedInputRequest,
   CreateWorkflowRunRequest,
   DetectWorkflowRequest,
@@ -102,6 +103,14 @@ export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
   return res.json() as Promise<EvaluationMetricsSummary[]>;
+}
+
+export async function getAgentPerformanceSummary(): Promise<AgentPerformanceSummary[]> {
+  const res = await fetch(apiUrl("/agent-performance"), {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Failed to fetch agent performance: ${res.status}`);
+  return res.json() as Promise<AgentPerformanceSummary[]>;
 }
 
 export async function listPromptVersions(): Promise<PromptVersion[]> {
