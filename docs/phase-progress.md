@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 37 - Root Cause Agent
+Current next phase: Phase 38 - Reviewer and Writer for Incident Reports
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -46,19 +46,19 @@ Target range status: In progress.
 | 34 | Complete | Customer feedback evaluation case seeding, baseline and multi-agent evaluation runner support, and workflow-type evaluation summary dashboard grouping. |
 | 35 | Complete | Incident workflow schemas for timeline events, ambiguous events, impact, confirmed facts, inferred claims, suspected root cause, and follow-up actions. |
 | 36 | Complete | Incident Timeline Agent backend endpoint that extracts chronological events, validates timeline JSON, and persists timeline steps with cost/event tracking. |
+| 37 | Complete | Incident Root Cause Agent backend endpoint that consumes timeline output, separates confirmed facts from likely/inferred claims, tracks unknowns, and persists root cause steps. |
 
 ## Next Phase
 
-### Phase 37: Root Cause Agent
+### Phase 38: Reviewer and Writer for Incident Reports
 
 Expected scope:
 
-- Implement the Root Cause Agent.
-- Consume completed incident timeline output.
-- Identify confirmed causes, likely causes, unknowns, impact, and follow-up actions.
-- Store root cause outputs as agent steps using the Phase 35 incident root cause schema.
+- Extend the Reviewer Agent and Writer Agent to support incident workflows.
+- Reviewer should check timeline accuracy, root-cause support, inferred-claim labeling, and follow-up action quality.
+- Writer should generate a polished incident report.
 
-Do not implement incident reviewer/writer, background jobs, auth, deployment work, or export/reporting features in Phase 37.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 38.
 
 ## Last Known Validation Pattern
 

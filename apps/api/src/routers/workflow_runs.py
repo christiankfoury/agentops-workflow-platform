@@ -25,6 +25,7 @@ from src.services.customer_feedback_writer import (
     CustomerFeedbackWriterRunError,
     run_customer_feedback_writer,
 )
+from src.services.incident_root_cause import RootCauseRunError, run_incident_root_cause
 from src.services.incident_timeline import TimelineRunError, run_incident_timeline
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
@@ -133,6 +134,21 @@ def run_timeline(
     try:
         return run_incident_timeline(db, run, llm_client)
     except TimelineRunError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.post("/{run_id}/run-root-cause", response_model=AgentStepRead)
+def run_root_cause(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> AgentStep:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return run_incident_root_cause(db, run, llm_client)
+    except RootCauseRunError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

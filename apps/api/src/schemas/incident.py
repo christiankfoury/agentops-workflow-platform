@@ -47,5 +47,7 @@ class IncidentRootCauseOutput(BaseModel):
     impact: list[IncidentImpact]
     suspected_root_cause: str = Field(min_length=1)
     confirmed_facts: list[IncidentClaim]
+    likely_causes: list[IncidentClaim]
     inferred_claims: list[IncidentClaim]
+    unknowns: list[str]
     follow_up_actions: list[IncidentFollowUpAction]

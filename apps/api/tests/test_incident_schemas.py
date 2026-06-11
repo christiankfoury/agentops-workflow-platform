@@ -56,12 +56,19 @@ def test_incident_root_cause_output_accepts_supported_and_inferred_claims():
                     "support": "10:15 AM - Database connection pool saturated",
                 }
             ],
+            "likely_causes": [
+                {
+                    "claim": "Connection pool saturation likely drove latency.",
+                    "support": "Pool saturation was observed during the latency window.",
+                }
+            ],
             "inferred_claims": [
                 {
                     "claim": "Connection pool saturation likely caused API latency.",
                     "support": "Latency increased before pool saturation was observed.",
                 }
             ],
+            "unknowns": ["The log does not identify why the pool saturated."],
             "follow_up_actions": [
                 {
                     "action": "Add connection pool saturation alerts.",
@@ -84,7 +91,9 @@ def test_incident_root_cause_output_rejects_invalid_priority():
                 "impact": [],
                 "suspected_root_cause": "Unknown",
                 "confirmed_facts": [],
+                "likely_causes": [],
                 "inferred_claims": [],
+                "unknowns": [],
                 "follow_up_actions": [
                     {
                         "action": "Add monitoring.",
