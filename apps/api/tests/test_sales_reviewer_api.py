@@ -97,6 +97,32 @@ def make_completed_analyst_step(run_id: uuid.UUID) -> AgentStep:
     )
 
 
+def make_completed_reviewer_step(run_id: uuid.UUID, analyst_step_id: uuid.UUID) -> AgentStep:
+    return AgentStep(
+        id=uuid.uuid4(),
+        workflow_run_id=run_id,
+        agent_name="Reviewer Agent",
+        agent_type=AgentType.reviewer.value,
+        step_order=2,
+        status=AgentStepStatus.completed,
+        input_json={"analyst_step_id": str(analyst_step_id)},
+        output_json={
+            "approved": True,
+            "quality_score": 0.95,
+            "issues": [],
+            "retry_recommended": False,
+        },
+        model="gpt-reviewer-test",
+        tokens_input=80,
+        tokens_output=20,
+        total_tokens=100,
+        latency_ms=800,
+        retry_count=0,
+        created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+
+
 def override_dependencies(
     db: FakeSession, llm: FakeReviewerLLMClient | None = None
 ) -> None:
@@ -180,6 +206,68 @@ def test_run_sales_reviewer_requires_completed_analyst_step():
 
     assert response.status_code == 422
     assert response.json()["detail"] == "Completed analyst step not found"
+    clear_overrides()
+
+
+def test_run_sales_reviewer_rejects_malformed_analyst_output():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    analyst_step = make_completed_analyst_step(run.id)
+    analyst_step.output_json = {"key_findings": ["Revenue increased 12%"]}
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(analyst_step)
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(db)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 422
+    assert "Completed analyst step output is invalid" in response.json()["detail"]
+    clear_overrides()
+
+
+def test_run_sales_reviewer_rejects_duplicate_reviewer_for_analyst_step():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    analyst_step = make_completed_analyst_step(run.id)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(analyst_step)
+    db.steps.append(make_completed_reviewer_step(run.id, analyst_step.id))
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(db)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Reviewer already completed for analyst step"
+    clear_overrides()
+
+
+def test_run_sales_reviewer_rejects_when_reviewer_is_running():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    analyst_step = make_completed_analyst_step(run.id)
+    reviewer_step = make_completed_reviewer_step(run.id, analyst_step.id)
+    reviewer_step.status = AgentStepStatus.running
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(analyst_step)
+    db.steps.append(reviewer_step)
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(db)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Reviewer already running for workflow run"
     clear_overrides()
 
 

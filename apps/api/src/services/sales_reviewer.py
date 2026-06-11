@@ -14,6 +14,7 @@ from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.llm_client import StructuredResponse
+from src.services.sales_analyst import SalesAnalysisOutput
 
 SALES_REVIEWER_AGENT_NAME = "Reviewer Agent"
 
@@ -80,8 +81,11 @@ def run_sales_reviewer(
     run: WorkflowRun,
     llm_client: LLMClientLike,
 ) -> AgentStep:
+    run = _lock_run(db, run)
     uploaded_input = _validate_run_and_get_input(db, run)
     analyst_step = _get_completed_analyst_step(db, run.id)
+    analyst_output = _validate_analyst_output(analyst_step)
+    _ensure_no_reviewer_for_analyst(db, run.id, analyst_step.id)
     prompt = _get_active_reviewer_prompt(db)
     step_order = _next_step_order(db, run.id)
     agent_input = {
@@ -90,7 +94,7 @@ def run_sales_reviewer(
         "source_title": uploaded_input.title,
         "source_text": uploaded_input.raw_text,
         "analyst_step_id": str(analyst_step.id),
-        "analyst_output": analyst_step.output_json,
+        "analyst_output": analyst_output.model_dump(),
     }
     step = AgentStep(
         workflow_run_id=run.id,
@@ -119,7 +123,7 @@ def run_sales_reviewer(
                         f"Source title: {uploaded_input.title}\n\n"
                         f"Source notes: {uploaded_input.notes or 'None'}\n\n"
                         f"Source sales report:\n{uploaded_input.raw_text}\n\n"
-                        f"Analyst output JSON:\n{analyst_step.output_json}"
+                        f"Analyst output JSON:\n{analyst_output.model_dump()}"
                     ),
                 }
             ],
@@ -146,6 +150,16 @@ def run_sales_reviewer(
     _update_run_metrics(run, db)
     _set_run_status(run, WorkflowStatus.waiting_for_human, db)
     return step
+
+
+def _lock_run(db: Session, run: WorkflowRun) -> WorkflowRun:
+    query = db.query(WorkflowRun).filter(WorkflowRun.id == run.id)
+    if hasattr(query, "with_for_update"):
+        query = query.with_for_update()
+    locked_run = query.first()
+    if locked_run is None:
+        raise ReviewerRunError("Workflow run not found")
+    return locked_run
 
 
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
@@ -179,9 +193,38 @@ def _get_completed_analyst_step(db: Session, run_id: uuid.UUID) -> AgentStep:
     if not analyst_steps:
         raise ReviewerRunError("Completed analyst step not found")
     analyst_step = max(analyst_steps, key=lambda step: step.step_order)
+    return analyst_step
+
+
+def _validate_analyst_output(analyst_step: AgentStep) -> SalesAnalysisOutput:
     if analyst_step.output_json is None:
         raise ReviewerRunError("Completed analyst step has no output")
-    return analyst_step
+    try:
+        return SalesAnalysisOutput.model_validate(analyst_step.output_json)
+    except ValidationError as e:
+        raise ReviewerRunError(f"Completed analyst step output is invalid: {e}") from e
+
+
+def _ensure_no_reviewer_for_analyst(
+    db: Session,
+    run_id: uuid.UUID,
+    analyst_step_id: uuid.UUID,
+) -> None:
+    reviewer_steps = (
+        db.query(AgentStep)
+        .filter(
+            AgentStep.workflow_run_id == run_id,
+            AgentStep.agent_type == AgentType.reviewer.value,
+        )
+        .all()
+    )
+    for step in reviewer_steps:
+        if step.status == AgentStepStatus.running:
+            raise ReviewerRunError("Reviewer already running for workflow run")
+        if step.status == AgentStepStatus.completed and (
+            step.input_json or {}
+        ).get("analyst_step_id") == str(analyst_step_id):
+            raise ReviewerRunError("Reviewer already completed for analyst step")
 
 
 def _get_active_reviewer_prompt(db: Session) -> PromptVersion:
