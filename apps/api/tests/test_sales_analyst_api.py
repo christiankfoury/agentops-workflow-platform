@@ -104,6 +104,7 @@ class FakeLLMClient:
     def __init__(self, should_fail: bool = False, invalid_output: bool = False) -> None:
         self.should_fail = should_fail
         self.invalid_output = invalid_output
+        self.messages: list[dict[str, Any]] = []
 
     def generate_structured(
         self,
@@ -113,6 +114,7 @@ class FakeLLMClient:
         model: str | None = None,
         max_tokens: int = 2048,
     ) -> StructuredResponse:
+        self.messages = messages
         if self.should_fail:
             raise RuntimeError("LLM unavailable")
         if self.invalid_output:
@@ -207,6 +209,59 @@ def test_run_sales_analyst_success_creates_completed_step():
     assert body["tokens_output"] == 50
     assert body["total_tokens"] == 150
     assert body["prompt_version_id"] == str(db.prompts[0].id)
+    assert run.status == WorkflowStatus.reviewer_running
+    clear_overrides()
+
+
+def test_run_sales_analyst_retry_uses_reviewer_feedback_and_increments_retry_count():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.retrying, input_id=uploaded_input.id)
+    reviewer_step = AgentStep(
+        id=uuid.uuid4(),
+        workflow_run_id=run.id,
+        agent_name="Reviewer Agent",
+        agent_type=AgentType.reviewer.value,
+        step_order=2,
+        status=AgentStepStatus.completed,
+        output_json={
+            "approved": False,
+            "quality_score": 0.62,
+            "issues": [
+                {
+                    "claim": "Enterprise churn doubled",
+                    "problem": "Source only says churn increased",
+                    "severity": "high",
+                }
+            ],
+            "retry_recommended": True,
+        },
+        retry_count=0,
+        created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+    llm = FakeLLMClient()
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(reviewer_step)
+    db.prompts.append(make_prompt())
+    override_dependencies(db, llm)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-analyst")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == AgentStepStatus.completed
+    assert body["retry_count"] == 1
+    assert body["input_json"]["retry_count"] == 1
+    assert body["input_json"]["retry_reason"] == (
+        "Reviewer recommended retry; Quality score is below 0.70; "
+        "High severity reviewer issue"
+    )
+    assert body["input_json"]["reviewer_feedback"] == reviewer_step.output_json
+    assert "This is a retry" in llm.messages[0]["content"]
+    assert run.retry_count == 1
     assert run.status == WorkflowStatus.reviewer_running
     clear_overrides()
 

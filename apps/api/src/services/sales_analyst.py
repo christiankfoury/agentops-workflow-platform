@@ -69,9 +69,15 @@ def run_sales_analyst(
     llm_client: LLMClientLike,
 ) -> AgentStep:
     uploaded_input = _validate_run_and_get_input(db, run)
+    retry_context = _get_retry_context(db, run) if run.status == WorkflowStatus.retrying else None
+    if run.status == WorkflowStatus.retrying:
+        run.retry_count = (run.retry_count or 0) + 1
+        db.commit()
+        db.refresh(run)
     prompt = _get_active_sales_analyst_prompt(db)
     step_order = _next_step_order(db, run.id)
-    _set_run_status(run, WorkflowStatus.running, db)
+    if retry_context is None:
+        _set_run_status(run, WorkflowStatus.running, db)
     _set_run_status(run, WorkflowStatus.analyst_running, db)
     agent_input = {
         "workflow_run_id": str(run.id),
@@ -79,7 +85,11 @@ def run_sales_analyst(
         "title": uploaded_input.title,
         "raw_text": uploaded_input.raw_text,
         "notes": uploaded_input.notes,
+        "retry_count": run.retry_count or 0,
     }
+    if retry_context is not None:
+        agent_input["retry_reason"] = retry_context["retry_reason"]
+        agent_input["reviewer_feedback"] = retry_context["reviewer_feedback"]
     step = AgentStep(
         workflow_run_id=run.id,
         agent_name=SALES_ANALYST_AGENT_NAME,
@@ -88,7 +98,7 @@ def run_sales_analyst(
         status=AgentStepStatus.running,
         input_json=agent_input,
         prompt_version_id=prompt.id,
-        retry_count=0,
+        retry_count=run.retry_count or 0,
     )
     db.add(step)
     db.commit()
@@ -96,16 +106,24 @@ def run_sales_analyst(
 
     started = time.perf_counter()
     try:
+        user_content = (
+            "Analyze this sales report and return structured JSON.\n\n"
+            f"Title: {uploaded_input.title}\n\n"
+            f"Notes: {uploaded_input.notes or 'None'}\n\n"
+            f"Sales report:\n{uploaded_input.raw_text}"
+        )
+        if retry_context is not None:
+            user_content += (
+                "\n\nThis is a retry. Address the reviewer feedback below while "
+                "still using only facts supported by the source input.\n\n"
+                f"Retry reason: {retry_context['retry_reason']}\n\n"
+                f"Reviewer feedback: {retry_context['reviewer_feedback']}"
+            )
         response = llm_client.generate_structured(
             messages=[
                 {
                     "role": "user",
-                    "content": (
-                        "Analyze this sales report and return structured JSON.\n\n"
-                        f"Title: {uploaded_input.title}\n\n"
-                        f"Notes: {uploaded_input.notes or 'None'}\n\n"
-                        f"Sales report:\n{uploaded_input.raw_text}"
-                    ),
+                    "content": user_content,
                 }
             ],
             system=prompt.template,
@@ -159,8 +177,8 @@ def _set_run_status(run: WorkflowRun, status: WorkflowStatus, db: Session) -> No
 
 
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
-    if run.status != WorkflowStatus.created:
-        raise AnalystRunError("Sales analyst can only run from created workflows")
+    if run.status not in {WorkflowStatus.created, WorkflowStatus.retrying}:
+        raise AnalystRunError("Sales analyst can only run from created or retrying workflows")
     if run.workflow_type != WorkflowType.sales_report:
         raise AnalystRunError("Sales analyst only supports sales report workflows")
     if run.run_mode != RunMode.multi_agent:
@@ -174,6 +192,39 @@ def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
     if uploaded_input.input_type != InputType.sales_report:
         raise AnalystRunError("Uploaded input must be a sales report")
     return uploaded_input
+
+
+def _get_retry_context(db: Session, run: WorkflowRun) -> dict[str, Any]:
+    reviewer_steps = (
+        db.query(AgentStep)
+        .filter(
+            AgentStep.workflow_run_id == run.id,
+            AgentStep.agent_type == AgentType.reviewer.value,
+            AgentStep.status == AgentStepStatus.completed,
+        )
+        .all()
+    )
+    if not reviewer_steps:
+        raise AnalystRunError("Completed reviewer feedback not found for retry")
+    reviewer_step = max(reviewer_steps, key=lambda step: step.step_order)
+    if reviewer_step.output_json is None:
+        raise AnalystRunError("Completed reviewer step has no output")
+
+    quality_score = reviewer_step.output_json.get("quality_score")
+    issues = reviewer_step.output_json.get("issues", [])
+    retry_recommended = reviewer_step.output_json.get("retry_recommended")
+    reasons: list[str] = []
+    if retry_recommended:
+        reasons.append("Reviewer recommended retry")
+    if isinstance(quality_score, int | float) and quality_score < 0.70:
+        reasons.append("Quality score is below 0.70")
+    if any(issue.get("severity") == "high" for issue in issues if isinstance(issue, dict)):
+        reasons.append("High severity reviewer issue")
+
+    return {
+        "retry_reason": "; ".join(reasons) or "Reviewer requested revised analysis",
+        "reviewer_feedback": reviewer_step.output_json,
+    }
 
 
 def _get_active_sales_analyst_prompt(db: Session) -> PromptVersion:

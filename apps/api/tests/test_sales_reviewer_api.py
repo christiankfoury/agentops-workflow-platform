@@ -21,9 +21,15 @@ from tests.test_sales_analyst_api import (
 
 
 class FakeReviewerLLMClient:
-    def __init__(self, should_fail: bool = False, invalid_output: bool = False) -> None:
+    def __init__(
+        self,
+        should_fail: bool = False,
+        invalid_output: bool = False,
+        output_data: dict[str, Any] | None = None,
+    ) -> None:
         self.should_fail = should_fail
         self.invalid_output = invalid_output
+        self.output_data = output_data
 
     def generate_structured(
         self,
@@ -42,7 +48,8 @@ class FakeReviewerLLMClient:
                 usage=LLMUsage(input_tokens=80, output_tokens=20),
             )
         return StructuredResponse(
-            data={
+            data=self.output_data
+            or {
                 "approved": False,
                 "quality_score": 0.78,
                 "issues": [
@@ -157,10 +164,91 @@ def test_run_sales_reviewer_success_creates_completed_step():
     assert body["tokens_output"] == 20
     assert body["total_tokens"] == 100
     assert body["prompt_version_id"] == str(db.prompts[0].id)
-    assert run.status == WorkflowStatus.waiting_for_human
+    assert run.status == WorkflowStatus.retrying
     assert run.quality_score == 0.78
     assert run.total_tokens == 250
     assert run.latency_ms is not None
+    clear_overrides()
+
+
+def test_run_sales_reviewer_sends_high_score_review_to_human_wait():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(make_completed_analyst_step(run.id))
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(
+        db,
+        FakeReviewerLLMClient(
+            output_data={
+                "approved": True,
+                "quality_score": 0.92,
+                "issues": [],
+                "retry_recommended": False,
+            }
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.waiting_for_human
+    clear_overrides()
+
+
+def test_run_sales_reviewer_sends_medium_score_without_high_issues_to_human_wait():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(make_completed_analyst_step(run.id))
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(
+        db,
+        FakeReviewerLLMClient(
+            output_data={
+                "approved": False,
+                "quality_score": 0.74,
+                "issues": [
+                    {
+                        "claim": "Recommendation is broad",
+                        "problem": "Recommendation could be more specific",
+                        "severity": "medium",
+                    }
+                ],
+                "retry_recommended": False,
+            }
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.waiting_for_human
+    clear_overrides()
+
+
+def test_run_sales_reviewer_stops_retrying_after_retry_limit():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    run.retry_count = 2
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(make_completed_analyst_step(run.id))
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(db)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.waiting_for_human
     clear_overrides()
 
 

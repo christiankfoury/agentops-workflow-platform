@@ -170,8 +170,11 @@ export default async function WorkflowRunDetailPage({
   const uploadedInput = run.input_id ? await getUploadedInput(run.input_id) : null;
   const isMissingLinkedInput = run.input_id !== null && uploadedInput === null;
   const agentSteps = await listAgentSteps(run.id);
+  const latestCompletedAnalystStep = agentSteps
+    .filter((step) => step.agent_type === "analyst" && step.status === "completed")
+    .at(-1);
   const canRunAnalyst =
-    run.status === "created" &&
+    (run.status === "created" || run.status === "retrying") &&
     run.workflow_type === "sales_report" &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null;
@@ -180,13 +183,12 @@ export default async function WorkflowRunDetailPage({
     run.workflow_type === "sales_report" &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null &&
-    agentSteps.some(
-      (step) => step.agent_type === "analyst" && step.status === "completed",
-    ) &&
+    latestCompletedAnalystStep !== undefined &&
     !agentSteps.some(
       (step) =>
         step.agent_type === "reviewer" &&
-        (step.status === "running" || step.status === "completed"),
+        (step.status === "running" || step.status === "completed") &&
+        step.input_json?.analyst_step_id === latestCompletedAnalystStep.id,
     );
 
   const fields = [

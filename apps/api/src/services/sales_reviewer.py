@@ -17,6 +17,9 @@ from src.services.llm_client import StructuredResponse
 from src.services.sales_analyst import SalesAnalysisOutput
 
 SALES_REVIEWER_AGENT_NAME = "Reviewer Agent"
+QUALITY_APPROVAL_THRESHOLD = 0.85
+HUMAN_REVIEW_THRESHOLD = 0.70
+MAX_AUTO_RETRIES = 2
 
 SALES_REVIEW_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -148,7 +151,7 @@ def run_sales_reviewer(
     db.commit()
     db.refresh(step)
     _update_run_metrics(run, db)
-    _set_run_status(run, WorkflowStatus.waiting_for_human, db)
+    _set_run_status(run, _next_status_after_review(run, output), db)
     return step
 
 
@@ -282,6 +285,21 @@ def _update_run_metrics(run: WorkflowRun, db: Session) -> None:
         run.quality_score = float(quality_score) if quality_score is not None else None
     db.commit()
     db.refresh(run)
+
+
+def _next_status_after_review(run: WorkflowRun, output: SalesReviewOutput) -> WorkflowStatus:
+    if output.quality_score >= QUALITY_APPROVAL_THRESHOLD and output.approved:
+        return WorkflowStatus.waiting_for_human
+
+    has_high_severity_issue = any(issue.severity == "high" for issue in output.issues)
+    needs_retry = (
+        output.quality_score < HUMAN_REVIEW_THRESHOLD
+        or has_high_severity_issue
+        or output.retry_recommended
+    )
+    if needs_retry and (run.retry_count or 0) < MAX_AUTO_RETRIES:
+        return WorkflowStatus.retrying
+    return WorkflowStatus.waiting_for_human
 
 
 def _set_run_status(run: WorkflowRun, status: WorkflowStatus, db: Session) -> None:
