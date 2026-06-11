@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 18 - Final Output Page
+Current next phase: Phase 19 - Cost Tracking
 
 Autonomous trial target: complete Phase 17 through Phase 20 in order.
 
@@ -25,19 +25,20 @@ Autonomous trial target: complete Phase 17 through Phase 20 in order.
 | 15 | Complete | Human approval backend and approval state transitions. |
 | 16 | Complete | Human approval UI list/detail/actions. |
 | 17 | Complete | Writer Agent backend, final output persistence, completion transition, focused tests, and workflow detail trigger. |
+| 18 | Complete | Dedicated final output page with summary metrics, approval status, and expandable workflow trace. |
 
 ## Next Phase
 
-### Phase 18: Final Output Page
+### Phase 19: Cost Tracking
 
 Expected scope:
 
-- Add a polished final output view.
-- Show final executive summary, workflow status, quality score, total cost, total latency, retry count, and human approval status.
-- Include a side-by-side expandable trace covering original input, analyst output, reviewer feedback, human feedback, and writer output.
-- Keep the scope to sales report final output presentation.
+- Implement detailed cost tracking.
+- Track input tokens, output tokens, total tokens, estimated cost, cost per agent, cost per workflow, and cost per retry.
+- Add or enrich cost event persistence only where needed for Phase 19.
+- Keep frontend updates limited to exposing the new cost fields where useful.
 
-Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 18.
+Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 19.
 
 ## Last Known Validation Pattern
 

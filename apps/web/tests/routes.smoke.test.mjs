@@ -11,6 +11,10 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /getUploadedInput/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listAgentSteps/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listHumanApprovals/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /final-output/);
+  assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Final Executive Summary/);
+  assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Workflow Trace/);
+  assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /listAgentSteps/);
   assert.match(read("src/app/human-approvals/page.tsx"), /listHumanApprovals/);
   assert.match(read("src/app/human-approvals/[id]/page.tsx"), /getHumanApproval/);
   assert.match(read("src/app/human-approvals/[id]/actions.ts"), /approveHumanApproval/);

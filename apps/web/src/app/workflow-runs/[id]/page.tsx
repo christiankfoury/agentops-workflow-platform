@@ -263,6 +263,17 @@ export default async function WorkflowRunDetailPage({
 
       {canRunWriter && <RunWriterForm runId={run.id} />}
 
+      {run.final_output && (
+        <div className="mt-4">
+          <Link
+            href={`/workflow-runs/${run.id}/final-output`}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            View Final Output
+          </Link>
+        </div>
+      )}
+
       {pendingApproval && (
         <div className="mt-4">
           <Link
