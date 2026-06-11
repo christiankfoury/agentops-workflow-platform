@@ -12,11 +12,18 @@ from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
+from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
 from src.services.sales_analyst import SalesAnalysisOutput
+from src.services.workflow_events import (
+    log_agent_completed,
+    log_agent_failed,
+    log_agent_started,
+    log_workflow_event,
+)
 
 SALES_REVIEWER_AGENT_NAME = "Reviewer Agent"
 QUALITY_APPROVAL_THRESHOLD = 0.85
@@ -114,6 +121,7 @@ def run_sales_reviewer(
     db.add(step)
     db.commit()
     db.refresh(step)
+    log_agent_started(db, run, step)
 
     started = time.perf_counter()
     try:
@@ -138,7 +146,16 @@ def run_sales_reviewer(
         output = SalesReviewOutput.model_validate(response.data)
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
+        log_agent_failed(db, run, step, str(e))
         _set_run_status(run, WorkflowStatus.failed, db)
+        log_workflow_event(
+            db,
+            run,
+            WorkflowEventType.workflow_failed,
+            "Workflow failed during reviewer execution.",
+            agent_step=step,
+            error_message=str(e),
+        )
         return step
 
     latency_ms = int((time.perf_counter() - started) * 1000)
@@ -154,7 +171,35 @@ def run_sales_reviewer(
     db.refresh(step)
     record_agent_cost(db, step)
     _update_run_metrics(run, db)
+    log_agent_completed(db, run, step)
+    if not output.approved or output.issues or output.retry_recommended:
+        log_workflow_event(
+            db,
+            run,
+            WorkflowEventType.reviewer_rejected_output,
+            "Reviewer flagged the analyst output.",
+            agent_step=step,
+            metadata={
+                "approved": output.approved,
+                "quality_score": output.quality_score,
+                "issues": [issue.model_dump() for issue in output.issues],
+                "retry_recommended": output.retry_recommended,
+            },
+        )
     next_status = _next_status_after_review(run, output)
+    if next_status == WorkflowStatus.retrying:
+        log_workflow_event(
+            db,
+            run,
+            WorkflowEventType.retry_triggered,
+            "Automatic retry triggered from reviewer result.",
+            agent_step=step,
+            metadata={
+                "quality_score": output.quality_score,
+                "retry_count": run.retry_count or 0,
+                "max_auto_retries": MAX_AUTO_RETRIES,
+            },
+        )
     _set_run_status(run, next_status, db)
     if next_status == WorkflowStatus.waiting_for_human:
         create_pending_human_approval(db, run)

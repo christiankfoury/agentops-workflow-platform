@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 21 - Observability Logs
+Current next phase: Phase 22 - Observability Timeline UI
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -28,19 +28,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 18 | Complete | Dedicated final output page with summary metrics, approval status, and expandable workflow trace. |
 | 19 | Complete | Agent-level cost estimation, cost event persistence, workflow cost totals, and focused backend coverage. |
 | 20 | Complete | Cost dashboard with spend metrics, workflow and agent cost breakdowns, token usage, and expensive-run table. |
+| 21 | Complete | Structured workflow event model, migration, logging service, run event endpoint, and lifecycle logging across workflow creation, agents, retries, human approvals, completion, and failures. |
 
 ## Next Phase
 
-### Phase 21: Observability Logs
+### Phase 22: Observability Timeline UI
 
 Expected scope:
 
-- Add structured observability logging.
-- Persist workflow events such as workflow started, agent started/completed/failed, retry triggered, human approval required/approved, workflow completed, and workflow failed.
-- Include workflow run ID, optional agent step ID, event type, timestamp, metadata, and error message.
-- Keep UI work for the following phase unless minimal backend visibility is required for validation.
+- Display workflow events visually on the workflow run detail page.
+- Fetch the new workflow events endpoint for a run.
+- Show event timestamp, event type, message, optional agent context, metadata summary, and error message.
+- Keep the UI focused on observability timeline display only.
 
-Do not implement customer feedback, incident workflows, evaluation dashboards, background jobs, auth, or deployment work in Phase 21.
+Do not implement baseline workflows, evaluation dashboards, customer feedback, incident workflows, background jobs, auth, or deployment work in Phase 22.
 
 ## Last Known Validation Pattern
 

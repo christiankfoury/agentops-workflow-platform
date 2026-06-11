@@ -6,11 +6,15 @@ from fastapi.testclient import TestClient
 from src.database import get_db
 from src.main import app
 from src.models.uploaded_input import InputType, UploadedInput
+from src.models.workflow_event import WorkflowEvent
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 
 
 class FakeQuery:
-    def __init__(self, items: list[WorkflowRun] | list[UploadedInput]) -> None:
+    def __init__(
+        self,
+        items: list[WorkflowRun] | list[UploadedInput] | list[WorkflowEvent],
+    ) -> None:
         self.items = items
         self.item_id: uuid.UUID | None = None
 
@@ -21,10 +25,10 @@ class FakeQuery:
         self.item_id = criterion.right.value
         return self
 
-    def all(self) -> list[WorkflowRun] | list[UploadedInput]:
+    def all(self) -> list[WorkflowRun] | list[UploadedInput] | list[WorkflowEvent]:
         return self.items
 
-    def first(self) -> WorkflowRun | UploadedInput | None:
+    def first(self) -> WorkflowRun | UploadedInput | WorkflowEvent | None:
         return next((item for item in self.items if item.id == self.item_id), None)
 
 
@@ -32,27 +36,37 @@ class FakeSession:
     def __init__(self) -> None:
         self.runs: list[WorkflowRun] = []
         self.inputs: list[UploadedInput] = []
+        self.workflow_events: list[WorkflowEvent] = []
 
-    def query(self, model: type[WorkflowRun] | type[UploadedInput]) -> FakeQuery:
+    def query(
+        self,
+        model: type[WorkflowRun] | type[UploadedInput] | type[WorkflowEvent],
+    ) -> FakeQuery:
         if model is UploadedInput:
             return FakeQuery(self.inputs)
+        if model is WorkflowEvent:
+            return FakeQuery(self.workflow_events)
         return FakeQuery(self.runs)
 
-    def add(self, run: WorkflowRun) -> None:
-        self.runs.append(run)
+    def add(self, item: WorkflowRun | WorkflowEvent) -> None:
+        if isinstance(item, WorkflowEvent):
+            self.workflow_events.append(item)
+            return
+        self.runs.append(item)
 
     def commit(self) -> None:
         pass
 
-    def refresh(self, run: WorkflowRun) -> None:
-        if run.id is None:
-            run.id = uuid.uuid4()
-        if run.status is None:
-            run.status = WorkflowStatus.created
-        if run.retry_count is None:
-            run.retry_count = 0
-        if run.created_at is None:
-            run.created_at = datetime.now(UTC)
+    def refresh(self, item: WorkflowRun | WorkflowEvent) -> None:
+        if item.id is None:
+            item.id = uuid.uuid4()
+        if item.created_at is None:
+            item.created_at = datetime.now(UTC)
+        if isinstance(item, WorkflowRun):
+            if item.status is None:
+                item.status = WorkflowStatus.created
+            if item.retry_count is None:
+                item.retry_count = 0
 
 
 def test_create_list_and_get_workflow_run():

@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.human_approval import ApprovalStatus, HumanApproval
+from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
+from src.services.workflow_events import log_workflow_event
 from src.services.workflow_state import transition
 
 
@@ -33,6 +35,17 @@ def create_pending_human_approval(db: Session, run: WorkflowRun) -> HumanApprova
     db.add(approval)
     db.commit()
     db.refresh(approval)
+    log_workflow_event(
+        db,
+        run,
+        WorkflowEventType.human_approval_required,
+        "Human approval required.",
+        metadata={
+            "human_approval_id": approval.id,
+            "reviewer_score": approval.reviewer_score,
+            "issue_count": len(approval.issues_json or []),
+        },
+    )
     return approval
 
 
@@ -50,6 +63,18 @@ def approve_human_approval(
     approval.approved_by_user_id = approved_by_user_id
     approval.resolved_at = datetime.now(UTC)
     transition(run, WorkflowStatus.writer_running, db)
+    log_workflow_event(
+        db,
+        run,
+        WorkflowEventType.human_approved,
+        "Human approved workflow output.",
+        metadata={
+            "human_approval_id": approval.id,
+            "approved_by_user_id": approved_by_user_id,
+            "has_feedback": bool(approval.human_feedback),
+            "has_edited_analysis": approval.edited_analysis_json is not None,
+        },
+    )
     db.refresh(approval)
     return approval
 
@@ -68,6 +93,17 @@ def request_human_approval_retry(
     approval.approved_by_user_id = approved_by_user_id
     approval.resolved_at = datetime.now(UTC)
     transition(run, WorkflowStatus.retrying, db)
+    log_workflow_event(
+        db,
+        run,
+        WorkflowEventType.human_requested_retry,
+        "Human requested workflow retry.",
+        metadata={
+            "human_approval_id": approval.id,
+            "approved_by_user_id": approved_by_user_id,
+            "has_feedback": bool(approval.human_feedback),
+        },
+    )
     db.refresh(approval)
     return approval
 
@@ -86,6 +122,17 @@ def reject_human_approval(
     approval.approved_by_user_id = approved_by_user_id
     approval.resolved_at = datetime.now(UTC)
     transition(run, WorkflowStatus.cancelled, db)
+    log_workflow_event(
+        db,
+        run,
+        WorkflowEventType.human_rejected,
+        "Human rejected workflow output.",
+        metadata={
+            "human_approval_id": approval.id,
+            "approved_by_user_id": approved_by_user_id,
+            "has_feedback": bool(approval.human_feedback),
+        },
+    )
     db.refresh(approval)
     return approval
 

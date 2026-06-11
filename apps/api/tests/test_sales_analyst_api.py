@@ -14,6 +14,7 @@ from src.models.cost_event import CostEvent
 from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
+from src.models.workflow_event import WorkflowEvent
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.llm_client import LLMUsage, StructuredResponse
 
@@ -69,6 +70,7 @@ class FakeSession:
         self.steps: list[AgentStep] = []
         self.approvals: list[HumanApproval] = []
         self.cost_events: list[CostEvent] = []
+        self.workflow_events: list[WorkflowEvent] = []
 
     def query(
         self,
@@ -78,6 +80,7 @@ class FakeSession:
             | type[PromptVersion]
             | type[AgentStep]
             | type[CostEvent]
+            | type[WorkflowEvent]
         ),
     ) -> FakeQuery:
         if model is UploadedInput:
@@ -90,11 +93,21 @@ class FakeSession:
             return FakeQuery(self.approvals)
         if model is CostEvent:
             return FakeQuery(self.cost_events)
+        if model is WorkflowEvent:
+            return FakeQuery(self.workflow_events)
         return FakeQuery(self.runs)
 
     def add(
         self,
-        item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | HumanApproval | CostEvent,
+        item: (
+            WorkflowRun
+            | UploadedInput
+            | PromptVersion
+            | AgentStep
+            | HumanApproval
+            | CostEvent
+            | WorkflowEvent
+        ),
     ) -> None:
         if isinstance(item, AgentStep) and item not in self.steps:
             self.steps.append(item)
@@ -104,13 +117,23 @@ class FakeSession:
             self.approvals.append(item)
         if isinstance(item, CostEvent) and item not in self.cost_events:
             self.cost_events.append(item)
+        if isinstance(item, WorkflowEvent) and item not in self.workflow_events:
+            self.workflow_events.append(item)
 
     def commit(self) -> None:
         pass
 
     def refresh(
         self,
-        item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | HumanApproval | CostEvent,
+        item: (
+            WorkflowRun
+            | UploadedInput
+            | PromptVersion
+            | AgentStep
+            | HumanApproval
+            | CostEvent
+            | WorkflowEvent
+        ),
     ) -> None:
         if item.id is None:
             item.id = uuid.uuid4()
