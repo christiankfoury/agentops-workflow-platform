@@ -128,11 +128,29 @@ def _claim_is_supported(claim: str, expected_items: list[str]) -> bool:
 
 
 def _split_claims(output: str) -> list[str]:
+    protected_output = re.sub(r"(?<=\d)\.(?=\d)", "<decimal>", output)
     return [
-        claim.strip()
-        for claim in re.split(r"[\n.;]+", output)
-        if claim.strip() and _normalize(claim) not in {"executive summary", "summary"}
+        claim.strip().replace("<decimal>", ".")
+        for claim in re.split(r"[\n;]+|(?<!\d)\.(?!\d)", protected_output)
+        if _is_scored_claim(claim.strip().replace("<decimal>", "."))
     ]
+
+
+def _is_scored_claim(claim: str) -> bool:
+    normalized = _normalize(claim)
+    if not normalized:
+        return False
+    if normalized in {"executive summary", "summary"}:
+        return False
+    if normalized in {"none", "n a", "not applicable"}:
+        return False
+    if normalized.endswith("summary"):
+        return False
+    if normalized in {"key risks", "risks", "recommended actions", "recommendations"}:
+        return False
+    if normalized.endswith("include"):
+        return False
+    return True
 
 
 def _important_terms(value: str) -> set[str]:

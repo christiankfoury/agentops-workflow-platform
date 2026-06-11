@@ -51,6 +51,13 @@ test("workflow dashboard pages stay wired to the API flow", () => {
 
 test("workflow API client exposes workflow and uploaded input calls", () => {
   const api = read("src/lib/api.ts");
+  const apiUrl = read("src/lib/api-url.ts");
+
+  assert.match(api, /apiUrl/);
+  assert.match(apiUrl, /resolveApiBaseUrl/);
+  assert.match(apiUrl, /isDockerServiceUrl/);
+  assert.match(apiUrl, /hostname === "api"/);
+  assert.match(apiUrl, /!isContainer/);
 
   assert.match(api, /export async function listWorkflowRuns/);
   assert.match(api, /export async function getWorkflowRun/);

@@ -53,6 +53,26 @@ def test_calculate_sales_evaluation_scores_flags_unsupported_claims():
     assert scores.unsupported_claim_rate == pytest.approx(0.5)
 
 
+def test_calculate_sales_evaluation_scores_ignores_headings_and_decimal_splits():
+    case = EvaluationCase(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        title="Q1 Sales Report",
+        input_text="Revenue increased from $4.2M to $4.7M.",
+        expected_facts_json=["Revenue increased from $4.2M to $4.7M"],
+        expected_risks_json=[],
+        expected_recommendations_json=[],
+        created_at=datetime.now(UTC),
+    )
+
+    scores = calculate_sales_evaluation_scores(
+        case,
+        "Executive Summary\n\nRevenue increased from $4.2M to $4.7M.\n\nKey Risks:\nNone.",
+    )
+
+    assert scores.unsupported_claim_rate == 0.0
+
+
 def test_calculate_sales_evaluation_scores_handles_empty_output():
     scores = calculate_sales_evaluation_scores(make_case(), "")
 

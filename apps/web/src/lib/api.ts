@@ -1,5 +1,6 @@
 import "server-only";
 
+import { apiUrl } from "./api-url";
 import type {
   AgentStep,
   CreateUploadedInputRequest,
@@ -14,14 +15,6 @@ import type {
   WorkflowEvent,
   WorkflowRun,
 } from "./types";
-
-function apiUrl(path: string): string {
-  const base =
-    process.env.API_INTERNAL_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    "http://localhost:8000";
-  return `${base}${path}`;
-}
 
 export async function listWorkflowRuns(): Promise<WorkflowRun[]> {
   const res = await fetch(apiUrl("/workflow-runs"), { cache: "no-store" });

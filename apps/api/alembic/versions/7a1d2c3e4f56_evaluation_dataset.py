@@ -24,6 +24,10 @@ evaluation_run_status_enum = postgresql.ENUM(
     "failed",
     name="evaluationrunstatus",
 )
+evaluation_run_status_existing_enum = postgresql.ENUM(
+    name="evaluationrunstatus",
+    create_type=False,
+)
 workflow_type_enum = postgresql.ENUM(
     "sales_report",
     "customer_feedback",
@@ -75,7 +79,7 @@ def upgrade() -> None:
         sa.Column("run_mode", run_mode_enum, nullable=False),
         sa.Column(
             "status",
-            evaluation_run_status_enum,
+            evaluation_run_status_existing_enum,
             server_default="pending",
             nullable=False,
         ),

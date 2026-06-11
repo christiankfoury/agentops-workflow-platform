@@ -33,6 +33,10 @@ workflow_event_type_enum = postgresql.ENUM(
     "human_requested_retry",
     name="workfloweventtype",
 )
+workflow_event_type_existing_enum = postgresql.ENUM(
+    name="workfloweventtype",
+    create_type=False,
+)
 
 
 def upgrade() -> None:
@@ -47,7 +51,7 @@ def upgrade() -> None:
         ),
         sa.Column("workflow_run_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("agent_step_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("event_type", workflow_event_type_enum, nullable=False),
+        sa.Column("event_type", workflow_event_type_existing_enum, nullable=False),
         sa.Column("message", sa.String(length=255), nullable=False),
         sa.Column("metadata_json", postgresql.JSONB(), nullable=True),
         sa.Column("error_message", sa.Text(), nullable=True),

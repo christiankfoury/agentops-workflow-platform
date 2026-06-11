@@ -87,3 +87,28 @@ def test_seed_default_prompt_versions_marks_v1_prompts_active():
     assert {prompt.agent_type for prompt in db.prompts} == set(AgentType)
     assert all(prompt.version == 1 for prompt in db.prompts)
     assert all(prompt.is_active for prompt in db.prompts)
+
+
+def test_seed_default_prompt_versions_preserves_active_custom_prompt():
+    db = FakeSession()
+    custom_writer = PromptVersion(
+        id=uuid.uuid4(),
+        agent_type=AgentType.writer,
+        name="Evidence Strict Writer",
+        version=2,
+        template="Strict writer",
+        is_active=True,
+        notes=None,
+        created_at=datetime.now(UTC),
+    )
+    db.prompts.append(custom_writer)
+
+    seed_default_prompt_versions(db)
+
+    default_writer = next(
+        prompt
+        for prompt in db.prompts
+        if prompt.agent_type == AgentType.writer and prompt.version == 1
+    )
+    assert custom_writer.is_active is True
+    assert default_writer.is_active is False

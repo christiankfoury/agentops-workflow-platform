@@ -290,9 +290,9 @@ def _get_active_writer_prompt(db: Session) -> PromptVersion:
         db.query(PromptVersion)
         .filter(
             PromptVersion.agent_type == AgentType.writer,
-            PromptVersion.name == SALES_WRITER_AGENT_NAME,
             PromptVersion.is_active == True,  # noqa: E712
         )
+        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
         .first()
     )
     if prompt is None:

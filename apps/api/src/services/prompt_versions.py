@@ -84,11 +84,10 @@ DEFAULT_PROMPTS = [
 
 
 def deactivate_matching_prompts(
-    db: Session, agent_type: AgentType, name: str, exclude_id: object | None = None
+    db: Session, agent_type: AgentType, exclude_id: object | None = None
 ) -> None:
     query = db.query(PromptVersion).filter(
         PromptVersion.agent_type == agent_type,
-        PromptVersion.name == name,
     )
     if exclude_id is not None:
         query = query.filter(PromptVersion.id != exclude_id)
@@ -98,12 +97,24 @@ def deactivate_matching_prompts(
 
 
 def activate_prompt_version(db: Session, prompt: PromptVersion) -> PromptVersion:
-    deactivate_matching_prompts(db, prompt.agent_type, prompt.name, exclude_id=prompt.id)
+    deactivate_matching_prompts(db, prompt.agent_type, exclude_id=prompt.id)
     prompt.is_active = True
     db.add(prompt)
     db.commit()
     db.refresh(prompt)
     return prompt
+
+
+def _has_active_prompt(db: Session, agent_type: AgentType) -> bool:
+    return (
+        db.query(PromptVersion)
+        .filter(
+            PromptVersion.agent_type == agent_type,
+            PromptVersion.is_active == True,  # noqa: E712
+        )
+        .first()
+        is not None
+    )
 
 
 def seed_default_prompt_versions(db: Session) -> list[PromptVersion]:
@@ -121,21 +132,20 @@ def seed_default_prompt_versions(db: Session) -> list[PromptVersion]:
         )
 
         if prompt is None:
-            deactivate_matching_prompts(db, default["agent_type"], default["name"])
             prompt = PromptVersion(
                 agent_type=default["agent_type"],
                 name=default["name"],
                 version=1,
                 template=default["template"],
                 notes=default["notes"],
-                is_active=True,
+                is_active=not _has_active_prompt(db, default["agent_type"]),
             )
             db.add(prompt)
         else:
-            deactivate_matching_prompts(db, prompt.agent_type, prompt.name, exclude_id=prompt.id)
             prompt.template = default["template"]
             prompt.notes = default["notes"]
-            prompt.is_active = True
+            if not _has_active_prompt(db, prompt.agent_type):
+                prompt.is_active = True
 
         seeded.append(prompt)
 

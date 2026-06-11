@@ -286,9 +286,9 @@ def _get_active_sales_analyst_prompt(db: Session) -> PromptVersion:
         db.query(PromptVersion)
         .filter(
             PromptVersion.agent_type == AgentType.analyst,
-            PromptVersion.name == SALES_ANALYST_AGENT_NAME,
             PromptVersion.is_active == True,  # noqa: E712
         )
+        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
         .first()
     )
     if prompt is None:

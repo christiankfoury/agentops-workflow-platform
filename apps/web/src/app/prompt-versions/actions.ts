@@ -42,6 +42,7 @@ export async function createPromptVersionAction(
   }
   if (template === null) return { error: "Template is required." };
 
+  let promptId: string;
   try {
     const prompt = await createPromptVersion({
       agent_type: agentType,
@@ -51,12 +52,14 @@ export async function createPromptVersionAction(
       notes: cleanOptional(formData.get("notes")),
       is_active: formData.get("is_active") === "on",
     });
-    redirect(`/prompt-versions/${prompt.id}`);
+    promptId = prompt.id;
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to create prompt version.",
     };
   }
+
+  redirect(`/prompt-versions/${promptId}`);
 }
 
 export async function activatePromptVersionAction(formData: FormData): Promise<void> {

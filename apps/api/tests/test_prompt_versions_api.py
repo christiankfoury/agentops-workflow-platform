@@ -171,7 +171,7 @@ def test_missing_prompt_version_returns_404():
     app.dependency_overrides.clear()
 
 
-def test_activate_prompt_deactivates_matching_prompt_only():
+def test_activate_prompt_deactivates_same_agent_prompts_only():
     db = FakeSession()
     previous = make_prompt(name="Sales Analyst Agent", version=1, is_active=True)
     next_version = make_prompt(name="Sales Analyst Agent", version=2)
@@ -192,7 +192,7 @@ def test_activate_prompt_deactivates_matching_prompt_only():
     assert response.json()["is_active"] is True
     assert previous.is_active is False
     assert next_version.is_active is True
-    assert other_name.is_active is True
+    assert other_name.is_active is False
     assert other_agent.is_active is True
 
     app.dependency_overrides.clear()

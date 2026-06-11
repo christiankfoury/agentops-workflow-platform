@@ -61,7 +61,7 @@ def create_prompt_version(
         created_by_user_id=body.created_by_user_id,
     )
     if body.is_active:
-        deactivate_matching_prompts(db, body.agent_type, body.name)
+        deactivate_matching_prompts(db, body.agent_type)
 
     try:
         db.add(prompt)
