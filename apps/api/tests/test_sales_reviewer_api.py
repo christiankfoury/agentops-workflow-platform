@@ -9,6 +9,7 @@ from src.dependencies import get_llm_client
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
+from src.models.human_approval import ApprovalStatus
 from src.models.prompt_version import PromptVersion
 from src.models.workflow_run import WorkflowStatus
 from src.services.llm_client import LLMUsage, StructuredResponse
@@ -196,6 +197,10 @@ def test_run_sales_reviewer_sends_high_score_review_to_human_wait():
 
     assert response.status_code == 200
     assert run.status == WorkflowStatus.waiting_for_human
+    assert len(db.approvals) == 1
+    assert db.approvals[0].status == ApprovalStatus.pending
+    assert db.approvals[0].reviewer_score == 0.92
+    assert db.approvals[0].issues_json == []
     clear_overrides()
 
 
@@ -292,6 +297,15 @@ def test_run_sales_reviewer_sends_medium_score_without_high_issues_to_human_wait
 
     assert response.status_code == 200
     assert run.status == WorkflowStatus.waiting_for_human
+    assert len(db.approvals) == 1
+    assert db.approvals[0].reviewer_score == 0.74
+    assert db.approvals[0].issues_json == [
+        {
+            "claim": "Recommendation is broad",
+            "problem": "Recommendation could be more specific",
+            "severity": "medium",
+        }
+    ]
     clear_overrides()
 
 
@@ -311,6 +325,7 @@ def test_run_sales_reviewer_stops_retrying_after_retry_limit():
 
     assert response.status_code == 200
     assert run.status == WorkflowStatus.waiting_for_human
+    assert len(db.approvals) == 1
     clear_overrides()
 
 

@@ -9,6 +9,7 @@ from src.dependencies import get_llm_client
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
+from src.models.human_approval import HumanApproval
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
@@ -64,6 +65,7 @@ class FakeSession:
         self.inputs: list[UploadedInput] = []
         self.prompts: list[PromptVersion] = []
         self.steps: list[AgentStep] = []
+        self.approvals: list[HumanApproval] = []
 
     def query(
         self,
@@ -75,13 +77,19 @@ class FakeSession:
             return FakeQuery(self.prompts)
         if model is AgentStep:
             return FakeQuery(self.steps)
+        if model is HumanApproval:
+            return FakeQuery(self.approvals)
         return FakeQuery(self.runs)
 
-    def add(self, item: WorkflowRun | UploadedInput | PromptVersion | AgentStep) -> None:
+    def add(
+        self, item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | HumanApproval
+    ) -> None:
         if isinstance(item, AgentStep) and item not in self.steps:
             self.steps.append(item)
         if isinstance(item, WorkflowRun) and item not in self.runs:
             self.runs.append(item)
+        if isinstance(item, HumanApproval) and item not in self.approvals:
+            self.approvals.append(item)
 
     def commit(self) -> None:
         pass

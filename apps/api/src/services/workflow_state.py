@@ -41,6 +41,7 @@ VALID_TRANSITIONS: dict[WorkflowStatus, set[WorkflowStatus]] = {
     WorkflowStatus.waiting_for_human: {
         WorkflowStatus.writer_running,
         WorkflowStatus.analyst_running,
+        WorkflowStatus.retrying,
         WorkflowStatus.cancelled,
     },
     WorkflowStatus.writer_running: {

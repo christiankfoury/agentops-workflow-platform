@@ -13,6 +13,7 @@ from src.models.agent_type import AgentType
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
 from src.services.sales_analyst import SalesAnalysisOutput
 
@@ -151,7 +152,10 @@ def run_sales_reviewer(
     db.commit()
     db.refresh(step)
     _update_run_metrics(run, db)
-    _set_run_status(run, _next_status_after_review(run, output), db)
+    next_status = _next_status_after_review(run, output)
+    _set_run_status(run, next_status, db)
+    if next_status == WorkflowStatus.waiting_for_human:
+        create_pending_human_approval(db, run)
     return step
 
 
