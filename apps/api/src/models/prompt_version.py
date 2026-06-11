@@ -1,12 +1,13 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Integer, String, Text
+from sqlalchemy import Boolean, Enum, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.agent_type import AgentType
 
 
 class PromptVersion(Base):
@@ -15,7 +16,9 @@ class PromptVersion(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    agent_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    agent_type: Mapped[AgentType] = mapped_column(
+        Enum(AgentType, name="agenttype"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     template: Mapped[str] = mapped_column(Text, nullable=False)
