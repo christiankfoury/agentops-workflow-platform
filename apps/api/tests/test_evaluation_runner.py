@@ -123,6 +123,7 @@ def test_run_sales_evaluation_case_stores_baseline_result():
     assert result.factual_accuracy == 1.0
     assert result.unsupported_claim_rate == 0.0
     assert result.completeness_score == 0.3333
+    assert result.prompt_version_summary_json == {"baseline": None}
     assert db.runs[0].final_output == "Executive Summary\nRevenue increased 12%."
 
 
@@ -147,6 +148,11 @@ def test_run_sales_evaluation_case_stores_multi_agent_result_after_auto_approval
     assert result.factual_accuracy == 1.0
     assert result.unsupported_claim_rate == 0.0
     assert result.completeness_score == 0.3333
+    assert result.prompt_version_summary_json == {
+        "analyst": str(db.prompts[0].id),
+        "reviewer": str(db.prompts[1].id),
+        "writer": str(db.prompts[2].id),
+    }
     assert db.approvals[0].human_feedback == "Evaluation runner auto-approved for comparison."
     assert [step.agent_type for step in db.steps] == ["analyst", "reviewer", "writer"]
     assert db.runs[0].final_output == "Executive Summary\nRevenue increased 12%."

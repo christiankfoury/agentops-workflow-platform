@@ -5,6 +5,7 @@ from typing import Protocol
 
 from sqlalchemy.orm import Session
 
+from src.models.agent_step import AgentStep
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.human_approval import ApprovalStatus, HumanApproval
@@ -206,6 +207,7 @@ def _complete_result(
     result.retry_count = run.retry_count
     result.cost = run.total_cost
     result.latency_ms = run.latency_ms
+    result.prompt_version_summary_json = _prompt_version_summary(db, run)
     if result.status == EvaluationRunStatus.completed:
         scores = calculate_sales_evaluation_scores(evaluation_case, run.final_output)
         result.factual_accuracy = scores.factual_accuracy
@@ -215,3 +217,13 @@ def _complete_result(
         result.error_message = f"Workflow ended with status {run.status.value}"
     db.commit()
     db.refresh(result)
+
+
+def _prompt_version_summary(db: Session, run: WorkflowRun) -> dict[str, str | None]:
+    steps = db.query(AgentStep).filter(AgentStep.workflow_run_id == run.id).all()
+    summary: dict[str, str | None] = {}
+    for step in sorted(steps, key=lambda item: item.step_order):
+        summary[step.agent_type] = (
+            str(step.prompt_version_id) if step.prompt_version_id is not None else None
+        )
+    return summary

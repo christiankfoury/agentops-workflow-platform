@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 28 - Prompt Version Comparison
+Current next phase: Phase 29 - Prompt Management UI
 
 Autonomous trial target: Phase 21 through Phase 30 complete.
 
@@ -35,19 +35,20 @@ Autonomous trial target: Phase 21 through Phase 30 complete.
 | 25 | Complete | Sales evaluation runner service and CLI for baseline and multi-agent modes with persisted evaluation results and focused runner coverage. |
 | 26 | Complete | Deterministic sales evaluation scoring and aggregate metrics for factual accuracy, unsupported claims, completeness, approval rate, cost, latency, and retries. |
 | 27 | Complete | Evaluation summary API and dashboard comparing baseline vs multi-agent metrics with navigation and smoke coverage. |
+| 28 | Complete | Prompt version summaries recorded on evaluation results plus prompt-version performance comparison helper and tests. |
 
 ## Next Phase
 
-### Phase 28: Prompt Version Comparison
+### Phase 29: Prompt Management UI
 
 Expected scope:
 
-- Extend evaluation results to include prompt version summaries suitable for comparison.
-- Capture which prompt versions were active or used for analyst, reviewer, and writer runs.
-- Add comparison helpers/tests for prompt version performance across stored evaluation results.
-- Keep UI management for prompt versions in Phase 29.
+- Create UI pages for prompt versions.
+- Show prompt versions with agent type, name, version, active status, created date, notes, and template preview.
+- Support creating prompt versions and activating an existing prompt version using existing backend APIs.
+- Keep prompt evaluation performance display minimal unless existing comparison helpers are already exposed cleanly.
 
-Do not implement prompt management UI, customer feedback workflows, incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 28.
+Do not implement customer feedback workflows, incident workflows, background jobs, auth, deployment work, or export/reporting features in Phase 29.
 
 ## Last Known Validation Pattern
 
