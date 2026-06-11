@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 35 - Incident Report Workflow Schema
+Current next phase: Phase 36 - Timeline Agent
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -44,17 +44,19 @@ Target range status: In progress.
 | 32 | Complete | Customer Feedback Insight Agent backend endpoint that consumes classifier output, validates product insight JSON, persists insight steps, and advances runs toward review. |
 | 33 | Complete | Customer feedback reviewer and writer support through existing run endpoints, including human approval handoff and end-to-end workflow coverage. |
 | 34 | Complete | Customer feedback evaluation case seeding, baseline and multi-agent evaluation runner support, and workflow-type evaluation summary dashboard grouping. |
+| 35 | Complete | Incident workflow schemas for timeline events, ambiguous events, impact, confirmed facts, inferred claims, suspected root cause, and follow-up actions. |
 
 ## Next Phase
 
-### Phase 35: Incident Report Workflow Schema
+### Phase 36: Timeline Agent
 
 Expected scope:
 
-- Add support for the incident log workflow schema.
-- Define structured outputs for timeline events, root cause analysis, confirmed facts, inferred causes, and follow-up actions.
+- Implement the Timeline Agent.
+- Extract chronological timeline events from raw incident logs.
+- Store timeline outputs as agent steps using the Phase 35 incident timeline schema.
 
-Do not implement incident workflow agents, background jobs, auth, deployment work, or export/reporting features in Phase 35.
+Do not implement root cause, reviewer, writer, background jobs, auth, deployment work, or export/reporting features in Phase 36.
 
 ## Last Known Validation Pattern
 

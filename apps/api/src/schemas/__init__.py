@@ -15,6 +15,14 @@ from src.schemas.evaluation import (
     EvaluationResultRead,
 )
 from src.schemas.human_approval import HumanApprovalAction, HumanApprovalEdit, HumanApprovalRead
+from src.schemas.incident import (
+    IncidentClaim,
+    IncidentFollowUpAction,
+    IncidentImpact,
+    IncidentRootCauseOutput,
+    IncidentTimelineOutput,
+    TimelineEvent,
+)
 from src.schemas.prompt_version import PromptVersionCreate, PromptVersionRead
 from src.schemas.uploaded_input import UploadedInputCreate, UploadedInputRead
 from src.schemas.workflow_event import WorkflowEventRead
@@ -32,11 +40,17 @@ __all__ = [
     "HumanApprovalAction",
     "HumanApprovalEdit",
     "HumanApprovalRead",
+    "IncidentClaim",
+    "IncidentFollowUpAction",
+    "IncidentImpact",
+    "IncidentRootCauseOutput",
+    "IncidentTimelineOutput",
     "ProductInsightOutput",
     "ProductRecommendation",
     "PromptVersionCreate",
     "PromptVersionRead",
     "SentimentPattern",
+    "TimelineEvent",
     "UploadedInputCreate",
     "UploadedInputRead",
     "WorkflowEventRead",
