@@ -119,6 +119,28 @@ class TestGenerateText:
         kwargs = mock_openai.chat.completions.create.call_args[1]
         assert kwargs["max_completion_tokens"] == 512
 
+    def test_temperature_passed_through(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response("ok")
+
+        LLMClient(api_key="k").generate_text(
+            [{"role": "user", "content": "Hi"}], temperature=0.2
+        )
+
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["temperature"] == 0.2
+
+    def test_timeout_and_retries_use_request_options(self, mock_openai):
+        request_client = MagicMock()
+        request_client.chat.completions.create.return_value = _mock_response("ok")
+        mock_openai.with_options.return_value = request_client
+
+        LLMClient(api_key="k").generate_text(
+            [{"role": "user", "content": "Hi"}], timeout=12.0, max_retries=4
+        )
+
+        mock_openai.with_options.assert_called_once_with(timeout=12.0, max_retries=4)
+        request_client.chat.completions.create.assert_called_once()
+
 
 class TestGenerateStructured:
     SCHEMA = {
@@ -196,6 +218,18 @@ class TestGenerateStructured:
 
         kwargs = mock_openai.chat.completions.create.call_args[1]
         assert kwargs["model"] == "gpt-4.1"
+
+    def test_structured_temperature_passed_through(self, mock_openai):
+        mock_openai.chat.completions.create.return_value = _mock_response('{"name": "Bob"}')
+
+        LLMClient(api_key="k").generate_structured(
+            [{"role": "user", "content": "Extract"}],
+            schema=self.SCHEMA,
+            temperature=0.1,
+        )
+
+        kwargs = mock_openai.chat.completions.create.call_args[1]
+        assert kwargs["temperature"] == 0.1
 
 
 class TestLLMUsage:

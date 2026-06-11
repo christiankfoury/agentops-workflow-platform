@@ -6,8 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy.orm import Session
 
 from src.models.agent_type import AgentType
-from src.models.prompt_version import PromptVersion
 from src.models.workflow_run import WorkflowType
+from src.services.agent_settings import (
+    ROUTER_MAX_TOKENS,
+    AgentRuntimeConfig,
+    AgentSettingsError,
+    get_agent_runtime_config,
+)
 from src.services.llm_client import StructuredResponse
 from src.services.structured_output_guardrails import (
     StructuredOutputRepairError,
@@ -72,7 +77,8 @@ def detect_workflow_type(
     notes: str | None,
     llm_client: LLMClientLike,
 ) -> RouterOutput:
-    prompt = _get_active_router_prompt(db)
+    runtime_config = _get_router_runtime_config(db)
+    prompt = runtime_config.prompt
     try:
         messages = [
             {
@@ -95,7 +101,7 @@ def detect_workflow_type(
             messages=messages,
             system=prompt.template,
             schema=ROUTER_SCHEMA,
-            max_tokens=600,
+            **runtime_config.generation_kwargs(),
         )
         raw_output, _response = validate_or_repair_structured_response(
             response=response,
@@ -104,7 +110,7 @@ def detect_workflow_type(
             messages=messages,
             system=prompt.template,
             schema=ROUTER_SCHEMA,
-            max_tokens=600,
+            request_kwargs=runtime_config.generation_kwargs(),
         )
         return RouterOutput(
             **raw_output.model_dump(),
@@ -116,19 +122,13 @@ def detect_workflow_type(
         raise RouterRunError(str(e)) from e
 
 
-def _get_active_router_prompt(db: Session) -> PromptVersion:
-    prompt = (
-        db.query(PromptVersion)
-        .filter(
-            PromptVersion.agent_type == AgentType.router,
-            PromptVersion.is_active == True,  # noqa: E712
+def _get_router_runtime_config(db: Session) -> AgentRuntimeConfig:
+    try:
+        return get_agent_runtime_config(
+            db, AgentType.router, default_max_tokens=ROUTER_MAX_TOKENS
         )
-        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
-        .first()
-    )
-    if prompt is None:
-        raise RouterRunError("Active Router prompt not found")
-    return prompt
+    except AgentSettingsError as e:
+        raise RouterRunError("Active Router prompt not found") from e
 
 
 def _recommended_action(confidence: float) -> Literal["auto_select", "confirm", "manual_required"]:

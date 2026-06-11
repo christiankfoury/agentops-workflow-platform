@@ -10,11 +10,15 @@ from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
-from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.schemas.incident import IncidentTimelineOutput
+from src.services.agent_settings import (
+    AgentRuntimeConfig,
+    AgentSettingsError,
+    get_agent_runtime_config,
+)
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import StructuredResponse
 from src.services.structured_output_guardrails import validate_or_repair_structured_response
@@ -75,7 +79,8 @@ def run_incident_timeline(
     llm_client: LLMClientLike,
 ) -> AgentStep:
     uploaded_input = _validate_run_and_get_input(db, run)
-    prompt = _get_active_timeline_prompt(db)
+    runtime_config = _get_timeline_runtime_config(db)
+    prompt = runtime_config.prompt
     step_order = _next_step_order(db, run.id)
     _set_run_status(run, WorkflowStatus.running, db)
     agent_input = {
@@ -120,6 +125,7 @@ def run_incident_timeline(
             messages=messages,
             system=prompt.template,
             schema=INCIDENT_TIMELINE_SCHEMA,
+            **runtime_config.generation_kwargs(),
         )
         output, response = validate_or_repair_structured_response(
             response=response,
@@ -128,6 +134,7 @@ def run_incident_timeline(
             messages=messages,
             system=prompt.template,
             schema=INCIDENT_TIMELINE_SCHEMA,
+            request_kwargs=runtime_config.generation_kwargs(),
         )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
@@ -204,19 +211,11 @@ def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
     return uploaded_input
 
 
-def _get_active_timeline_prompt(db: Session) -> PromptVersion:
-    prompt = (
-        db.query(PromptVersion)
-        .filter(
-            PromptVersion.agent_type == AgentType.timeline,
-            PromptVersion.is_active == True,  # noqa: E712
-        )
-        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
-        .first()
-    )
-    if prompt is None:
-        raise TimelineRunError("Active Timeline prompt not found")
-    return prompt
+def _get_timeline_runtime_config(db: Session) -> AgentRuntimeConfig:
+    try:
+        return get_agent_runtime_config(db, AgentType.timeline)
+    except AgentSettingsError as e:
+        raise TimelineRunError("Active Timeline prompt not found") from e
 
 
 def _next_step_order(db: Session, run_id: uuid.UUID) -> int:

@@ -61,6 +61,9 @@ class LLMClient:
         system: str | None = None,
         model: str | None = None,
         max_tokens: int = DEFAULT_MAX_TOKENS,
+        temperature: float | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
     ) -> TextResponse:
         """Send a chat completion request and return the text response."""
         request_messages = list(messages)
@@ -71,8 +74,13 @@ class LLMClient:
             "max_completion_tokens": max_tokens,
             "messages": request_messages,
         }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
 
-        response = self._client.chat.completions.create(**kwargs)
+        client = self._client
+        if timeout is not None or max_retries is not None:
+            client = self._client.with_options(timeout=timeout, max_retries=max_retries)
+        response = client.chat.completions.create(**kwargs)
         text = response.choices[0].message.content or ""
         return TextResponse(
             content=text,
@@ -90,6 +98,9 @@ class LLMClient:
         system: str | None = None,
         model: str | None = None,
         max_tokens: int = DEFAULT_MAX_TOKENS,
+        temperature: float | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
     ) -> StructuredResponse:
         """Send a chat completion request and return a JSON-parsed response.
 
@@ -111,8 +122,13 @@ class LLMClient:
                 }
             },
         }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
 
-        response = self._client.chat.completions.create(**kwargs)
+        client = self._client
+        if timeout is not None or max_retries is not None:
+            client = self._client.with_options(timeout=timeout, max_retries=max_retries)
+        response = client.chat.completions.create(**kwargs)
         text = response.choices[0].message.content or "{}"
         return StructuredResponse(
             data=json.loads(text),

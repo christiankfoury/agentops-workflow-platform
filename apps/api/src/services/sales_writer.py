@@ -11,10 +11,14 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.human_approval import ApprovalStatus, HumanApproval
-from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.agent_settings import (
+    AgentRuntimeConfig,
+    AgentSettingsError,
+    get_agent_runtime_config,
+)
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import TextResponse
 from src.services.sales_analyst import SalesAnalysisOutput
@@ -58,7 +62,8 @@ def run_sales_writer(
     _ensure_writer_allowed(approval, reviewer_step)
     analyst_output = _get_writer_analysis(analyst_step, approval)
     _ensure_no_writer_started(db, run.id)
-    prompt = _get_active_writer_prompt(db)
+    runtime_config = _get_writer_runtime_config(db)
+    prompt = runtime_config.prompt
     step_order = _next_step_order(db, run.id)
     agent_input = SalesWriterInput(
         workflow_run_id=str(run.id),
@@ -108,6 +113,7 @@ def run_sales_writer(
                 }
             ],
             system=prompt.template,
+            **runtime_config.generation_kwargs(),
         )
     except Exception as e:
         _mark_step_failed(step, str(e), started, db)
@@ -285,19 +291,11 @@ def _ensure_no_writer_started(db: Session, run_id: uuid.UUID) -> None:
         raise WriterRunError("Writer already completed for workflow run")
 
 
-def _get_active_writer_prompt(db: Session) -> PromptVersion:
-    prompt = (
-        db.query(PromptVersion)
-        .filter(
-            PromptVersion.agent_type == AgentType.writer,
-            PromptVersion.is_active == True,  # noqa: E712
-        )
-        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
-        .first()
-    )
-    if prompt is None:
-        raise WriterRunError("Active Writer prompt not found")
-    return prompt
+def _get_writer_runtime_config(db: Session) -> AgentRuntimeConfig:
+    try:
+        return get_agent_runtime_config(db, AgentType.writer)
+    except AgentSettingsError as e:
+        raise WriterRunError("Active Writer prompt not found") from e
 
 
 def _next_step_order(db: Session, run_id: uuid.UUID) -> int:

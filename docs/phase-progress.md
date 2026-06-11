@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 44 - Model Configuration and Agent Settings
+Current next phase: Phase 45 - Admin Settings UI
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -53,17 +53,18 @@ Target range status: In progress.
 | 41 | Complete | Router confidence thresholds for auto-select, confirmation, and manual-selection fallback plus router accuracy/confidence tracking in evaluation results and dashboard summaries. |
 | 42 | Complete | Workflow cancellation recovery with cancellation events, in-flight step failure messages, cancel UI action, and workflow detail recovery summaries for failed or cancelled runs. |
 | 43 | Complete | Structured output guardrails with strict Pydantic validation, repair prompts for invalid structured agent JSON, safe failure after failed repairs, router output repair, and typed writer inputs. |
+| 44 | Complete | Agent settings persistence and runtime resolution for model, temperature, max tokens, timeout, max retries, and active prompt overrides, with LLM request-option plumbing and focused backend coverage. |
 
 ## Next Phase
 
-### Phase 44: Model Configuration and Agent Settings
+### Phase 45: Admin Settings UI
 
 Expected scope:
 
-- Add configurable model settings for each agent.
-- Support model, temperature, max tokens, timeout, max retries, and active prompt version.
+- Create a settings page for agent configuration.
+- Allow users to configure model per agent, temperature, retry limit, reviewer approval threshold, human approval threshold, and active prompt version.
 
-Do not implement the admin settings UI, background jobs, auth, deployment work, or export/reporting features in Phase 44.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 45.
 
 ## Last Known Validation Pattern
 

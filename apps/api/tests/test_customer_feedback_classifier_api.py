@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from src.database import get_db
 from src.dependencies import get_llm_client
 from src.main import app
+from src.models.agent_setting import AgentSetting
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.cost_event import CostEvent
@@ -62,6 +63,7 @@ class FakeSession:
         self.runs: list[WorkflowRun] = []
         self.inputs: list[UploadedInput] = []
         self.prompts: list[PromptVersion] = []
+        self.agent_settings: list[AgentSetting] = []
         self.steps: list[AgentStep] = []
         self.cost_events: list[CostEvent] = []
         self.workflow_events: list[WorkflowEvent] = []
@@ -72,6 +74,7 @@ class FakeSession:
             type[WorkflowRun]
             | type[UploadedInput]
             | type[PromptVersion]
+            | type[AgentSetting]
             | type[AgentStep]
             | type[CostEvent]
             | type[WorkflowEvent]
@@ -81,6 +84,8 @@ class FakeSession:
             return FakeQuery(self.inputs)
         if model is PromptVersion:
             return FakeQuery(self.prompts)
+        if model is AgentSetting:
+            return FakeQuery(self.agent_settings)
         if model is AgentStep:
             return FakeQuery(self.steps)
         if model is CostEvent:
@@ -91,10 +96,20 @@ class FakeSession:
 
     def add(
         self,
-        item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | CostEvent | WorkflowEvent,
+        item: (
+            WorkflowRun
+            | UploadedInput
+            | PromptVersion
+            | AgentSetting
+            | AgentStep
+            | CostEvent
+            | WorkflowEvent
+        ),
     ) -> None:
         if isinstance(item, AgentStep) and item not in self.steps:
             self.steps.append(item)
+        if isinstance(item, AgentSetting) and item not in self.agent_settings:
+            self.agent_settings.append(item)
         if isinstance(item, WorkflowRun) and item not in self.runs:
             self.runs.append(item)
         if isinstance(item, CostEvent) and item not in self.cost_events:
@@ -107,7 +122,15 @@ class FakeSession:
 
     def refresh(
         self,
-        item: WorkflowRun | UploadedInput | PromptVersion | AgentStep | CostEvent | WorkflowEvent,
+        item: (
+            WorkflowRun
+            | UploadedInput
+            | PromptVersion
+            | AgentSetting
+            | AgentStep
+            | CostEvent
+            | WorkflowEvent
+        ),
     ) -> None:
         if item.id is None:
             item.id = uuid.uuid4()

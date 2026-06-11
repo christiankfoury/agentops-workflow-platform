@@ -10,11 +10,15 @@ from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
-from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.schemas.incident import IncidentRootCauseOutput, IncidentTimelineOutput
+from src.services.agent_settings import (
+    AgentRuntimeConfig,
+    AgentSettingsError,
+    get_agent_runtime_config,
+)
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
@@ -58,7 +62,8 @@ def run_incident_reviewer(
     timeline_output = _validate_timeline_output(timeline_step)
     root_output = _validate_root_output(root_step)
     _ensure_no_reviewer_for_root_cause(db, run.id, root_step.id)
-    prompt = _get_active_reviewer_prompt(db)
+    runtime_config = _get_reviewer_runtime_config(db)
+    prompt = runtime_config.prompt
     step_order = _next_step_order(db, run.id)
     agent_input = {
         "workflow_run_id": str(run.id),
@@ -107,6 +112,7 @@ def run_incident_reviewer(
             messages=messages,
             system=prompt.template,
             schema=SALES_REVIEW_SCHEMA,
+            **runtime_config.generation_kwargs(),
         )
         output, response = validate_or_repair_structured_response(
             response=response,
@@ -115,6 +121,7 @@ def run_incident_reviewer(
             messages=messages,
             system=prompt.template,
             schema=SALES_REVIEW_SCHEMA,
+            request_kwargs=runtime_config.generation_kwargs(),
         )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
@@ -245,19 +252,11 @@ def _ensure_no_reviewer_for_root_cause(
             raise IncidentReviewerRunError("Reviewer already completed for root cause step")
 
 
-def _get_active_reviewer_prompt(db: Session) -> PromptVersion:
-    prompt = (
-        db.query(PromptVersion)
-        .filter(
-            PromptVersion.agent_type == AgentType.reviewer,
-            PromptVersion.is_active == True,  # noqa: E712
-        )
-        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
-        .first()
-    )
-    if prompt is None:
-        raise IncidentReviewerRunError("Active Reviewer prompt not found")
-    return prompt
+def _get_reviewer_runtime_config(db: Session) -> AgentRuntimeConfig:
+    try:
+        return get_agent_runtime_config(db, AgentType.reviewer)
+    except AgentSettingsError as e:
+        raise IncidentReviewerRunError("Active Reviewer prompt not found") from e
 
 
 def _next_step_order(db: Session, run_id: uuid.UUID) -> int:

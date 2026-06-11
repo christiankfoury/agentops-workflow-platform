@@ -10,11 +10,15 @@ from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
-from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.schemas.incident import IncidentRootCauseOutput, IncidentTimelineOutput
+from src.services.agent_settings import (
+    AgentRuntimeConfig,
+    AgentSettingsError,
+    get_agent_runtime_config,
+)
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import StructuredResponse
 from src.services.structured_output_guardrails import validate_or_repair_structured_response
@@ -118,7 +122,8 @@ def run_incident_root_cause(
     uploaded_input = _validate_run_and_get_input(db, run)
     timeline_step = _get_completed_timeline_step(db, run.id)
     timeline_output = _validate_timeline_output(timeline_step)
-    prompt = _get_active_root_cause_prompt(db)
+    runtime_config = _get_root_cause_runtime_config(db)
+    prompt = runtime_config.prompt
     step_order = _next_step_order(db, run.id)
     _set_run_status(run, WorkflowStatus.analyst_running, db)
     agent_input = {
@@ -166,6 +171,7 @@ def run_incident_root_cause(
             messages=messages,
             system=prompt.template,
             schema=INCIDENT_ROOT_CAUSE_SCHEMA,
+            **runtime_config.generation_kwargs(),
         )
         output, response = validate_or_repair_structured_response(
             response=response,
@@ -174,6 +180,7 @@ def run_incident_root_cause(
             messages=messages,
             system=prompt.template,
             schema=INCIDENT_ROOT_CAUSE_SCHEMA,
+            request_kwargs=runtime_config.generation_kwargs(),
         )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
@@ -275,19 +282,11 @@ def _validate_timeline_output(timeline_step: AgentStep) -> IncidentTimelineOutpu
         raise RootCauseRunError("Completed timeline output is invalid") from e
 
 
-def _get_active_root_cause_prompt(db: Session) -> PromptVersion:
-    prompt = (
-        db.query(PromptVersion)
-        .filter(
-            PromptVersion.agent_type == AgentType.root_cause,
-            PromptVersion.is_active == True,  # noqa: E712
-        )
-        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
-        .first()
-    )
-    if prompt is None:
-        raise RootCauseRunError("Active Root Cause prompt not found")
-    return prompt
+def _get_root_cause_runtime_config(db: Session) -> AgentRuntimeConfig:
+    try:
+        return get_agent_runtime_config(db, AgentType.root_cause)
+    except AgentSettingsError as e:
+        raise RootCauseRunError("Active Root Cause prompt not found") from e
 
 
 def _next_step_order(db: Session, run_id: uuid.UUID) -> int:

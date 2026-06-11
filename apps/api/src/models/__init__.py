@@ -1,3 +1,4 @@
+from src.models.agent_setting import AgentSetting
 from src.models.agent_step import AgentStep
 from src.models.agent_type import AgentType
 from src.models.cost_event import CostEvent
@@ -11,6 +12,7 @@ from src.models.workflow_run import WorkflowRun
 
 __all__ = [
     "AgentType",
+    "AgentSetting",
     "AgentStep",
     "CostEvent",
     "EvaluationCase",

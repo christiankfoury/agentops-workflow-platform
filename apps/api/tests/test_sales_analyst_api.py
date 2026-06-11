@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from src.database import get_db
 from src.dependencies import get_llm_client
 from src.main import app
+from src.models.agent_setting import AgentSetting
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.cost_event import CostEvent
@@ -67,6 +68,7 @@ class FakeSession:
         self.runs: list[WorkflowRun] = []
         self.inputs: list[UploadedInput] = []
         self.prompts: list[PromptVersion] = []
+        self.agent_settings: list[AgentSetting] = []
         self.steps: list[AgentStep] = []
         self.approvals: list[HumanApproval] = []
         self.cost_events: list[CostEvent] = []
@@ -78,6 +80,7 @@ class FakeSession:
             type[WorkflowRun]
             | type[UploadedInput]
             | type[PromptVersion]
+            | type[AgentSetting]
             | type[AgentStep]
             | type[CostEvent]
             | type[WorkflowEvent]
@@ -87,6 +90,8 @@ class FakeSession:
             return FakeQuery(self.inputs)
         if model is PromptVersion:
             return FakeQuery(self.prompts)
+        if model is AgentSetting:
+            return FakeQuery(self.agent_settings)
         if model is AgentStep:
             return FakeQuery(self.steps)
         if model is HumanApproval:
@@ -103,6 +108,7 @@ class FakeSession:
             WorkflowRun
             | UploadedInput
             | PromptVersion
+            | AgentSetting
             | AgentStep
             | HumanApproval
             | CostEvent
@@ -111,6 +117,8 @@ class FakeSession:
     ) -> None:
         if isinstance(item, AgentStep) and item not in self.steps:
             self.steps.append(item)
+        if isinstance(item, AgentSetting) and item not in self.agent_settings:
+            self.agent_settings.append(item)
         if isinstance(item, WorkflowRun) and item not in self.runs:
             self.runs.append(item)
         if isinstance(item, HumanApproval) and item not in self.approvals:
@@ -129,6 +137,7 @@ class FakeSession:
             WorkflowRun
             | UploadedInput
             | PromptVersion
+            | AgentSetting
             | AgentStep
             | HumanApproval
             | CostEvent
@@ -160,6 +169,8 @@ class FakeLLMClient:
         self.responses = responses or []
         self.messages: list[dict[str, Any]] = []
         self.calls: list[list[dict[str, Any]]] = []
+        self.model: str | None = None
+        self.max_tokens: int | None = None
 
     def generate_structured(
         self,
@@ -168,9 +179,14 @@ class FakeLLMClient:
         system: str | None = None,
         model: str | None = None,
         max_tokens: int = 2048,
+        temperature: float | None = None,
+        timeout: float | None = None,
+        max_retries: int | None = None,
     ) -> StructuredResponse:
         self.messages = messages
         self.calls.append(messages)
+        self.model = model
+        self.max_tokens = max_tokens
         if self.should_fail:
             raise RuntimeError("LLM unavailable")
         if self.responses:
@@ -279,6 +295,42 @@ def test_run_sales_analyst_success_creates_completed_step():
     assert len(db.cost_events) == 1
     assert db.cost_events[0].agent_step_id == db.steps[0].id
     assert db.cost_events[0].total_cost == pytest.approx(0.00012)
+    clear_overrides()
+
+
+def test_run_sales_analyst_uses_configured_agent_settings_and_prompt():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(input_id=uploaded_input.id)
+    prompt = make_prompt(is_active=False)
+    prompt.template = "Configured analyst prompt."
+    llm = FakeLLMClient()
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.prompts.append(prompt)
+    db.agent_settings.append(
+        AgentSetting(
+            id=uuid.uuid4(),
+            agent_type=AgentType.analyst,
+            model="gpt-custom-analyst",
+            max_tokens=777,
+            max_retries=4,
+            active_prompt_version_id=prompt.id,
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+    )
+    override_dependencies(db, llm)
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-analyst")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == AgentStepStatus.completed
+    assert body["prompt_version_id"] == str(prompt.id)
+    assert llm.model == "gpt-custom-analyst"
+    assert llm.max_tokens == 777
     clear_overrides()
 
 

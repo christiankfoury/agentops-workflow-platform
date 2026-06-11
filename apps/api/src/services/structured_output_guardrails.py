@@ -32,10 +32,13 @@ def validate_or_repair_structured_response[ModelT: BaseModel](
     schema: dict[str, Any],
     system: str | None,
     max_tokens: int = 2048,
+    request_kwargs: dict[str, Any] | None = None,
 ) -> tuple[ModelT, StructuredResponse]:
     try:
         return output_model.model_validate(response.data), response
     except ValidationError as first_error:
+        repair_kwargs = dict(request_kwargs or {})
+        repair_kwargs.setdefault("max_tokens", max_tokens)
         repair_response = llm_client.generate_structured(
             messages=[
                 *messages,
@@ -52,7 +55,7 @@ def validate_or_repair_structured_response[ModelT: BaseModel](
             ],
             system=system,
             schema=schema,
-            max_tokens=max_tokens,
+            **repair_kwargs,
         )
         try:
             return output_model.model_validate(repair_response.data), repair_response

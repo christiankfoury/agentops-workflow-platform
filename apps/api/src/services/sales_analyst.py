@@ -11,10 +11,14 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.human_approval import ApprovalStatus, HumanApproval
-from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.services.agent_settings import (
+    AgentRuntimeConfig,
+    AgentSettingsError,
+    get_agent_runtime_config,
+)
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import StructuredResponse
 from src.services.structured_output_guardrails import validate_or_repair_structured_response
@@ -84,7 +88,8 @@ def run_sales_analyst(
         run.retry_count = (run.retry_count or 0) + 1
         db.commit()
         db.refresh(run)
-    prompt = _get_active_sales_analyst_prompt(db)
+    runtime_config = _get_sales_analyst_runtime_config(db)
+    prompt = runtime_config.prompt
     step_order = _next_step_order(db, run.id)
     if retry_context is None:
         _set_run_status(run, WorkflowStatus.running, db)
@@ -146,6 +151,7 @@ def run_sales_analyst(
             messages=messages,
             system=prompt.template,
             schema=SALES_ANALYSIS_SCHEMA,
+            **runtime_config.generation_kwargs(),
         )
         output, response = validate_or_repair_structured_response(
             response=response,
@@ -154,6 +160,7 @@ def run_sales_analyst(
             messages=messages,
             system=prompt.template,
             schema=SALES_ANALYSIS_SCHEMA,
+            request_kwargs=runtime_config.generation_kwargs(),
         )
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
@@ -285,19 +292,11 @@ def _get_latest_human_retry(db: Session, run_id: uuid.UUID) -> HumanApproval | N
     return max(retry_approvals, key=lambda approval: approval.resolved_at or approval.created_at)
 
 
-def _get_active_sales_analyst_prompt(db: Session) -> PromptVersion:
-    prompt = (
-        db.query(PromptVersion)
-        .filter(
-            PromptVersion.agent_type == AgentType.analyst,
-            PromptVersion.is_active == True,  # noqa: E712
-        )
-        .order_by(PromptVersion.version.desc(), PromptVersion.created_at.desc())
-        .first()
-    )
-    if prompt is None:
-        raise AnalystRunError("Active Sales Analyst prompt not found")
-    return prompt
+def _get_sales_analyst_runtime_config(db: Session) -> AgentRuntimeConfig:
+    try:
+        return get_agent_runtime_config(db, AgentType.analyst)
+    except AgentSettingsError as e:
+        raise AnalystRunError("Active Sales Analyst prompt not found") from e
 
 
 def _next_step_order(db: Session, run_id: uuid.UUID) -> int:
