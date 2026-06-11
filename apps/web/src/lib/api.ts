@@ -5,6 +5,7 @@ import type {
   AgentStep,
   CreateUploadedInputRequest,
   CreateWorkflowRunRequest,
+  DetectWorkflowRequest,
   EvaluationMetricsSummary,
   HumanApproval,
   HumanApprovalActionRequest,
@@ -12,6 +13,7 @@ import type {
   CreatePromptVersionRequest,
   PromptVersion,
   UploadedInput,
+  WorkflowDetection,
   WorkflowEvent,
   WorkflowRun,
 } from "./types";
@@ -58,6 +60,21 @@ export async function getUploadedInput(id: string): Promise<UploadedInput | null
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch uploaded input: ${res.status}`);
   return res.json() as Promise<UploadedInput>;
+}
+
+export async function detectWorkflowType(
+  body: DetectWorkflowRequest,
+): Promise<WorkflowDetection> {
+  const res = await fetch(apiUrl("/uploaded-inputs/detect-workflow"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to detect workflow type: ${detail}`);
+  }
+  return res.json() as Promise<WorkflowDetection>;
 }
 
 export async function listAgentSteps(runId: string): Promise<AgentStep[]> {

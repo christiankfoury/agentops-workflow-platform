@@ -4,8 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from src.database import get_db
+from src.dependencies import get_llm_client
 from src.models.uploaded_input import UploadedInput
-from src.schemas.uploaded_input import UploadedInputCreate, UploadedInputRead
+from src.schemas.uploaded_input import (
+    UploadedInputCreate,
+    UploadedInputRead,
+    WorkflowDetectionRead,
+    WorkflowDetectionRequest,
+)
+from src.services.llm_client import LLMClient
+from src.services.router_agent import RouterRunError, detect_workflow_type
 
 router = APIRouter()
 
@@ -29,6 +37,29 @@ def create_uploaded_input(
     db.commit()
     db.refresh(uploaded_input)
     return uploaded_input
+
+
+@router.post("/detect-workflow", response_model=WorkflowDetectionRead)
+def detect_uploaded_input_workflow(
+    body: WorkflowDetectionRequest,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> WorkflowDetectionRead:
+    try:
+        detection = detect_workflow_type(
+            db,
+            title=body.title,
+            raw_text=body.raw_text,
+            notes=body.notes,
+            llm_client=llm_client,
+        )
+    except RouterRunError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    return WorkflowDetectionRead(
+        workflow_type=detection.workflow_type,
+        confidence=detection.confidence,
+        reasoning_summary=detection.reasoning_summary,
+    )
 
 
 @router.get("/{input_id}", response_model=UploadedInputRead)

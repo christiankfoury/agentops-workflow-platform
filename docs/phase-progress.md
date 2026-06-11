@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next phase: Phase 40 - Router Agent
+Current next phase: Phase 41 - Router Confidence and Fallback Logic
 
 Autonomous trial target: Phase 31 through Phase 45 complete.
 
@@ -49,18 +49,21 @@ Target range status: In progress.
 | 37 | Complete | Incident Root Cause Agent backend endpoint that consumes timeline output, separates confirmed facts from likely/inferred claims, tracks unknowns, and persists root cause steps. |
 | 38 | Complete | Incident reviewer and writer support through existing run endpoints, including human approval handoff, final post-incident report persistence, and end-to-end workflow coverage. |
 | 39 | Complete | Incident evaluation case seeding with timeline expectations, baseline and multi-agent incident evaluation runner support, and incident workflow metrics in evaluation summaries. |
+| 40 | Complete | Optional Router Agent workflow detection endpoint plus new workflow form controls for manual selection or auto-detect before creating uploaded inputs and workflow runs. |
 
 ## Next Phase
 
-### Phase 40: Router Agent
+### Phase 41: Router Confidence and Fallback Logic
 
 Expected scope:
 
-- Add the optional Router Agent.
-- Router should inspect input and suggest workflow type, confidence, and reasoning summary.
-- Users should still be able to manually choose workflow type.
+- Add confidence thresholds for router suggestions.
+- High confidence should auto-select workflow.
+- Medium confidence should suggest workflow and ask for confirmation.
+- Low confidence should require manual selection.
+- Track router accuracy in evaluations.
 
-Do not implement low-confidence fallback logic, background jobs, auth, deployment work, or export/reporting features in Phase 40.
+Do not implement background jobs, auth, deployment work, or export/reporting features in Phase 41.
 
 ## Last Known Validation Pattern
 
@@ -73,4 +76,4 @@ pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
 pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
 ```
 
-Note: the full API test suite passed quickly in Phase 39.
+Note: the full API test suite passed quickly in Phase 40.

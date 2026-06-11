@@ -1,13 +1,14 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useActionState } from "react";
-import { createSalesWorkflow } from "./actions";
+import { createWorkflow } from "./actions";
 
 const initialState = { error: null };
 
 export function NewWorkflowForm() {
   const [state, formAction, pending] = useActionState(
-    createSalesWorkflow,
+    createWorkflow,
     initialState,
   );
 
@@ -29,14 +30,14 @@ export function NewWorkflowForm() {
 
       <div>
         <label htmlFor="raw_text" className="block text-sm font-medium">
-          Sales Report Text
+          Input Text
         </label>
         <textarea
           id="raw_text"
           name="raw_text"
           rows={10}
           className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Paste revenue, regional performance, churn notes, pipeline updates..."
+          placeholder="Paste a sales report, customer feedback, or incident log..."
         />
       </div>
 
@@ -65,6 +66,32 @@ export function NewWorkflowForm() {
           placeholder="Optional context for this run"
         />
       </div>
+
+      <div>
+        <label htmlFor="workflow_type" className="block text-sm font-medium">
+          Workflow Type
+        </label>
+        <select
+          id="workflow_type"
+          name="workflow_type"
+          required
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="sales_report">Sales Report</option>
+          <option value="customer_feedback">Customer Feedback</option>
+          <option value="incident_log">Incident Log</option>
+        </select>
+      </div>
+
+      <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+        <input
+          type="checkbox"
+          name="auto_detect_workflow"
+          className="h-4 w-4 rounded border-input"
+        />
+        <Sparkles className="h-4 w-4" aria-hidden="true" />
+        <span>Auto-detect workflow type</span>
+      </label>
 
       <div>
         <label htmlFor="run_mode" className="block text-sm font-medium">

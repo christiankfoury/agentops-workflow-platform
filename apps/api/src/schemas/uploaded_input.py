@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models.uploaded_input import InputType
+from src.models.workflow_run import WorkflowType
 
 
 class UploadedInputCreate(BaseModel):
@@ -47,3 +48,30 @@ class UploadedInputRead(BaseModel):
     file_type: str | None
     file_size: int | None
     created_at: datetime
+
+
+class WorkflowDetectionRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    raw_text: str = Field(min_length=1)
+    notes: str | None = None
+
+    @field_validator("title", "raw_text", mode="before")
+    @classmethod
+    def strip_required_text(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("notes", mode="before")
+    @classmethod
+    def strip_optional_text(cls, value: str | None) -> str | None:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped if stripped else None
+        return value
+
+
+class WorkflowDetectionRead(BaseModel):
+    workflow_type: WorkflowType
+    confidence: float = Field(ge=0, le=1)
+    reasoning_summary: str

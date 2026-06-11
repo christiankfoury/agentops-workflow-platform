@@ -175,6 +175,18 @@ export interface CreateUploadedInputRequest {
   file_size?: number | null;
 }
 
+export interface DetectWorkflowRequest {
+  title: string;
+  raw_text: string;
+  notes?: string | null;
+}
+
+export interface WorkflowDetection {
+  workflow_type: WorkflowType;
+  confidence: number;
+  reasoning_summary: string;
+}
+
 export interface CreateWorkflowRunRequest {
   workflow_type: WorkflowType;
   run_mode?: RunMode;
