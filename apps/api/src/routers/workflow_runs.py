@@ -12,6 +12,10 @@ from src.models.workflow_run import WorkflowRun
 from src.schemas.agent_step import AgentStepRead
 from src.schemas.workflow_event import WorkflowEventRead
 from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead, WorkflowRunTransition
+from src.services.customer_feedback_classifier import (
+    ClassifierRunError,
+    run_customer_feedback_classifier,
+)
 from src.services.llm_client import LLMClient
 from src.services.sales_analyst import AnalystRunError, run_sales_analyst
 from src.services.sales_baseline import BaselineRunError, run_sales_baseline
@@ -74,6 +78,21 @@ def run_analyst(
     try:
         return run_sales_analyst(db, run, llm_client)
     except AnalystRunError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.post("/{run_id}/run-classifier", response_model=AgentStepRead)
+def run_classifier(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> AgentStep:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return run_customer_feedback_classifier(db, run, llm_client)
+    except ClassifierRunError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
