@@ -199,6 +199,68 @@ def test_run_sales_reviewer_sends_high_score_review_to_human_wait():
     clear_overrides()
 
 
+def test_run_sales_reviewer_retry_recommendation_overrides_high_score_approval():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(make_completed_analyst_step(run.id))
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(
+        db,
+        FakeReviewerLLMClient(
+            output_data={
+                "approved": True,
+                "quality_score": 0.92,
+                "issues": [],
+                "retry_recommended": True,
+            }
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.retrying
+    clear_overrides()
+
+
+def test_run_sales_reviewer_high_severity_issue_overrides_high_score_approval():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(make_completed_analyst_step(run.id))
+    db.prompts.append(make_reviewer_prompt())
+    override_dependencies(
+        db,
+        FakeReviewerLLMClient(
+            output_data={
+                "approved": True,
+                "quality_score": 0.92,
+                "issues": [
+                    {
+                        "claim": "Enterprise churn doubled",
+                        "problem": "Source only says churn increased",
+                        "severity": "high",
+                    }
+                ],
+                "retry_recommended": False,
+            }
+        ),
+    )
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 200
+    assert run.status == WorkflowStatus.retrying
+    clear_overrides()
+
+
 def test_run_sales_reviewer_sends_medium_score_without_high_issues_to_human_wait():
     db = FakeSession()
     uploaded_input = make_input()

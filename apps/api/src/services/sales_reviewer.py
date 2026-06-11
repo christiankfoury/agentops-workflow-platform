@@ -288,9 +288,6 @@ def _update_run_metrics(run: WorkflowRun, db: Session) -> None:
 
 
 def _next_status_after_review(run: WorkflowRun, output: SalesReviewOutput) -> WorkflowStatus:
-    if output.quality_score >= QUALITY_APPROVAL_THRESHOLD and output.approved:
-        return WorkflowStatus.waiting_for_human
-
     has_high_severity_issue = any(issue.severity == "high" for issue in output.issues)
     needs_retry = (
         output.quality_score < HUMAN_REVIEW_THRESHOLD
@@ -299,6 +296,10 @@ def _next_status_after_review(run: WorkflowRun, output: SalesReviewOutput) -> Wo
     )
     if needs_retry and (run.retry_count or 0) < MAX_AUTO_RETRIES:
         return WorkflowStatus.retrying
+
+    if output.quality_score >= QUALITY_APPROVAL_THRESHOLD and output.approved:
+        return WorkflowStatus.waiting_for_human
+
     return WorkflowStatus.waiting_for_human
 
 
