@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 61 - Testing Foundation
+Current next phase: Phase 62 - Workflow Integration Tests
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 60 complete; Phase 61 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 61 complete; Phase 62 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -70,17 +70,18 @@ Target range status: Phase 46 through Phase 60 complete; Phase 61 through Phase 
 | 58 | Complete | Demo mode API and UI controls for seeding sales, feedback, incident, or full evaluation demo data and jumping into comparison/evaluation dashboards. |
 | 59 | Complete | README case study with project overview, architecture/workflow diagrams, demo metrics, portfolio screens, evaluation methodology, setup, validation, and roadmap. |
 | 60 | Complete | Technical docs for architecture, agent roles, evaluation methodology, prompt versioning, observability, and deployment operations. |
+| 61 | Complete | Testing foundation expanded with shared structured-output repair tests and OpenAPI route/schema surface coverage across workflow, evaluation, demo, and approval endpoints. |
 
 ## Next Phase
 
-### Phase 61: Testing Foundation
+### Phase 62: Workflow Integration Tests
 
 Expected scope:
 
-- Add automated tests.
-- Focus on backend unit tests, schema validation tests, agent output parsing tests, API endpoint tests, and frontend smoke tests.
+- Add integration tests for workflow execution.
+- Cover sales workflow success path, reviewer rejection, retry trigger, human approval pause, writer approval gate, and completion after approval.
 
-Do not implement background jobs, auth, deployment work, or broad alerting in Phase 61.
+Do not implement background jobs, auth, deployment work, or broad alerting in Phase 62.
 
 ## Last Known Validation Pattern
 
