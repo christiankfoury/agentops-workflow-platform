@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LocalDateTime } from "@/components/local-date-time";
 import { listAgentSteps, listHumanApprovals, listWorkflowRuns } from "@/lib/api";
 import type { AgentStep, HumanApproval, WorkflowRun } from "@/lib/types";
 
@@ -10,10 +11,6 @@ type RunWithSteps = {
 function formatPercent(value: number | null): string {
   if (value === null) return "n/a";
   return `${Math.round(value * 100)}%`;
-}
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString();
 }
 
 async function getRunWithSteps(): Promise<RunWithSteps[]> {
@@ -97,7 +94,7 @@ function LowScoreRuns({ runs }: { runs: WorkflowRun[] }) {
                   <td className="px-4 py-3">{run.status}</td>
                   <td className="px-4 py-3">{formatPercent(run.quality_score)}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {formatDate(run.created_at)}
+                    <LocalDateTime value={run.created_at} />
                   </td>
                 </tr>
               ))

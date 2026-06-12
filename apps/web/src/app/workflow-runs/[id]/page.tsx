@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { LocalDateTime } from "@/components/local-date-time";
 import {
   getUploadedInput,
   getWorkflowRun,
@@ -14,10 +15,6 @@ import { RunAnalystForm } from "./run-analyst-form";
 import { RunBaselineForm } from "./run-baseline-form";
 import { RunReviewerForm } from "./run-reviewer-form";
 import { RunWriterForm } from "./run-writer-form";
-
-function formatDateTime(value: string | null): string {
-  return value ? new Date(value).toLocaleString() : "-";
-}
 
 function formatLatency(value: number | null): string {
   if (value == null) return "-";
@@ -196,7 +193,7 @@ function WorkflowEventTimeline({
                     <div>
                       <h3 className="font-semibold">{event.message}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatDateTime(event.created_at)}
+                        <LocalDateTime value={event.created_at} />
                         {agentName ? ` - ${agentName}` : ""}
                       </p>
                     </div>
@@ -278,13 +275,13 @@ function AgentStepTimeline({ steps }: { steps: AgentStep[] }) {
                   <div>
                     <dt className="text-xs text-muted-foreground">Started</dt>
                     <dd className="mt-1 font-medium">
-                      {formatDateTime(step.created_at)}
+                      <LocalDateTime value={step.created_at} />
                     </dd>
                   </div>
                   <div>
                     <dt className="text-xs text-muted-foreground">Completed</dt>
                     <dd className="mt-1 font-medium">
-                      {formatDateTime(step.completed_at)}
+                      <LocalDateTime value={step.completed_at} />
                     </dd>
                   </div>
                   <div>
@@ -439,12 +436,10 @@ export default async function WorkflowRunDetailPage({
       label: "Latency",
       value: run.latency_ms != null ? `${run.latency_ms}ms` : "-",
     },
-    { label: "Created", value: new Date(run.created_at).toLocaleString() },
+    { label: "Created", value: <LocalDateTime value={run.created_at} /> },
     {
       label: "Completed",
-      value: run.completed_at
-        ? new Date(run.completed_at).toLocaleString()
-        : "-",
+      value: <LocalDateTime value={run.completed_at} />,
     },
   ];
 

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
+import { LocalDateTime } from "@/components/local-date-time";
 import {
   getUploadedInput,
   getWorkflowRun,
@@ -43,7 +45,7 @@ function getLatestApproval(approvals: HumanApproval[]): HumanApproval | undefine
     .at(0);
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -79,9 +81,15 @@ function TracePanel({
   );
 }
 
-function getHumanApprovalStatus(approval: HumanApproval | undefined): string {
+function getHumanApprovalStatus(approval: HumanApproval | undefined): ReactNode {
   if (!approval) return "Not recorded";
-  if (approval.resolved_at) return `${approval.status} at ${new Date(approval.resolved_at).toLocaleString()}`;
+  if (approval.resolved_at) {
+    return (
+      <>
+        {approval.status} at <LocalDateTime value={approval.resolved_at} />
+      </>
+    );
+  }
   return approval.status;
 }
 

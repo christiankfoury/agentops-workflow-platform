@@ -1,5 +1,6 @@
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
+import { LocalDateTime } from "@/components/local-date-time";
 import { listWorkflowRuns } from "@/lib/api";
 import type { WorkflowRun } from "@/lib/types";
 
@@ -159,7 +160,7 @@ export default async function WorkflowRunsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {new Date(run.created_at).toLocaleString()}
+                    <LocalDateTime value={run.created_at} />
                   </td>
                 </tr>
               ))}

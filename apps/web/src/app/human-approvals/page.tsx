@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LocalDateTime } from "@/components/local-date-time";
 import { getWorkflowRun, listHumanApprovals } from "@/lib/api";
 import type { HumanApproval, WorkflowRun } from "@/lib/types";
 
@@ -179,7 +180,7 @@ export default async function HumanApprovalsPage() {
                       {scoreLabel(approval.reviewer_score)}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(approval.created_at).toLocaleString()}
+                      <LocalDateTime value={approval.created_at} />
                     </td>
                   </tr>
                 );

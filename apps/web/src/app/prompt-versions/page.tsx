@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LocalDateTime } from "@/components/local-date-time";
 import { listPromptVersions } from "@/lib/api";
 import { PromptVersionForm } from "./form";
 
@@ -34,7 +35,9 @@ export default async function PromptVersionsPage() {
                 <td className="px-4 py-3">{prompt.agent_type}</td>
                 <td className="px-4 py-3">v{prompt.version}</td>
                 <td className="px-4 py-3">{prompt.is_active ? "Active" : "Inactive"}</td>
-                <td className="px-4 py-3">{new Date(prompt.created_at).toLocaleString()}</td>
+                <td className="px-4 py-3">
+                  <LocalDateTime value={prompt.created_at} />
+                </td>
               </tr>
             ))}
           </tbody>
