@@ -28,6 +28,7 @@ import type {
 } from "./types";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 2500;
+const AGENT_ACTION_FETCH_TIMEOUT_MS = 120000;
 
 function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(apiUrl(path), {
@@ -240,6 +241,7 @@ export async function updateAgentSetting(
 export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
   const res = await apiFetch(`/workflow-runs/${runId}/run-analyst`, {
     method: "POST",
+    signal: AbortSignal.timeout(AGENT_ACTION_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
@@ -252,6 +254,7 @@ export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
 export async function runSalesBaseline(runId: string): Promise<AgentStep> {
   const res = await apiFetch(`/workflow-runs/${runId}/run-baseline`, {
     method: "POST",
+    signal: AbortSignal.timeout(AGENT_ACTION_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
@@ -264,6 +267,7 @@ export async function runSalesBaseline(runId: string): Promise<AgentStep> {
 export async function runSalesReviewer(runId: string): Promise<AgentStep> {
   const res = await apiFetch(`/workflow-runs/${runId}/run-reviewer`, {
     method: "POST",
+    signal: AbortSignal.timeout(AGENT_ACTION_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
@@ -276,6 +280,7 @@ export async function runSalesReviewer(runId: string): Promise<AgentStep> {
 export async function runSalesWriter(runId: string): Promise<AgentStep> {
   const res = await apiFetch(`/workflow-runs/${runId}/run-writer`, {
     method: "POST",
+    signal: AbortSignal.timeout(AGENT_ACTION_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
