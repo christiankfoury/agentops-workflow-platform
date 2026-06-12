@@ -7,10 +7,11 @@ from src.models.agent_setting import AgentSetting
 from src.models.agent_type import AgentType
 from src.models.prompt_version import PromptVersion
 from src.schemas.agent_setting import AgentSettingRead, AgentSettingUpdate
+from src.security import ROLE_ADMIN, require_role
 from src.services.agent_settings import DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_SECONDS
 from src.services.llm_client import DEFAULT_MAX_TOKENS
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_role(ROLE_ADMIN))])
 
 
 @router.get("", response_model=list[AgentSettingRead])

@@ -29,11 +29,12 @@ def parse_run_modes(argv: Sequence[str] | None = None) -> tuple[RunMode, ...]:
 
 def main(argv: Sequence[str] | None = None) -> None:
     run_modes = parse_run_modes(argv)
-    if not settings.openai_api_key:
+    api_key = settings.openai_api_key_value
+    if not api_key:
         raise RuntimeError("OPENAI_API_KEY is required to run evaluations.")
 
     llm_client = LLMClient(
-        api_key=settings.openai_api_key,
+        api_key=api_key,
         default_model=settings.openai_model,
     )
     with SessionLocal() as db:

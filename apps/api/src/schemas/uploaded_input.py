@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from src.config import DEFAULT_MAX_INPUT_CHARS, DEFAULT_MAX_NOTES_CHARS
 from src.models.uploaded_input import InputType
 from src.models.workflow_run import WorkflowType
 
@@ -11,8 +12,8 @@ from src.models.workflow_run import WorkflowType
 class UploadedInputCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     input_type: InputType
-    raw_text: str = Field(min_length=1)
-    notes: str | None = None
+    raw_text: str = Field(min_length=1, max_length=DEFAULT_MAX_INPUT_CHARS)
+    notes: str | None = Field(default=None, max_length=DEFAULT_MAX_NOTES_CHARS)
     file_name: str | None = Field(default=None, max_length=255)
     file_type: str | None = Field(default=None, max_length=50)
     file_size: int | None = Field(default=None, ge=0)
@@ -53,8 +54,8 @@ class UploadedInputRead(BaseModel):
 
 class WorkflowDetectionRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    raw_text: str = Field(min_length=1)
-    notes: str | None = None
+    raw_text: str = Field(min_length=1, max_length=DEFAULT_MAX_INPUT_CHARS)
+    notes: str | None = Field(default=None, max_length=DEFAULT_MAX_NOTES_CHARS)
 
     @field_validator("title", "raw_text", mode="before")
     @classmethod

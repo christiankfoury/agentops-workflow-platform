@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 64 - Security and Input Safety
+Current next phase: Phase 65 - Portfolio Polish
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 63 complete; Phase 64 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 64 complete; Phase 65 remaining.
 
 ## Completed Phases
 
@@ -73,17 +73,19 @@ Target range status: Phase 46 through Phase 63 complete; Phase 64 through Phase 
 | 61 | Complete | Testing foundation expanded with shared structured-output repair tests and OpenAPI route/schema surface coverage across workflow, evaluation, demo, and approval endpoints. |
 | 62 | Complete | Sales workflow integration tests covering analyst-to-reviewer flow, reviewer retry trigger, human approval pause, writer approval gate, and completion after approval. |
 | 63 | Complete | Evaluation foundation tests covering deterministic score math, unsupported generated numbers, latest completed baseline vs multi-agent comparison pairing, reviewer issue extraction, and evaluation result storage metadata. |
+| 64 | Complete | Basic security and input safety controls for secret masking, opt-in API key authentication, role checks, opt-in rate limiting, upload MIME/size limits, and persisted input length limits. |
 
 ## Next Phase
 
-### Phase 64: Security and Input Safety
+### Phase 65: Portfolio Polish
 
 Expected scope:
 
-- Add basic safety and security controls.
-- Cover file size limits, input length limits, allowed file types, rate limiting, auth checks, role checks, safe error messages, and environment secret handling.
+- Polish the UI and user experience.
+- Focus on landing page, workflow run detail, evaluation dashboard, baseline comparison, agent trace, cost dashboard, and human approval page.
+- Add empty states, loading states, error states, and better visual hierarchy.
 
-Do not implement broad deployment work or unrelated UI polish in Phase 64.
+Do not implement Phase 66 demo video scripting or broad backend feature work in Phase 65.
 
 ## Last Known Validation Pattern
 

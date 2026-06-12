@@ -107,6 +107,23 @@ def test_uploaded_input_rejects_blank_required_text():
     app.dependency_overrides.clear()
 
 
+def test_uploaded_input_rejects_oversized_raw_text():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs",
+        json={
+            "title": "Huge report",
+            "input_type": "sales_report",
+            "raw_text": "x" * 50_001,
+        },
+    )
+
+    assert response.status_code == 422
+    app.dependency_overrides.clear()
+
+
 def test_uploaded_input_strips_text_fields():
     db = FakeSession()
     app.dependency_overrides[get_db] = lambda: db
@@ -286,6 +303,38 @@ def test_upload_rejects_unsupported_file_type():
 
     assert response.status_code == 422
     assert response.json()["detail"] == "Only .txt, .md, and .csv uploads are supported"
+    app.dependency_overrides.clear()
+
+
+def test_upload_rejects_mismatched_content_type():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "Disguised PDF", "input_type": "sales_report"},
+        files={"file": ("report.txt", b"%PDF", "application/pdf")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "Uploaded file content type does not match the allowed file type"
+    )
+    app.dependency_overrides.clear()
+
+
+def test_upload_rejects_oversized_file():
+    app.dependency_overrides[get_db] = lambda: FakeSession()
+    client = TestClient(app)
+
+    response = client.post(
+        "/uploaded-inputs/upload",
+        data={"title": "Large report", "input_type": "sales_report"},
+        files={"file": ("report.txt", b"x" * (250 * 1024 + 1), "text/plain")},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Uploaded file must be 250 KB or smaller"
     app.dependency_overrides.clear()
 
 
