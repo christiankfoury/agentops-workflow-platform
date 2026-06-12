@@ -34,3 +34,12 @@ class WorkflowRunRead(BaseModel):
     retry_count: int
     created_at: datetime
     completed_at: datetime | None
+
+
+class WorkflowRunEvaluationComparisonRead(BaseModel):
+    evaluation_case_id: uuid.UUID
+    baseline_result_id: uuid.UUID
+    multi_agent_result_id: uuid.UUID
+    baseline_run_id: uuid.UUID
+    multi_agent_run_id: uuid.UUID
+    comparison_url: str

@@ -11,7 +11,12 @@ from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowType
 from src.schemas.agent_step import AgentStepRead
 from src.schemas.workflow_event import WorkflowEventRead
-from src.schemas.workflow_run import WorkflowRunCreate, WorkflowRunRead, WorkflowRunTransition
+from src.schemas.workflow_run import (
+    WorkflowRunCreate,
+    WorkflowRunEvaluationComparisonRead,
+    WorkflowRunRead,
+    WorkflowRunTransition,
+)
 from src.services.customer_feedback_classifier import (
     ClassifierRunError,
     run_customer_feedback_classifier,
@@ -24,6 +29,11 @@ from src.services.customer_feedback_reviewer import (
 from src.services.customer_feedback_writer import (
     CustomerFeedbackWriterRunError,
     run_customer_feedback_writer,
+)
+from src.services.evaluation_promotion import (
+    EvaluationPromotionError,
+    EvaluationPromotionResult,
+    promote_workflow_run_to_evaluation_comparison,
 )
 from src.services.incident_reviewer import IncidentReviewerRunError, run_incident_reviewer
 from src.services.incident_root_cause import RootCauseRunError, run_incident_root_cause
@@ -210,6 +220,24 @@ def run_writer(
         IncidentWriterRunError,
         InvalidTransitionError,
     ) as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
+@router.post(
+    "/{run_id}/evaluation-comparison",
+    response_model=WorkflowRunEvaluationComparisonRead,
+)
+def create_evaluation_comparison_from_run(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> EvaluationPromotionResult:
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+    if run is None:
+        raise HTTPException(status_code=404, detail="Workflow run not found")
+    try:
+        return promote_workflow_run_to_evaluation_comparison(db, run, llm_client)
+    except EvaluationPromotionError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 

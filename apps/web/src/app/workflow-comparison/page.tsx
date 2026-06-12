@@ -22,7 +22,16 @@ function ActionLinks() {
   );
 }
 
-export default async function WorkflowComparisonPage() {
+export default async function WorkflowComparisonPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ search?: string | string[] }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialSearch =
+    typeof resolvedSearchParams.search === "string"
+      ? resolvedSearchParams.search
+      : "";
   let comparisons: EvaluationComparison[] = [];
   let apiError = false;
 
@@ -83,7 +92,10 @@ export default async function WorkflowComparisonPage() {
         </section>
       ) : (
         comparisons.length > 0 && (
-          <WorkflowComparisonExplorer comparisons={comparisons} />
+          <WorkflowComparisonExplorer
+            comparisons={comparisons}
+            initialSearch={initialSearch}
+          />
         )
       )}
     </div>

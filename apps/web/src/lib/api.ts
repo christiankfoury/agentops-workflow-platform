@@ -24,11 +24,13 @@ import type {
   UploadedInput,
   WorkflowDetection,
   WorkflowEvent,
+  WorkflowRunEvaluationComparison,
   WorkflowRun,
 } from "./types";
 
 const DEFAULT_FETCH_TIMEOUT_MS = 2500;
 const AGENT_ACTION_FETCH_TIMEOUT_MS = 120000;
+const EVALUATION_COMPARISON_FETCH_TIMEOUT_MS = 300000;
 
 function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(apiUrl(path), {
@@ -299,6 +301,20 @@ export async function cancelWorkflowRun(runId: string): Promise<WorkflowRun> {
     throw new Error(`Failed to cancel workflow run: ${detail}`);
   }
   return res.json() as Promise<WorkflowRun>;
+}
+
+export async function createEvaluationComparisonFromRun(
+  runId: string,
+): Promise<WorkflowRunEvaluationComparison> {
+  const res = await apiFetch(`/workflow-runs/${runId}/evaluation-comparison`, {
+    method: "POST",
+    signal: AbortSignal.timeout(EVALUATION_COMPARISON_FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to create evaluation comparison: ${detail}`);
+  }
+  return res.json() as Promise<WorkflowRunEvaluationComparison>;
 }
 
 export async function listHumanApprovals(): Promise<HumanApproval[]> {

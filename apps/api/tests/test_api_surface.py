@@ -18,6 +18,7 @@ def test_openapi_registers_workflow_evaluation_and_demo_routes():
         "/workflow-runs/{run_id}/run-analyst",
         "/workflow-runs/{run_id}/run-reviewer",
         "/workflow-runs/{run_id}/run-writer",
+        "/workflow-runs/{run_id}/evaluation-comparison",
         "/human-approvals",
         "/human-approvals/{approval_id}/approve",
         "/uploaded-inputs",

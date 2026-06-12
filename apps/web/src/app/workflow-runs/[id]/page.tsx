@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import type { AgentStep, WorkflowEvent } from "@/lib/types";
 import { CancelWorkflowForm } from "./cancel-workflow-form";
+import { CreateEvaluationComparisonForm } from "./create-evaluation-comparison-form";
 import { RunAnalystForm } from "./run-analyst-form";
 import { RunBaselineForm } from "./run-baseline-form";
 import { RunReviewerForm } from "./run-reviewer-form";
@@ -104,6 +105,12 @@ function getRecoveryMessages(runStatus: string, steps: AgentStep[], events: Work
     messages.push("Workflow failed. Check the event timeline and agent steps for details.");
   }
   return Array.from(new Set(messages));
+}
+
+function getStructuredPromotionAgentType(workflowType: string): string {
+  if (workflowType === "customer_feedback") return "insight";
+  if (workflowType === "incident_log") return "root_cause";
+  return "analyst";
 }
 
 function RecoverySummary({
@@ -398,6 +405,17 @@ export default async function WorkflowRunDetailPage({
         step.agent_type === "writer" &&
         (step.status === "running" || step.status === "completed"),
     );
+  const promotionAgentType = getStructuredPromotionAgentType(run.workflow_type);
+  const canCreateEvaluationComparison =
+    run.status === "completed" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    agentSteps.some(
+      (step) =>
+        step.agent_type === promotionAgentType &&
+        step.status === "completed" &&
+        step.output_json !== null,
+    );
   const canCancelWorkflow = !["completed", "failed", "cancelled"].includes(run.status);
 
   const fields = [
@@ -472,6 +490,10 @@ export default async function WorkflowRunDetailPage({
             Review Approval
           </Link>
         </div>
+      )}
+
+      {canCreateEvaluationComparison && (
+        <CreateEvaluationComparisonForm runId={run.id} />
       )}
 
       {canCancelWorkflow && <CancelWorkflowForm runId={run.id} />}

@@ -174,6 +174,15 @@ export interface EvaluationComparison {
   latency_difference_ms: number;
 }
 
+export interface WorkflowRunEvaluationComparison {
+  evaluation_case_id: string;
+  baseline_result_id: string;
+  multi_agent_result_id: string;
+  baseline_run_id: string;
+  multi_agent_run_id: string;
+  comparison_url: string;
+}
+
 export interface AgentPerformanceSummary {
   agent_type: string;
   agent_name: string;

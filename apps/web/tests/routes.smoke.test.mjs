@@ -17,6 +17,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Observability Timeline/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /RecoverySummary/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /final-output/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /CreateEvaluationComparisonForm/);
   assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Final Executive Summary/);
   assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Workflow Trace/);
   assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /listAgentSteps/);
@@ -90,6 +91,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesReviewer/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /runSalesWriter/);
   assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /cancelWorkflowRun/);
+  assert.match(read("src/app/workflow-runs/[id]/actions.ts"), /createEvaluationComparisonFromRun/);
   assert.match(read("src/app/workflow-runs/[id]/run-analyst-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-baseline-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-reviewer-form.tsx"), /useActionState/);
@@ -128,6 +130,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function getEvaluationSummary/);
   assert.match(api, /export async function listEvaluationResults/);
   assert.match(api, /export async function getEvaluationComparisons/);
+  assert.match(api, /export async function createEvaluationComparisonFromRun/);
   assert.match(api, /export async function seedDemoDataset/);
   assert.match(api, /export async function getAgentPerformanceSummary/);
   assert.match(api, /export async function listPromptVersions/);

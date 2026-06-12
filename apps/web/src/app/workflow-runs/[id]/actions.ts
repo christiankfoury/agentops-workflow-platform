@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import {
   cancelWorkflowRun,
+  createEvaluationComparisonFromRun,
   runSalesAnalyst,
   runSalesBaseline,
   runSalesReviewer,
@@ -113,4 +114,29 @@ export async function cancelWorkflowAction(
   }
 
   redirect(`/workflow-runs/${runId}`);
+}
+
+export async function createEvaluationComparisonAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  let comparisonUrl = "";
+  try {
+    const result = await createEvaluationComparisonFromRun(runId);
+    comparisonUrl = result.comparison_url;
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create evaluation comparison.",
+    };
+  }
+
+  redirect(comparisonUrl);
 }

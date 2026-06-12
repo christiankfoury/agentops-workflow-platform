@@ -528,10 +528,12 @@ function compareNumbers(
 
 export function WorkflowComparisonExplorer({
   comparisons,
+  initialSearch = "",
 }: {
   comparisons: EvaluationComparison[];
+  initialSearch?: string;
 }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialSearch);
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [sort, setSort] = useState<SortKey>("accuracy");
   const [visibleCount, setVisibleCount] = useState(pageSize);
