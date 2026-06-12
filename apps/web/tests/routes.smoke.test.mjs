@@ -60,7 +60,15 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/agent-performance/page.tsx"), /Schema Validation Failures/);
   assert.match(read("src/app/workflow-comparison/page.tsx"), /Workflow Comparison/);
   assert.match(read("src/app/workflow-comparison/page.tsx"), /getEvaluationComparisons/);
-  assert.match(read("src/app/workflow-comparison/page.tsx"), /Reviewer Issues/);
+  assert.match(read("src/app/workflow-comparison/page.tsx"), /WorkflowComparisonExplorer/);
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Reviewer Issues/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Show .* more/,
+  );
   assert.match(read("src/app/failures/page.tsx"), /Failure Case Explorer/);
   assert.match(read("src/app/failures/page.tsx"), /listWorkflowRuns/);
   assert.match(read("src/app/failures/page.tsx"), /Schema Validation Failures/);
