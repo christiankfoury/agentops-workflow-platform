@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 63 - Evaluation Tests
+Current next phase: Phase 64 - Security and Input Safety
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 62 complete; Phase 63 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 63 complete; Phase 64 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -72,17 +72,18 @@ Target range status: Phase 46 through Phase 62 complete; Phase 63 through Phase 
 | 60 | Complete | Technical docs for architecture, agent roles, evaluation methodology, prompt versioning, observability, and deployment operations. |
 | 61 | Complete | Testing foundation expanded with shared structured-output repair tests and OpenAPI route/schema surface coverage across workflow, evaluation, demo, and approval endpoints. |
 | 62 | Complete | Sales workflow integration tests covering analyst-to-reviewer flow, reviewer retry trigger, human approval pause, writer approval gate, and completion after approval. |
+| 63 | Complete | Evaluation foundation tests covering deterministic score math, unsupported generated numbers, latest completed baseline vs multi-agent comparison pairing, reviewer issue extraction, and evaluation result storage metadata. |
 
 ## Next Phase
 
-### Phase 63: Evaluation Tests
+### Phase 64: Security and Input Safety
 
 Expected scope:
 
-- Add tests for evaluation logic.
-- Cover accuracy calculation, unsupported claim rate calculation, completeness calculation, baseline vs multi-agent comparison, and evaluation result storage.
+- Add basic safety and security controls.
+- Cover file size limits, input length limits, allowed file types, rate limiting, auth checks, role checks, safe error messages, and environment secret handling.
 
-Do not implement background jobs, auth, deployment work, or broad alerting in Phase 63.
+Do not implement broad deployment work or unrelated UI polish in Phase 64.
 
 ## Last Known Validation Pattern
 
