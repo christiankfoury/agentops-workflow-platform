@@ -5,6 +5,7 @@ import type { AgentStep, WorkflowRun, WorkflowType } from "@/lib/types";
 type RunWithSteps = {
   run: WorkflowRun;
   steps: AgentStep[];
+  stepLoadFailed: boolean;
 };
 
 type NamedTotal = {
@@ -19,6 +20,7 @@ const moneyFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 6,
   maximumFractionDigits: 6,
 });
+const stepFetchConcurrency = 8;
 
 function formatCost(value: number): string {
   return moneyFormatter.format(value);
@@ -32,14 +34,45 @@ function getStepCost(step: AgentStep): number {
   return step.cost ?? 0;
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
+  );
+  return results;
+}
+
 async function getRunWithSteps(): Promise<RunWithSteps[]> {
   const runs = await listWorkflowRuns();
-  return Promise.all(
-    runs.map(async (run) => ({
-      run,
-      steps: await listAgentSteps(run.id).catch(() => []),
-    })),
-  );
+  return mapWithConcurrency(runs, stepFetchConcurrency, async (run) => {
+    try {
+      return {
+        run,
+        steps: await listAgentSteps(run.id),
+        stepLoadFailed: false,
+      };
+    } catch {
+      return {
+        run,
+        steps: [],
+        stepLoadFailed: true,
+      };
+    }
+  });
 }
 
 function groupCostByWorkflowType(runs: WorkflowRun[]): NamedTotal[] {
@@ -244,6 +277,7 @@ export default async function CostDashboardPage() {
 
   const runs = items.map((item) => item.run);
   const steps = items.flatMap((item) => item.steps);
+  const failedStepLoads = items.filter((item) => item.stepLoadFailed).length;
   const totalSpend = runs.reduce((total, run) => total + (run.total_cost ?? 0), 0);
   const averageCost = runs.length > 0 ? totalSpend / runs.length : 0;
   const totalTokens = runs.reduce((total, run) => total + (run.total_tokens ?? 0), 0);
@@ -275,6 +309,14 @@ export default async function CostDashboardPage() {
         </p>
       )}
 
+      {failedStepLoads > 0 && (
+        <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+          Agent-step costs are partially loaded. {formatNumber(failedStepLoads)} run
+          {failedStepLoads === 1 ? "" : "s"} could not load step details before the
+          request timed out.
+        </p>
+      )}
+
       <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Total Spend" value={formatCost(totalSpend)} />
         <MetricCard label="Average Cost / Workflow" value={formatCost(averageCost)} />
@@ -295,7 +337,10 @@ export default async function CostDashboardPage() {
 
       <p className="mt-6 text-xs text-muted-foreground">
         Showing {formatNumber(runs.length)} runs and {formatNumber(steps.length)} agent
-        steps with estimated token-based costs.
+        steps with estimated token-based costs
+        {failedStepLoads > 0
+          ? ` (${formatNumber(failedStepLoads)} run detail loads failed).`
+          : "."}
       </p>
     </div>
   );

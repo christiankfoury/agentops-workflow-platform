@@ -3,6 +3,7 @@ import { listEvaluationResults } from "@/lib/api";
 import type { EvaluationResult } from "@/lib/types";
 
 type TrendPoint = {
+  sortDate: string;
   date: string;
   runCount: number;
   factualAccuracy: number;
@@ -35,16 +36,17 @@ function buildTrend(results: EvaluationResult[]): TrendPoint[] {
   const completed = results.filter((result) => result.status === "completed");
   const grouped = new Map<string, EvaluationResult[]>();
   for (const result of completed) {
-    const date = new Date(result.created_at).toLocaleDateString();
-    grouped.set(date, [...(grouped.get(date) ?? []), result]);
+    const sortDate = new Date(result.created_at).toISOString().slice(0, 10);
+    grouped.set(sortDate, [...(grouped.get(sortDate) ?? []), result]);
   }
 
   return [...grouped.entries()]
-    .map(([date, items]) => {
+    .map(([sortDate, items]) => {
       const approvals = items.filter((item) => item.human_approval_required);
       const approved = approvals.filter((item) => item.human_approved);
       return {
-        date,
+        sortDate,
+        date: new Date(`${sortDate}T00:00:00`).toLocaleDateString(),
         runCount: items.length,
         factualAccuracy: average(
           items.flatMap((item) => (item.factual_accuracy === null ? [] : [item.factual_accuracy])),
@@ -66,7 +68,7 @@ function buildTrend(results: EvaluationResult[]): TrendPoint[] {
         ),
       };
     })
-    .sort((left, right) => left.date.localeCompare(right.date));
+    .sort((left, right) => left.sortDate.localeCompare(right.sortDate));
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -105,7 +107,7 @@ function TrendTable({ rows }: { rows: TrendPoint[] }) {
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.date}>
+                <tr key={row.sortDate}>
                   <td className="px-4 py-3 font-medium">{row.date}</td>
                   <td className="px-4 py-3 text-muted-foreground">{row.runCount}</td>
                   <td className="px-4 py-3">{formatPercent(row.factualAccuracy)}</td>
