@@ -69,6 +69,7 @@ def seed_demo_dataset(
             retry_count=1 if index % 4 == 0 else 0,
             created_at=created_at_base + timedelta(days=index, minutes=15),
         )
+        _flush_pending_parents(db)
         workflow_runs += 2
 
         _upsert_evaluation_result(
@@ -134,6 +135,12 @@ def _upsert_uploaded_input(
     input_record.file_size = len(case.input_text.encode("utf-8"))
     input_record.created_at = created_at
     return input_record
+
+
+def _flush_pending_parents(db: Session) -> None:
+    flush = getattr(db, "flush", None)
+    if callable(flush):
+        flush()
 
 
 def _upsert_workflow_run(
