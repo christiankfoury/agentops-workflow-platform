@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 59 - README Case Study
+Current next phase: Phase 60 - Architecture Documentation
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 58 complete; Phase 59 through Phase 65 remaining.
+Target range status: Phase 46 through Phase 59 complete; Phase 60 through Phase 65 remaining.
 
 ## Completed Phases
 
@@ -68,17 +68,18 @@ Target range status: Phase 46 through Phase 58 complete; Phase 59 through Phase 
 | 56 | Complete | Improvement tracking dashboard with evaluation trends over time for factual accuracy, unsupported claims, completeness, approval rate, cost, and latency. |
 | 57 | Complete | Polished demo dataset seeding with 10 cases per workflow, demo uploaded inputs, baseline and multi-agent runs, evaluation results, and agent trace steps. |
 | 58 | Complete | Demo mode API and UI controls for seeding sales, feedback, incident, or full evaluation demo data and jumping into comparison/evaluation dashboards. |
+| 59 | Complete | README case study with project overview, architecture/workflow diagrams, demo metrics, portfolio screens, evaluation methodology, setup, validation, and roadmap. |
 
 ## Next Phase
 
-### Phase 59: README Case Study
+### Phase 60: Architecture Documentation
 
 Expected scope:
 
-- Write a serious README.
-- Include project overview, architecture diagram, workflow diagram, screenshots, features, tech stack, evaluation methodology, baseline vs multi-agent results, cost tradeoff, lessons learned, and setup instructions.
+- Add technical documentation.
+- Create docs for architecture, agents, evaluation, prompts, observability, and deployment.
 
-Do not implement background jobs, auth, deployment work, or broad alerting in Phase 59.
+Do not implement background jobs, auth, deployment work, or broad alerting in Phase 60.
 
 ## Last Known Validation Pattern
 
