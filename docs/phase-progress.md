@@ -1,10 +1,10 @@
 # Phase Progress
 
-Current next phase: Phase 65 - Portfolio Polish
+Current next phase: Phase 66 - Demo Video Script
 
 Autonomous trial target: Phase 46 through Phase 65 complete.
 
-Target range status: Phase 46 through Phase 64 complete; Phase 65 remaining.
+Target range status: Phase 46 through Phase 65 complete.
 
 ## Completed Phases
 
@@ -74,18 +74,18 @@ Target range status: Phase 46 through Phase 64 complete; Phase 65 remaining.
 | 62 | Complete | Sales workflow integration tests covering analyst-to-reviewer flow, reviewer retry trigger, human approval pause, writer approval gate, and completion after approval. |
 | 63 | Complete | Evaluation foundation tests covering deterministic score math, unsupported generated numbers, latest completed baseline vs multi-agent comparison pairing, reviewer issue extraction, and evaluation result storage metadata. |
 | 64 | Complete | Basic security and input safety controls for secret masking, opt-in API key authentication, role checks, opt-in rate limiting, upload MIME/size limits, and persisted input length limits. |
+| 65 | Complete | Portfolio polish for the recruiter-facing web app shell, landing dashboard, workflow run list, approvals list, evaluation error states, mobile navigation, and offline API handling. |
 
 ## Next Phase
 
-### Phase 65: Portfolio Polish
+### Phase 66: Demo Video Script
 
 Expected scope:
 
-- Polish the UI and user experience.
-- Focus on landing page, workflow run detail, evaluation dashboard, baseline comparison, agent trace, cost dashboard, and human approval page.
-- Add empty states, loading states, error states, and better visual hierarchy.
+- Create a short demo video script.
+- Cover problem, solution, sales workflow demo, reviewer finding, human approval, final output, evaluation dashboard, and improvement numbers.
 
-Do not implement Phase 66 demo video scripting or broad backend feature work in Phase 65.
+Do not implement Phase 66 unless a future autonomous run includes it.
 
 ## Last Known Validation Pattern
 

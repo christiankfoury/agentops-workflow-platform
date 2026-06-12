@@ -97,7 +97,7 @@ function SummaryCard({ summary }: { summary: EvaluationMetricsSummary }) {
         <div>
           <h2 className="font-semibold">{formatMode(summary.run_mode)}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatWorkflow(summary.workflow_type)} · {summary.run_count} completed runs
+            {formatWorkflow(summary.workflow_type)} - {summary.run_count} completed runs
           </p>
         </div>
         <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium">
@@ -129,7 +129,13 @@ function SummaryCard({ summary }: { summary: EvaluationMetricsSummary }) {
 }
 
 export default async function EvaluationDashboardPage() {
-  const summaries = await getEvaluationSummary();
+  let summaries: EvaluationMetricsSummary[] = [];
+  let apiError = false;
+  try {
+    summaries = await getEvaluationSummary();
+  } catch {
+    apiError = true;
+  }
   const workflowTypes = Array.from(
     new Set(summaries.map((summary) => summary.workflow_type)),
   ).sort();
@@ -171,6 +177,12 @@ export default async function EvaluationDashboardPage() {
           Export Markdown
         </a>
       </section>
+
+      {apiError && (
+        <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+          Evaluation metrics are unavailable because the API did not respond.
+        </section>
+      )}
 
       {summaries.every((summary) => summary.run_count === 0) ? (
         <section className="mt-6 rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">

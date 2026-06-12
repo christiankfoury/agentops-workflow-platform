@@ -407,26 +407,26 @@ export default async function WorkflowRunDetailPage({
     { label: "Retry Count", value: String(run.retry_count) },
     {
       label: "Quality Score",
-      value: run.quality_score != null ? String(run.quality_score) : "—",
+      value: run.quality_score != null ? String(run.quality_score) : "-",
     },
     {
       label: "Total Cost",
-      value: run.total_cost != null ? `$${run.total_cost.toFixed(6)}` : "—",
+      value: run.total_cost != null ? `$${run.total_cost.toFixed(6)}` : "-",
     },
     {
       label: "Total Tokens",
-      value: run.total_tokens != null ? String(run.total_tokens) : "—",
+      value: run.total_tokens != null ? String(run.total_tokens) : "-",
     },
     {
       label: "Latency",
-      value: run.latency_ms != null ? `${run.latency_ms}ms` : "—",
+      value: run.latency_ms != null ? `${run.latency_ms}ms` : "-",
     },
     { label: "Created", value: new Date(run.created_at).toLocaleString() },
     {
       label: "Completed",
       value: run.completed_at
         ? new Date(run.completed_at).toLocaleString()
-        : "—",
+        : "-",
     },
   ];
 
@@ -436,7 +436,7 @@ export default async function WorkflowRunDetailPage({
         href="/workflow-runs"
         className="text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        ← Workflow Runs
+        {"<-"} Workflow Runs
       </Link>
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight">Workflow Run</h1>

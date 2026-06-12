@@ -27,14 +27,23 @@ import type {
   WorkflowRun,
 } from "./types";
 
+const DEFAULT_FETCH_TIMEOUT_MS = 2500;
+
+function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(apiUrl(path), {
+    ...init,
+    signal: init.signal ?? AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
+  });
+}
+
 export async function listWorkflowRuns(): Promise<WorkflowRun[]> {
-  const res = await fetch(apiUrl("/workflow-runs"), { cache: "no-store" });
+  const res = await apiFetch("/workflow-runs", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch workflow runs: ${res.status}`);
   return res.json() as Promise<WorkflowRun[]>;
 }
 
 export async function getWorkflowRun(id: string): Promise<WorkflowRun | null> {
-  const res = await fetch(apiUrl(`/workflow-runs/${id}`), { cache: "no-store" });
+  const res = await apiFetch(`/workflow-runs/${id}`, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch workflow run: ${res.status}`);
   return res.json() as Promise<WorkflowRun>;
@@ -43,7 +52,7 @@ export async function getWorkflowRun(id: string): Promise<WorkflowRun | null> {
 export async function createWorkflowRun(
   body: CreateWorkflowRunRequest,
 ): Promise<WorkflowRun> {
-  const res = await fetch(apiUrl("/workflow-runs"), {
+  const res = await apiFetch("/workflow-runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -55,7 +64,7 @@ export async function createWorkflowRun(
 export async function createUploadedInput(
   body: CreateUploadedInputRequest,
 ): Promise<UploadedInput> {
-  const res = await fetch(apiUrl("/uploaded-inputs"), {
+  const res = await apiFetch("/uploaded-inputs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -73,7 +82,7 @@ export async function uploadInputFile(
   if (body.notes) formData.append("notes", body.notes);
   formData.append("file", body.file);
 
-  const res = await fetch(apiUrl("/uploaded-inputs/upload"), {
+  const res = await apiFetch("/uploaded-inputs/upload", {
     method: "POST",
     body: formData,
   });
@@ -85,7 +94,7 @@ export async function uploadInputFile(
 }
 
 export async function getUploadedInput(id: string): Promise<UploadedInput | null> {
-  const res = await fetch(apiUrl(`/uploaded-inputs/${id}`), { cache: "no-store" });
+  const res = await apiFetch(`/uploaded-inputs/${id}`, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch uploaded input: ${res.status}`);
   return res.json() as Promise<UploadedInput>;
@@ -94,7 +103,7 @@ export async function getUploadedInput(id: string): Promise<UploadedInput | null
 export async function detectWorkflowType(
   body: DetectWorkflowRequest,
 ): Promise<WorkflowDetection> {
-  const res = await fetch(apiUrl("/uploaded-inputs/detect-workflow"), {
+  const res = await apiFetch("/uploaded-inputs/detect-workflow", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -107,7 +116,7 @@ export async function detectWorkflowType(
 }
 
 export async function listAgentSteps(runId: string): Promise<AgentStep[]> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/agent-steps`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/agent-steps`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch agent steps: ${res.status}`);
@@ -115,7 +124,7 @@ export async function listAgentSteps(runId: string): Promise<AgentStep[]> {
 }
 
 export async function listWorkflowEvents(runId: string): Promise<WorkflowEvent[]> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/events`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/events`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch workflow events: ${res.status}`);
@@ -123,7 +132,7 @@ export async function listWorkflowEvents(runId: string): Promise<WorkflowEvent[]
 }
 
 export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]> {
-  const res = await fetch(apiUrl("/evaluation-results/summary"), {
+  const res = await apiFetch("/evaluation-results/summary", {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
@@ -131,7 +140,7 @@ export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]
 }
 
 export async function listEvaluationResults(): Promise<EvaluationResult[]> {
-  const res = await fetch(apiUrl("/evaluation-results"), {
+  const res = await apiFetch("/evaluation-results", {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation results: ${res.status}`);
@@ -139,7 +148,7 @@ export async function listEvaluationResults(): Promise<EvaluationResult[]> {
 }
 
 export async function getEvaluationComparisons(): Promise<EvaluationComparison[]> {
-  const res = await fetch(apiUrl("/evaluation-results/comparisons"), {
+  const res = await apiFetch("/evaluation-results/comparisons", {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation comparisons: ${res.status}`);
@@ -149,7 +158,7 @@ export async function getEvaluationComparisons(): Promise<EvaluationComparison[]
 export async function seedDemoDataset(
   target: DemoSeedTarget,
 ): Promise<DemoDatasetSummary> {
-  const res = await fetch(apiUrl(`/demo/${target}`), {
+  const res = await apiFetch(`/demo/${target}`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -160,7 +169,7 @@ export async function seedDemoDataset(
 }
 
 export async function getAgentPerformanceSummary(): Promise<AgentPerformanceSummary[]> {
-  const res = await fetch(apiUrl("/agent-performance"), {
+  const res = await apiFetch("/agent-performance", {
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Failed to fetch agent performance: ${res.status}`);
@@ -168,13 +177,13 @@ export async function getAgentPerformanceSummary(): Promise<AgentPerformanceSumm
 }
 
 export async function listPromptVersions(): Promise<PromptVersion[]> {
-  const res = await fetch(apiUrl("/prompt-versions"), { cache: "no-store" });
+  const res = await apiFetch("/prompt-versions", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch prompt versions: ${res.status}`);
   return res.json() as Promise<PromptVersion[]>;
 }
 
 export async function getPromptVersion(id: string): Promise<PromptVersion | null> {
-  const res = await fetch(apiUrl(`/prompt-versions/${id}`), { cache: "no-store" });
+  const res = await apiFetch(`/prompt-versions/${id}`, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch prompt version: ${res.status}`);
   return res.json() as Promise<PromptVersion>;
@@ -183,7 +192,7 @@ export async function getPromptVersion(id: string): Promise<PromptVersion | null
 export async function createPromptVersion(
   body: CreatePromptVersionRequest,
 ): Promise<PromptVersion> {
-  const res = await fetch(apiUrl("/prompt-versions"), {
+  const res = await apiFetch("/prompt-versions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -196,7 +205,7 @@ export async function createPromptVersion(
 }
 
 export async function activatePromptVersion(id: string): Promise<PromptVersion> {
-  const res = await fetch(apiUrl(`/prompt-versions/${id}/activate`), {
+  const res = await apiFetch(`/prompt-versions/${id}/activate`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -207,7 +216,7 @@ export async function activatePromptVersion(id: string): Promise<PromptVersion> 
 }
 
 export async function listAgentSettings(): Promise<AgentSetting[]> {
-  const res = await fetch(apiUrl("/agent-settings"), { cache: "no-store" });
+  const res = await apiFetch("/agent-settings", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch agent settings: ${res.status}`);
   return res.json() as Promise<AgentSetting[]>;
 }
@@ -216,7 +225,7 @@ export async function updateAgentSetting(
   agentType: string,
   body: UpdateAgentSettingRequest,
 ): Promise<AgentSetting> {
-  const res = await fetch(apiUrl(`/agent-settings/${agentType}`), {
+  const res = await apiFetch(`/agent-settings/${agentType}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -229,7 +238,7 @@ export async function updateAgentSetting(
 }
 
 export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-analyst`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/run-analyst`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -241,7 +250,7 @@ export async function runSalesAnalyst(runId: string): Promise<AgentStep> {
 }
 
 export async function runSalesBaseline(runId: string): Promise<AgentStep> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-baseline`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/run-baseline`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -253,7 +262,7 @@ export async function runSalesBaseline(runId: string): Promise<AgentStep> {
 }
 
 export async function runSalesReviewer(runId: string): Promise<AgentStep> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-reviewer`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/run-reviewer`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -265,7 +274,7 @@ export async function runSalesReviewer(runId: string): Promise<AgentStep> {
 }
 
 export async function runSalesWriter(runId: string): Promise<AgentStep> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/run-writer`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/run-writer`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -277,7 +286,7 @@ export async function runSalesWriter(runId: string): Promise<AgentStep> {
 }
 
 export async function cancelWorkflowRun(runId: string): Promise<WorkflowRun> {
-  const res = await fetch(apiUrl(`/workflow-runs/${runId}/cancel`), {
+  const res = await apiFetch(`/workflow-runs/${runId}/cancel`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -288,20 +297,20 @@ export async function cancelWorkflowRun(runId: string): Promise<WorkflowRun> {
 }
 
 export async function listHumanApprovals(): Promise<HumanApproval[]> {
-  const res = await fetch(apiUrl("/human-approvals"), { cache: "no-store" });
+  const res = await apiFetch("/human-approvals", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch human approvals: ${res.status}`);
   return res.json() as Promise<HumanApproval[]>;
 }
 
 export async function getHumanApproval(id: string): Promise<HumanApproval | null> {
-  const res = await fetch(apiUrl(`/human-approvals/${id}`), { cache: "no-store" });
+  const res = await apiFetch(`/human-approvals/${id}`, { cache: "no-store" });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch human approval: ${res.status}`);
   return res.json() as Promise<HumanApproval>;
 }
 
 export async function getHumanFeedbackSummary(): Promise<HumanFeedbackSummary> {
-  const res = await fetch(apiUrl("/human-approvals/feedback-summary"), {
+  const res = await apiFetch("/human-approvals/feedback-summary", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -335,7 +344,7 @@ export async function editHumanApproval(
   id: string,
   body: HumanApprovalEditRequest,
 ): Promise<HumanApproval> {
-  const res = await fetch(apiUrl(`/human-approvals/${id}/edit`), {
+  const res = await apiFetch(`/human-approvals/${id}/edit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -352,7 +361,7 @@ async function postHumanApprovalAction(
   action: "approve" | "request-retry" | "reject",
   body: HumanApprovalActionRequest,
 ): Promise<HumanApproval> {
-  const res = await fetch(apiUrl(`/human-approvals/${id}/${action}`), {
+  const res = await apiFetch(`/human-approvals/${id}/${action}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
