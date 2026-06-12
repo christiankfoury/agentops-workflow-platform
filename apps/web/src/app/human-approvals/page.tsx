@@ -3,6 +3,9 @@ import { getWorkflowRun, listHumanApprovals } from "@/lib/api";
 import type { HumanApproval, WorkflowRun } from "@/lib/types";
 
 function statusClass(status: string): string {
+  if (status === "blocked") {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
+  }
   if (status === "approved") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300";
   }
@@ -25,6 +28,20 @@ function formatWorkflow(value: string | undefined): string {
 function scoreLabel(value: number | null): string {
   if (value == null) return "-";
   return `${Math.round(value * 100)}%`;
+}
+
+function approvalDisplayStatus(
+  approval: HumanApproval,
+  run: WorkflowRun | undefined,
+): string {
+  if (
+    approval.status === "pending" &&
+    run !== undefined &&
+    run.status !== "waiting_for_human"
+  ) {
+    return "blocked";
+  }
+  return approval.status;
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
@@ -60,8 +77,19 @@ export default async function HumanApprovalsPage() {
     apiError = true;
   }
 
-  const pendingCount = approvals.filter((approval) => approval.status === "pending").length;
-  const resolvedCount = approvals.length - pendingCount;
+  const actionablePendingCount = approvals.filter((approval) => {
+    const run = runsById.get(approval.workflow_run_id);
+    return approval.status === "pending" && run?.status === "waiting_for_human";
+  }).length;
+  const blockedCount = approvals.filter((approval) => {
+    const run = runsById.get(approval.workflow_run_id);
+    return (
+      approval.status === "pending" &&
+      run !== undefined &&
+      run.status !== "waiting_for_human"
+    );
+  }).length;
+  const resolvedCount = approvals.length - actionablePendingCount - blockedCount;
   const editedCount = approvals.filter((approval) => approval.edited_analysis_json).length;
 
   return (
@@ -90,9 +118,9 @@ export default async function HumanApprovalsPage() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard label="Total" value={String(approvals.length)} />
-        <SummaryCard label="Pending" value={String(pendingCount)} />
+        <SummaryCard label="Pending" value={String(actionablePendingCount)} />
         <SummaryCard label="Resolved" value={String(resolvedCount)} />
-        <SummaryCard label="Edited" value={String(editedCount)} />
+        <SummaryCard label="Blocked" value={String(blockedCount)} />
       </section>
 
       {approvals.length === 0 ? (
@@ -124,6 +152,7 @@ export default async function HumanApprovalsPage() {
             <tbody className="divide-y divide-border">
               {approvals.map((approval) => {
                 const run = runsById.get(approval.workflow_run_id);
+                const displayStatus = approvalDisplayStatus(approval, run);
                 return (
                   <tr key={approval.id} className="hover:bg-muted/50">
                     <td className="px-4 py-3">
@@ -140,10 +169,10 @@ export default async function HumanApprovalsPage() {
                     <td className="px-4 py-3">
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass(
-                          approval.status,
+                          displayStatus,
                         )}`}
                       >
-                        {approval.status}
+                        {displayStatus}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">

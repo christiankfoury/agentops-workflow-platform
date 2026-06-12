@@ -34,6 +34,14 @@ function getRecommendedAction(approval: HumanApproval): string {
   return "Review Manually";
 }
 
+function getGateStatus(
+  approval: HumanApproval,
+  workflowStatus: string,
+): "resolved" | "actionable" | "blocked" {
+  if (approval.status !== "pending") return "resolved";
+  return workflowStatus === "waiting_for_human" ? "actionable" : "blocked";
+}
+
 function getLatestStep(steps: AgentStep[], agentType: string): AgentStep | undefined {
   return steps.filter((step) => step.agent_type === agentType).at(-1);
 }
@@ -264,10 +272,13 @@ function StructuredAnalysisEditor({
 
 export default async function HumanApprovalDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
+  const actionError = (await searchParams)?.error;
   const approval = await getHumanApproval(id);
 
   if (!approval) notFound();
@@ -281,7 +292,8 @@ export default async function HumanApprovalDetailPage({
   ]);
   const editableStep = getEditableStep(agentSteps, run.workflow_type);
   const reviewerStep = getLatestStep(agentSteps, "reviewer");
-  const isPending = approval.status === "pending";
+  const gateStatus = getGateStatus(approval, run.status);
+  const isActionable = gateStatus === "actionable";
   const editableAnalysis = getEditableAnalysis(approval, editableStep);
 
   return (
@@ -302,6 +314,20 @@ export default async function HumanApprovalDetailPage({
           {approval.status}
         </span>
       </div>
+
+      {actionError && (
+        <section className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {actionError}
+        </section>
+      )}
+
+      {gateStatus === "blocked" && (
+        <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+          This approval record is still pending, but the workflow is currently
+          {` ${run.status}`}. Approval actions are available only while the
+          workflow is waiting for human approval.
+        </section>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4">
@@ -374,12 +400,12 @@ export default async function HumanApprovalDetailPage({
             id="human_feedback"
             name="human_feedback"
             defaultValue={approval.human_feedback ?? ""}
-            disabled={!isPending}
+            disabled={!isActionable}
             className="mt-2 min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:opacity-60"
           />
           <StructuredAnalysisEditor
             analysis={editableAnalysis}
-            disabled={!isPending}
+            disabled={!isActionable}
             workflowType={run.workflow_type}
           />
           <details className="mt-4 rounded-md border border-border bg-muted p-3">
@@ -392,7 +418,7 @@ export default async function HumanApprovalDetailPage({
           </details>
           <button
             type="submit"
-            disabled={!isPending}
+            disabled={!isActionable}
             className="mt-4 rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
           >
             Save Edits
@@ -412,7 +438,7 @@ export default async function HumanApprovalDetailPage({
             />
             <button
               type="submit"
-              disabled={!isPending}
+              disabled={!isActionable}
               className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Approve
@@ -430,7 +456,7 @@ export default async function HumanApprovalDetailPage({
             />
             <button
               type="submit"
-              disabled={!isPending}
+              disabled={!isActionable}
               className="w-full rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
               Request Retry
@@ -445,7 +471,7 @@ export default async function HumanApprovalDetailPage({
             />
             <button
               type="submit"
-              disabled={!isPending}
+              disabled={!isActionable}
               className="w-full rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Reject Workflow

@@ -86,32 +86,56 @@ function getEditedAnalysis(formData: FormData): Record<string, unknown> {
   return JSON.parse(legacyJson) as Record<string, unknown>;
 }
 
+function redirectWithActionError(approvalId: string, error: unknown): never {
+  const message =
+    error instanceof Error ? error.message : "Human approval action failed.";
+  redirect(
+    `/human-approvals/${approvalId}?error=${encodeURIComponent(message)}`,
+  );
+}
+
 export async function approveAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
-  await approveHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
+  try {
+    await approveHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
+  } catch (error) {
+    redirectWithActionError(approvalId, error);
+  }
   redirect(`/human-approvals/${approvalId}`);
 }
 
 export async function requestRetryAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
-  await requestHumanApprovalRetry(approvalId, {
-    human_feedback: getFeedback(formData),
-  });
+  try {
+    await requestHumanApprovalRetry(approvalId, {
+      human_feedback: getFeedback(formData),
+    });
+  } catch (error) {
+    redirectWithActionError(approvalId, error);
+  }
   redirect(`/human-approvals/${approvalId}`);
 }
 
 export async function rejectAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
-  await rejectHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
+  try {
+    await rejectHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
+  } catch (error) {
+    redirectWithActionError(approvalId, error);
+  }
   redirect(`/human-approvals/${approvalId}`);
 }
 
 export async function editAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
 
-  await editHumanApproval(approvalId, {
-    human_feedback: getFeedback(formData),
-    edited_analysis_json: getEditedAnalysis(formData),
-  });
+  try {
+    await editHumanApproval(approvalId, {
+      human_feedback: getFeedback(formData),
+      edited_analysis_json: getEditedAnalysis(formData),
+    });
+  } catch (error) {
+    redirectWithActionError(approvalId, error);
+  }
   redirect(`/human-approvals/${approvalId}`);
 }
