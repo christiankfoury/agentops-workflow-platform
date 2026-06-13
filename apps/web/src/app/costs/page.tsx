@@ -14,16 +14,38 @@ type NamedTotal = {
   tokens: number;
 };
 
-const moneyFormatter = new Intl.NumberFormat("en-US", {
+const preciseMoneyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
   minimumFractionDigits: 6,
   maximumFractionDigits: 6,
 });
+const readableMoneyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const chartMoneyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4,
+});
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+});
 const stepFetchConcurrency = 8;
+const costOverTimeLimit = 10;
 
-function formatCost(value: number): string {
-  return moneyFormatter.format(value);
+function formatCost(
+  value: number,
+  precision: "chart" | "readable" | "precise" = "precise",
+): string {
+  if (precision === "readable") return readableMoneyFormatter.format(value);
+  if (precision === "chart") return chartMoneyFormatter.format(value);
+  return preciseMoneyFormatter.format(value);
 }
 
 function formatNumber(value: number): string {
@@ -32,6 +54,27 @@ function formatNumber(value: number): string {
 
 function getStepCost(step: AgentStep): number {
   return step.cost ?? 0;
+}
+
+function formatWorkflow(value: string): string {
+  if (value === "customer_feedback") return "Customer feedback";
+  if (value === "incident_log") return "Incident log";
+  if (value === "sales_report") return "Sales report";
+  return value.replaceAll("_", " ");
+}
+
+function formatAgent(value: string): string {
+  const labels: Record<string, string> = {
+    analyst: "Analyst",
+    baseline: "Baseline",
+    classifier: "Classifier",
+    insight: "Insight agent",
+    reviewer: "Reviewer",
+    root_cause: "Root cause",
+    timeline: "Timeline",
+    writer: "Writer",
+  };
+  return labels[value] ?? value.replaceAll("_", " ");
 }
 
 async function mapWithConcurrency<T, R>(
@@ -79,7 +122,7 @@ function groupCostByWorkflowType(runs: WorkflowRun[]): NamedTotal[] {
   const totals = new Map<WorkflowType, NamedTotal>();
   for (const run of runs) {
     const current = totals.get(run.workflow_type) ?? {
-      name: run.workflow_type,
+      name: formatWorkflow(run.workflow_type),
       cost: 0,
       tokens: 0,
     };
@@ -95,7 +138,7 @@ function groupCostByAgent(items: RunWithSteps[]): NamedTotal[] {
   for (const item of items) {
     for (const step of item.steps) {
       const current = totals.get(step.agent_type) ?? {
-        name: step.agent_type,
+        name: formatAgent(step.agent_type),
         cost: 0,
         tokens: 0,
       };
@@ -108,15 +151,26 @@ function groupCostByAgent(items: RunWithSteps[]): NamedTotal[] {
 }
 
 function groupCostByDate(runs: WorkflowRun[]): NamedTotal[] {
-  const totals = new Map<string, NamedTotal>();
+  const totals = new Map<string, NamedTotal & { timestamp: number }>();
   for (const run of runs) {
-    const date = new Date(run.created_at).toLocaleDateString();
-    const current = totals.get(date) ?? { name: date, cost: 0, tokens: 0 };
+    const date = new Date(run.created_at);
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}-${String(date.getDate()).padStart(2, "0")}`;
+    const current = totals.get(dateKey) ?? {
+      name: dateFormatter.format(date),
+      cost: 0,
+      timestamp: date.setHours(0, 0, 0, 0),
+      tokens: 0,
+    };
     current.cost += run.total_cost ?? 0;
     current.tokens += run.total_tokens ?? 0;
-    totals.set(date, current);
+    totals.set(dateKey, current);
   }
-  return [...totals.values()].sort((left, right) => left.name.localeCompare(right.name));
+  return [...totals.values()]
+    .sort((left, right) => left.timestamp - right.timestamp)
+    .map(({ timestamp: _timestamp, ...row }) => row);
 }
 
 function getAverageRetryCost(items: RunWithSteps[]): number {
@@ -125,6 +179,10 @@ function getAverageRetryCost(items: RunWithSteps[]): number {
   );
   if (retrySteps.length === 0) return 0;
   return retrySteps.reduce((total, step) => total + getStepCost(step), 0) / retrySteps.length;
+}
+
+function topCostDriver(rows: NamedTotal[]): NamedTotal | null {
+  return rows.length > 0 ? rows[0] : null;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -136,13 +194,54 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CostBars({ title, rows }: { title: string; rows: NamedTotal[] }) {
+function InsightSummary({
+  agent,
+  run,
+  workflow,
+}: {
+  agent: NamedTotal | null;
+  run: WorkflowRun | null;
+  workflow: NamedTotal | null;
+}) {
+  return (
+    <section className="mt-6 rounded-lg border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold">Cost Insights</h2>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-md bg-muted p-3">
+          <p className="text-xs text-muted-foreground">Top workflow spend</p>
+          <p className="mt-1 font-medium">
+            {workflow ? `${workflow.name} - ${formatCost(workflow.cost, "readable")}` : "-"}
+          </p>
+        </div>
+        <div className="rounded-md bg-muted p-3">
+          <p className="text-xs text-muted-foreground">Top agent cost driver</p>
+          <p className="mt-1 font-medium">
+            {agent ? `${agent.name} - ${formatCost(agent.cost, "readable")}` : "-"}
+          </p>
+        </div>
+        <div className="rounded-md bg-muted p-3">
+          <p className="text-xs text-muted-foreground">Most expensive run</p>
+          <p className="mt-1 font-medium">
+            {run
+              ? `${run.input_title ?? formatWorkflow(run.workflow_type)} - ${formatCost(
+                  run.total_cost ?? 0,
+                  "readable",
+                )}`
+              : "-"}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CostBars({ title, rows }: { title?: string; rows: NamedTotal[] }) {
   const maxCost = Math.max(...rows.map((row) => row.cost), 0);
 
   return (
     <section>
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="mt-3 space-y-3">
+      {title && <h2 className="text-lg font-semibold">{title}</h2>}
+      <div className={title ? "mt-3 space-y-3" : "space-y-3"}>
         {rows.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
             No cost data recorded yet.
@@ -154,7 +253,9 @@ function CostBars({ title, rows }: { title: string; rows: NamedTotal[] }) {
               <div key={row.name}>
                 <div className="flex items-center justify-between gap-3 text-sm">
                   <span className="font-medium">{row.name}</span>
-                  <span className="text-muted-foreground">{formatCost(row.cost)}</span>
+                  <span className="text-muted-foreground">
+                    {formatCost(row.cost, "chart")}
+                  </span>
                 </div>
                 <div className="mt-1 h-2 rounded-full bg-muted">
                   <div
@@ -169,6 +270,28 @@ function CostBars({ title, rows }: { title: string; rows: NamedTotal[] }) {
             );
           })
         )}
+      </div>
+    </section>
+  );
+}
+
+function CostOverTime({ rows }: { rows: NamedTotal[] }) {
+  const visibleRows = rows.slice(-costOverTimeLimit);
+  const hiddenCount = Math.max(rows.length - visibleRows.length, 0);
+
+  return (
+    <section>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Recent Cost Over Time</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Latest {visibleRows.length} period{visibleRows.length === 1 ? "" : "s"}.
+            {hiddenCount > 0 ? ` ${hiddenCount} older periods hidden to keep the view scannable.` : ""}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3">
+        <CostBars rows={visibleRows} />
       </div>
     </section>
   );
@@ -221,11 +344,14 @@ function MostExpensiveRuns({ runs }: { runs: WorkflowRun[] }) {
   return (
     <section>
       <h2 className="text-lg font-semibold">Most Expensive Runs</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Highest-cost workflow records by stored token-based estimate.
+      </p>
       <div className="mt-3 overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Run</th>
+              <th className="px-4 py-3 text-left font-medium">Workflow input</th>
               <th className="px-4 py-3 text-left font-medium">Type</th>
               <th className="px-4 py-3 text-left font-medium">Cost</th>
               <th className="px-4 py-3 text-left font-medium">Tokens</th>
@@ -244,15 +370,15 @@ function MostExpensiveRuns({ runs }: { runs: WorkflowRun[] }) {
                   <td className="px-4 py-3">
                     <Link
                       href={`/workflow-runs/${run.id}`}
-                      className="font-mono text-xs text-primary underline hover:opacity-80"
+                      className="font-medium text-primary underline hover:opacity-80"
                     >
-                      {run.id.slice(0, 8)}
+                      {run.input_title ?? "Untitled workflow input"}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {run.workflow_type}
+                    {formatWorkflow(run.workflow_type)}
                   </td>
-                  <td className="px-4 py-3">{formatCost(run.total_cost ?? 0)}</td>
+                  <td className="px-4 py-3">{formatCost(run.total_cost ?? 0, "readable")}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {formatNumber(run.total_tokens ?? 0)}
                   </td>
@@ -285,6 +411,11 @@ export default async function CostDashboardPage() {
   const costByWorkflowType = groupCostByWorkflowType(runs);
   const costByAgent = groupCostByAgent(items);
   const costOverTime = groupCostByDate(runs);
+  const mostExpensiveRun =
+    runs
+      .filter((run) => (run.total_cost ?? 0) > 0)
+      .sort((left, right) => (right.total_cost ?? 0) - (left.total_cost ?? 0))[0] ??
+    null;
 
   return (
     <div>
@@ -292,7 +423,8 @@ export default async function CostDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Cost Dashboard</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Estimated spend, token usage, and retry cost across workflow runs.
+            Track estimated spend by workflow, agent, retries, and high-cost
+            runs to prove operational observability.
           </p>
         </div>
         <Link
@@ -318,16 +450,33 @@ export default async function CostDashboardPage() {
       )}
 
       <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Total Spend" value={formatCost(totalSpend)} />
-        <MetricCard label="Average Cost / Workflow" value={formatCost(averageCost)} />
-        <MetricCard label="Average Retry Cost" value={formatCost(retryCost)} />
+        <MetricCard label="Total Spend" value={formatCost(totalSpend, "readable")} />
+        <MetricCard
+          label="Average Cost / Workflow"
+          value={formatCost(averageCost, "readable")}
+        />
+        <MetricCard
+          label="Avg Cost / Retried Step"
+          value={formatCost(retryCost, "readable")}
+        />
         <MetricCard label="Total Tokens" value={formatNumber(totalTokens)} />
       </section>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Costs are estimated from stored token and cost metadata. Seeded demo
+        records are representative and are not live billing charges.
+      </p>
+
+      <InsightSummary
+        agent={topCostDriver(costByAgent)}
+        run={mostExpensiveRun}
+        workflow={topCostDriver(costByWorkflowType)}
+      />
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
         <CostBars title="Cost by Workflow Type" rows={costByWorkflowType} />
         <CostBars title="Cost by Agent" rows={costByAgent} />
-        <CostBars title="Cost Over Time" rows={costOverTime} />
+        <CostOverTime rows={costOverTime} />
         <TokenBars title="Tokens by Agent" rows={costByAgent} />
       </div>
 
