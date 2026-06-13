@@ -96,6 +96,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/run-baseline-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-reviewer-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-writer-form.tsx"), /useActionState/);
+  assert.match(read("src/app/workflow-runs/[id]/create-evaluation-comparison-form.tsx"), /Compare This Run/);
   assert.match(read("src/app/workflow-runs/[id]/cancel-workflow-form.tsx"), /Cancel Workflow/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);

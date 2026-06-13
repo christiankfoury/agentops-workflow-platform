@@ -58,20 +58,28 @@ def make_uploaded_input() -> UploadedInput:
     )
 
 
-def make_source_run(input_id: uuid.UUID | None, **overrides: object) -> WorkflowRun:
-    values = {
-        "id": uuid.uuid4(),
-        "workflow_type": WorkflowType.sales_report,
-        "run_mode": RunMode.multi_agent,
-        "status": WorkflowStatus.completed,
-        "input_id": input_id,
-        "retry_count": 0,
-        "created_at": datetime.now(UTC),
-        "completed_at": datetime.now(UTC),
-        "final_output": "Manual executive summary.",
-    }
-    values.update(overrides)
-    return WorkflowRun(**values)
+def make_source_run(
+    input_id: uuid.UUID | None,
+    *,
+    run_mode: RunMode = RunMode.multi_agent,
+    status: WorkflowStatus = WorkflowStatus.completed,
+) -> WorkflowRun:
+    return WorkflowRun(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        run_mode=run_mode,
+        status=status,
+        input_id=input_id,
+        retry_count=0,
+        total_cost=0.042,
+        latency_ms=5300,
+        created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+        final_output=(
+            "Q4 revenue increased 6% quarter over quarter to $5.4M. "
+            "Prioritize enterprise pipeline recovery."
+        ),
+    )
 
 
 def make_source_step(run_id: uuid.UUID) -> AgentStep:
@@ -97,24 +105,6 @@ def make_source_step(run_id: uuid.UUID) -> AgentStep:
     )
 
 
-def make_db_with_promotable_run() -> tuple[PromotionFakeSession, WorkflowRun]:
-    db = PromotionFakeSession()
-    uploaded_input = make_uploaded_input()
-    run = make_source_run(uploaded_input.id)
-    db.inputs.append(uploaded_input)
-    db.runs.append(run)
-    db.steps.append(make_source_step(run.id))
-    db.prompts.extend(
-        [
-            make_prompt(),
-            make_reviewer_prompt(),
-            make_writer_prompt(),
-            make_agent_prompt(AgentType.router),
-        ]
-    )
-    return db, run
-
-
 def make_agent_prompt(agent_type: AgentType) -> PromptVersion:
     return PromptVersion(
         id=uuid.uuid4(),
@@ -127,6 +117,27 @@ def make_agent_prompt(agent_type: AgentType) -> PromptVersion:
     )
 
 
+def make_db_with_run(
+    run_mode: RunMode = RunMode.multi_agent,
+) -> tuple[PromotionFakeSession, WorkflowRun]:
+    db = PromotionFakeSession()
+    uploaded_input = make_uploaded_input()
+    run = make_source_run(uploaded_input.id, run_mode=run_mode)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    if run_mode == RunMode.multi_agent:
+        db.steps.append(make_source_step(run.id))
+    db.prompts.extend(
+        [
+            make_prompt(),
+            make_reviewer_prompt(),
+            make_writer_prompt(),
+            make_agent_prompt(AgentType.router),
+        ]
+    )
+    return db, run
+
+
 def client_for(db: PromotionFakeSession) -> TestClient:
     app.dependency_overrides[get_db] = lambda: db
     app.dependency_overrides[get_llm_client] = lambda: EvaluationLLMClient()
@@ -137,31 +148,66 @@ def clear_overrides() -> None:
     app.dependency_overrides.clear()
 
 
-def test_promotes_completed_sales_multi_agent_run_into_comparison():
-    db, run = make_db_with_promotable_run()
+def test_compare_this_multi_agent_run_creates_only_baseline_counterpart():
+    db, run = make_db_with_run(RunMode.multi_agent)
+    original_run_ids = {item.id for item in db.runs}
     client = client_for(db)
 
     response = client.post(f"/workflow-runs/{run.id}/evaluation-comparison")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["comparison_url"].startswith("/workflow-comparison?search=%5BPromoted%5D")
     assert len(db.evaluation_cases) == 1
-    assert db.evaluation_cases[0].title == "[Promoted] Q4 Sales Risk Review"
     assert len(db.evaluation_results) == 2
-    assert {result.run_mode for result in db.evaluation_results} == {
-        RunMode.baseline,
-        RunMode.multi_agent,
-    }
+    assert body["multi_agent_run_id"] == str(run.id)
     assert body["baseline_run_id"] != str(run.id)
+    new_runs = [item for item in db.runs if item.id not in original_run_ids]
+    assert len(new_runs) == 1
+    assert new_runs[0].run_mode == RunMode.baseline
+    clear_overrides()
+
+
+def test_compare_this_baseline_run_creates_only_multi_agent_counterpart():
+    db, run = make_db_with_run(RunMode.baseline)
+    original_run_ids = {item.id for item in db.runs}
+    client = client_for(db)
+
+    response = client.post(f"/workflow-runs/{run.id}/evaluation-comparison")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(db.evaluation_cases) == 1
+    assert len(db.evaluation_results) == 2
+    assert body["baseline_run_id"] == str(run.id)
     assert body["multi_agent_run_id"] != str(run.id)
+    new_runs = [item for item in db.runs if item.id not in original_run_ids]
+    assert len(new_runs) == 1
+    assert new_runs[0].run_mode == RunMode.multi_agent
+    clear_overrides()
+
+
+def test_compare_this_run_is_idempotent_after_pair_exists():
+    db, run = make_db_with_run(RunMode.multi_agent)
+    client = client_for(db)
+
+    first = client.post(f"/workflow-runs/{run.id}/evaluation-comparison")
+    runs_after_first = len(db.runs)
+    results_after_first = len(db.evaluation_results)
+    second = client.post(f"/workflow-runs/{run.id}/evaluation-comparison")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(db.evaluation_cases) == 1
+    assert len(db.runs) == runs_after_first
+    assert len(db.evaluation_results) == results_after_first
+    assert first.json()["baseline_result_id"] == second.json()["baseline_result_id"]
+    assert first.json()["multi_agent_result_id"] == second.json()["multi_agent_result_id"]
     clear_overrides()
 
 
 def test_rejects_ineligible_source_runs():
     uploaded_input = make_uploaded_input()
     cases = [
-        make_source_run(uploaded_input.id, run_mode=RunMode.baseline),
         make_source_run(uploaded_input.id, status=WorkflowStatus.writer_running),
         make_source_run(None),
     ]
@@ -179,8 +225,8 @@ def test_rejects_ineligible_source_runs():
         clear_overrides()
 
 
-def test_rejects_run_without_completed_structured_step():
-    db, run = make_db_with_promotable_run()
+def test_rejects_multi_agent_run_without_completed_structured_step():
+    db, run = make_db_with_run(RunMode.multi_agent)
     db.steps.clear()
     client = client_for(db)
 
@@ -188,33 +234,4 @@ def test_rejects_run_without_completed_structured_step():
 
     assert response.status_code == 422
     assert "completed analyst step" in response.json()["detail"]
-    clear_overrides()
-
-
-def test_reuses_existing_promoted_case_but_creates_fresh_result_pairs():
-    db, run = make_db_with_promotable_run()
-    existing_case = EvaluationCase(
-        id=uuid.uuid4(),
-        workflow_type=WorkflowType.sales_report,
-        title="[Promoted] Q4 Sales Risk Review",
-        input_text=db.inputs[0].raw_text,
-        expected_facts_json=["Q4 revenue increased 6%"],
-        expected_risks_json=["Pipeline decline could affect future sales."],
-        expected_recommendations_json=["Prioritize enterprise pipeline recovery."],
-        created_at=datetime.now(UTC),
-    )
-    db.evaluation_cases.append(existing_case)
-    client = client_for(db)
-
-    first = client.post(f"/workflow-runs/{run.id}/evaluation-comparison")
-    second = client.post(f"/workflow-runs/{run.id}/evaluation-comparison")
-
-    assert first.status_code == 200
-    assert second.status_code == 200
-    assert len(db.evaluation_cases) == 1
-    assert len(db.evaluation_results) == 4
-    assert first.json()["evaluation_case_id"] == str(existing_case.id)
-    assert second.json()["evaluation_case_id"] == str(existing_case.id)
-    assert first.json()["baseline_result_id"] != second.json()["baseline_result_id"]
-    assert first.json()["multi_agent_result_id"] != second.json()["multi_agent_result_id"]
     clear_overrides()

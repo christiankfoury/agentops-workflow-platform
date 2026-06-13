@@ -19,8 +19,11 @@ export function CreateEvaluationComparisonForm({ runId }: { runId: string }) {
         disabled={pending}
         className="rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {pending ? "Creating comparison..." : "Create Evaluation Comparison"}
+        {pending ? "Creating comparison..." : "Compare This Run"}
       </button>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Uses this completed run and creates only the missing comparison side.
+      </p>
       {state.error && (
         <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}

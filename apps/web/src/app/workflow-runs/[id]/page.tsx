@@ -403,16 +403,17 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed"),
     );
   const promotionAgentType = getStructuredPromotionAgentType(run.workflow_type);
+  const hasPromotionStructuredStep = agentSteps.some(
+    (step) =>
+      step.agent_type === promotionAgentType &&
+      step.status === "completed" &&
+      step.output_json !== null,
+  );
   const canCreateEvaluationComparison =
     run.status === "completed" &&
-    run.run_mode === "multi_agent" &&
     uploadedInput !== null &&
-    agentSteps.some(
-      (step) =>
-        step.agent_type === promotionAgentType &&
-        step.status === "completed" &&
-        step.output_json !== null,
-    );
+    (run.run_mode === "baseline" ||
+      (run.run_mode === "multi_agent" && hasPromotionStructuredStep));
   const canCancelWorkflow = !["completed", "failed", "cancelled"].includes(run.status);
 
   const fields = [

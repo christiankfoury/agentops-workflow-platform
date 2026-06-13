@@ -10,9 +10,15 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
-from src.models.uploaded_input import UploadedInput
+from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
-from src.services.evaluation_runner import LLMClientLike, run_sales_evaluation_case
+from src.services.evaluation_metrics import calculate_sales_evaluation_scores
+from src.services.evaluation_runner import (
+    LLMClientLike,
+    _create_workflow_run,
+    _run_multi_agent_case,
+    run_sales_evaluation_case,
+)
 
 
 class EvaluationPromotionError(Exception):
@@ -42,6 +48,17 @@ def promote_workflow_run_to_evaluation_comparison(
     llm_client: LLMClientLike,
 ) -> EvaluationPromotionResult:
     uploaded_input = _validate_source_run(db, run)
+    if run.run_mode == RunMode.baseline:
+        return _promote_baseline_run(db, run, uploaded_input, llm_client)
+    return _promote_multi_agent_run(db, run, uploaded_input, llm_client)
+
+
+def _promote_multi_agent_run(
+    db: Session,
+    run: WorkflowRun,
+    uploaded_input: UploadedInput,
+    llm_client: LLMClientLike,
+) -> EvaluationPromotionResult:
     structured_step = _get_latest_completed_structured_step(db, run)
     expected_items = _derive_expected_items(run.workflow_type, structured_step.output_json or {})
     evaluation_case = _get_or_create_evaluation_case(
@@ -52,33 +69,79 @@ def promote_workflow_run_to_evaluation_comparison(
         expected_items=expected_items,
         notes=uploaded_input.notes,
     )
-
-    baseline_result = _run_promoted_evaluation(db, evaluation_case, RunMode.baseline, llm_client)
-    multi_agent_result = _run_promoted_evaluation(
+    multi_agent_result = _get_or_create_existing_run_result(db, evaluation_case, run)
+    baseline_result = _get_or_run_counterpart_result(
         db,
         evaluation_case,
-        RunMode.multi_agent,
+        RunMode.baseline,
         llm_client,
     )
+    return _promotion_result(evaluation_case, baseline_result, multi_agent_result)
 
-    if baseline_result.workflow_run_id is None or multi_agent_result.workflow_run_id is None:
-        raise EvaluationPromotionError("Promoted evaluation did not create both workflow runs")
 
-    return EvaluationPromotionResult(
-        evaluation_case_id=evaluation_case.id,
-        baseline_result_id=baseline_result.id,
-        multi_agent_result_id=multi_agent_result.id,
-        baseline_run_id=baseline_result.workflow_run_id,
-        multi_agent_run_id=multi_agent_result.workflow_run_id,
-        comparison_url=f"/workflow-comparison?search={quote(evaluation_case.title)}",
+def _promote_baseline_run(
+    db: Session,
+    run: WorkflowRun,
+    uploaded_input: UploadedInput,
+    llm_client: LLMClientLike,
+) -> EvaluationPromotionResult:
+    title = f"[Promoted] {uploaded_input.title}"
+    evaluation_case = _get_existing_evaluation_case(
+        db,
+        run.workflow_type,
+        title=title,
+        input_text=uploaded_input.raw_text,
     )
+
+    multi_agent_result = (
+        _latest_completed_result(db, evaluation_case.id, RunMode.multi_agent)
+        if evaluation_case is not None
+        else None
+    )
+    multi_agent_run = (
+        db.query(WorkflowRun).filter(WorkflowRun.id == multi_agent_result.workflow_run_id).first()
+        if multi_agent_result is not None and multi_agent_result.workflow_run_id is not None
+        else None
+    )
+    if multi_agent_result is None or multi_agent_run is None:
+        multi_agent_run = _run_new_multi_agent_counterpart(
+            db,
+            run.workflow_type,
+            title=title,
+            source_input=uploaded_input,
+            llm_client=llm_client,
+        )
+        structured_step = _get_latest_completed_structured_step(db, multi_agent_run)
+        expected_items = _derive_expected_items(
+            multi_agent_run.workflow_type,
+            structured_step.output_json or {},
+        )
+        evaluation_case = _get_or_create_evaluation_case(
+            db,
+            run.workflow_type,
+            title=title,
+            input_text=uploaded_input.raw_text,
+            expected_items=expected_items,
+            notes=uploaded_input.notes,
+        )
+        multi_agent_result = _get_or_create_existing_run_result(
+            db,
+            evaluation_case,
+            multi_agent_run,
+        )
+
+    if evaluation_case is None:
+        raise EvaluationPromotionError("Promoted evaluation case could not be created")
+
+    baseline_result = _get_or_create_existing_run_result(db, evaluation_case, run)
+    return _promotion_result(evaluation_case, baseline_result, multi_agent_result)
 
 
 def _validate_source_run(db: Session, run: WorkflowRun) -> UploadedInput:
     if run.status != WorkflowStatus.completed:
-        raise EvaluationPromotionError("Only completed workflow runs can be promoted")
-    if run.run_mode != RunMode.multi_agent:
-        raise EvaluationPromotionError("Only multi-agent workflow runs can be promoted")
+        raise EvaluationPromotionError("Only completed workflow runs can be compared")
+    if run.run_mode not in {RunMode.baseline, RunMode.multi_agent}:
+        raise EvaluationPromotionError("Only baseline or multi-agent workflow runs can be compared")
     if run.input_id is None:
         raise EvaluationPromotionError("Workflow run must have a linked uploaded input")
 
@@ -107,6 +170,24 @@ def _get_latest_completed_structured_step(db: Session, run: WorkflowRun) -> Agen
     return step
 
 
+def _get_existing_evaluation_case(
+    db: Session,
+    workflow_type: WorkflowType,
+    *,
+    title: str,
+    input_text: str,
+) -> EvaluationCase | None:
+    return (
+        db.query(EvaluationCase)
+        .filter(
+            EvaluationCase.workflow_type == workflow_type,
+            EvaluationCase.title == title,
+            EvaluationCase.input_text == input_text,
+        )
+        .first()
+    )
+
+
 def _get_or_create_evaluation_case(
     db: Session,
     workflow_type: WorkflowType,
@@ -116,16 +197,14 @@ def _get_or_create_evaluation_case(
     expected_items: dict[str, Any],
     notes: str | None,
 ) -> EvaluationCase:
-    existing = (
-        db.query(EvaluationCase)
-        .filter(
-            EvaluationCase.workflow_type == workflow_type,
-            EvaluationCase.title == title,
-            EvaluationCase.input_text == input_text,
-        )
-        .first()
+    existing = _get_existing_evaluation_case(
+        db,
+        workflow_type,
+        title=title,
+        input_text=input_text,
     )
     if existing is not None:
+        _update_expected_items(db, existing, expected_items)
         return existing
 
     evaluation_case = EvaluationCase(
@@ -138,9 +217,9 @@ def _get_or_create_evaluation_case(
         expected_themes_json=expected_items.get("themes"),
         expected_timeline_json=expected_items.get("timeline"),
         expected_output_notes=(
-            "Promoted from a completed manual workflow run."
+            "Promoted from a completed workflow run."
             if not notes
-            else f"Promoted from a completed manual workflow run. Source notes: {notes}"
+            else f"Promoted from a completed workflow run. Source notes: {notes}"
         ),
     )
     db.add(evaluation_case)
@@ -149,17 +228,167 @@ def _get_or_create_evaluation_case(
     return evaluation_case
 
 
-def _run_promoted_evaluation(
+def _update_expected_items(
+    db: Session,
+    evaluation_case: EvaluationCase,
+    expected_items: dict[str, Any],
+) -> None:
+    evaluation_case.expected_facts_json = expected_items["facts"]
+    evaluation_case.expected_risks_json = expected_items["risks"]
+    evaluation_case.expected_recommendations_json = expected_items["recommendations"]
+    evaluation_case.expected_themes_json = expected_items.get("themes")
+    evaluation_case.expected_timeline_json = expected_items.get("timeline")
+    db.commit()
+    db.refresh(evaluation_case)
+
+
+def _get_or_run_counterpart_result(
     db: Session,
     evaluation_case: EvaluationCase,
     run_mode: RunMode,
     llm_client: LLMClientLike,
 ) -> EvaluationResult:
+    existing = _latest_completed_result(db, evaluation_case.id, run_mode)
+    if existing is not None:
+        return existing
+
     result = run_sales_evaluation_case(db, evaluation_case, run_mode, llm_client)
     if result.status != EvaluationRunStatus.completed:
         detail = result.error_message or "Promoted evaluation run failed"
         raise EvaluationPromotionError(f"{run_mode.value} evaluation failed: {detail}")
     return result
+
+
+def _run_new_multi_agent_counterpart(
+    db: Session,
+    workflow_type: WorkflowType,
+    *,
+    title: str,
+    source_input: UploadedInput,
+    llm_client: LLMClientLike,
+) -> WorkflowRun:
+    uploaded_input = UploadedInput(
+        title=f"Evaluation: {title}",
+        input_type=InputType(workflow_type.value),
+        raw_text=source_input.raw_text,
+        notes="Created by promoted comparison runner.",
+    )
+    db.add(uploaded_input)
+    db.commit()
+    db.refresh(uploaded_input)
+
+    run = _create_workflow_run(
+        db,
+        EvaluationCase(
+            workflow_type=workflow_type,
+            title=title,
+            input_text=source_input.raw_text,
+            expected_facts_json=[],
+            expected_risks_json=[],
+            expected_recommendations_json=[],
+        ),
+        uploaded_input,
+        RunMode.multi_agent,
+    )
+    _run_multi_agent_case(db, run, llm_client)
+    if run.status != WorkflowStatus.completed:
+        raise EvaluationPromotionError(
+            f"multi_agent evaluation failed: Workflow ended with status {run.status.value}"
+        )
+    return run
+
+
+def _get_or_create_existing_run_result(
+    db: Session,
+    evaluation_case: EvaluationCase,
+    run: WorkflowRun,
+) -> EvaluationResult:
+    existing = (
+        db.query(EvaluationResult)
+        .filter(
+            EvaluationResult.evaluation_case_id == evaluation_case.id,
+            EvaluationResult.workflow_run_id == run.id,
+            EvaluationResult.run_mode == run.run_mode,
+            EvaluationResult.status == EvaluationRunStatus.completed,
+        )
+        .first()
+    )
+    if existing is not None:
+        return existing
+
+    result = EvaluationResult(
+        evaluation_case_id=evaluation_case.id,
+        workflow_run_id=run.id,
+        run_mode=run.run_mode,
+        status=EvaluationRunStatus.completed,
+    )
+    _score_existing_run_result(db, result, evaluation_case, run)
+    db.add(result)
+    db.commit()
+    db.refresh(result)
+    return result
+
+
+def _score_existing_run_result(
+    db: Session,
+    result: EvaluationResult,
+    evaluation_case: EvaluationCase,
+    run: WorkflowRun,
+) -> None:
+    scores = calculate_sales_evaluation_scores(evaluation_case, run.final_output)
+    result.factual_accuracy = scores.factual_accuracy
+    result.unsupported_claim_rate = scores.unsupported_claim_rate
+    result.completeness_score = scores.completeness_score
+    result.judge_notes = scores.deterministic_notes
+    result.retry_count = run.retry_count
+    result.cost = run.total_cost
+    result.latency_ms = run.latency_ms
+    result.prompt_version_summary_json = _prompt_version_summary(db, run)
+
+
+def _latest_completed_result(
+    db: Session,
+    evaluation_case_id: uuid.UUID,
+    run_mode: RunMode,
+) -> EvaluationResult | None:
+    return (
+        db.query(EvaluationResult)
+        .filter(
+            EvaluationResult.evaluation_case_id == evaluation_case_id,
+            EvaluationResult.run_mode == run_mode,
+            EvaluationResult.status == EvaluationRunStatus.completed,
+        )
+        .order_by(EvaluationResult.created_at.desc())
+        .first()
+    )
+
+
+def _prompt_version_summary(db: Session, run: WorkflowRun) -> dict[str, str | None]:
+    steps = db.query(AgentStep).filter(AgentStep.workflow_run_id == run.id).all()
+    summary: dict[str, str | None] = {}
+    for step in sorted(steps, key=lambda item: item.step_order):
+        summary[step.agent_type] = (
+            str(step.prompt_version_id) if step.prompt_version_id is not None else None
+        )
+    return summary
+
+
+def _promotion_result(
+    evaluation_case: EvaluationCase,
+    baseline_result: EvaluationResult,
+    multi_agent_result: EvaluationResult,
+) -> EvaluationPromotionResult:
+    if baseline_result.workflow_run_id is None or multi_agent_result.workflow_run_id is None:
+        raise EvaluationPromotionError("Promoted comparison did not link both workflow runs")
+
+    return EvaluationPromotionResult(
+        evaluation_case_id=evaluation_case.id,
+        baseline_result_id=baseline_result.id,
+        multi_agent_result_id=multi_agent_result.id,
+        baseline_run_id=baseline_result.workflow_run_id,
+        multi_agent_run_id=multi_agent_result.workflow_run_id,
+        comparison_url=f"/workflow-comparison?search={quote(evaluation_case.title)}",
+    )
 
 
 def _derive_expected_items(workflow_type: WorkflowType, output: dict[str, Any]) -> dict[str, Any]:
