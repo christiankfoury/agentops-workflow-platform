@@ -11,8 +11,103 @@ from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.evaluation_cases import seed_default_evaluation_cases
+from src.services.evaluation_comparisons import CORRECTED_RUN_MARKER
 
 DEMO_TITLE_PREFIX = "[Demo]"
+
+REVIEWER_ISSUE_DEMO_CASE: dict[str, Any] = {
+    "title": "[Demo] Reviewer issue correction path",
+    "input_text": (
+        "Q2 Renewal Risk Review\n"
+        "Q2 revenue increased 8% quarter over quarter to $5.9M. Enterprise renewal "
+        "pipeline coverage declined from 3.2x to 2.4x. APAC revenue grew 15%, while "
+        "the Central region missed target by $260K. Mid-market churn rose from 6% to "
+        "9% because onboarding tickets remained unresolved. Expansion revenue from "
+        "existing customers improved 11%. Three healthcare renewal deals totaling "
+        "$810K moved to legal review."
+    ),
+    "expected_facts_json": [
+        "Q2 revenue increased 8% quarter over quarter to $5.9M",
+        "Enterprise renewal pipeline coverage declined from 3.2x to 2.4x",
+        "APAC revenue grew 15%",
+        "Central region missed target by $260K",
+        "Mid-market churn rose from 6% to 9%",
+        "Expansion revenue improved 11%",
+        "Three healthcare renewal deals totaling $810K moved to legal review",
+    ],
+    "expected_risks_json": [
+        "Enterprise renewal pipeline coverage declined",
+        "Central region missed target",
+        "Mid-market churn increased because onboarding tickets remained unresolved",
+        "Healthcare renewal deals moved to legal review",
+    ],
+    "expected_recommendations_json": [
+        "Rebuild enterprise renewal pipeline coverage",
+        "Resolve onboarding tickets to reduce mid-market churn",
+        "Prioritize legal review for healthcare renewal deals",
+    ],
+    "expected_output_notes": (
+        "Declining enterprise renewal pipeline coverage should be framed as a risk, "
+        "not as an opportunity."
+    ),
+}
+
+REMEDIATION_IMPACT_DEMO_CASE: dict[str, Any] = {
+    "title": "[Demo] Remediation impact showcase",
+    "input_text": (
+        "Q1 Expansion Pipeline Review\n"
+        "Q1 revenue increased 9% quarter over quarter to $6.2M. Enterprise pipeline "
+        "coverage improved from 2.8x to 3.1x, but mid-market pipeline coverage "
+        "declined from 2.4x to 1.9x. APAC revenue grew 16%, while EMEA missed target "
+        "by $210K. Customer expansion revenue increased 14% after the account "
+        "management team launched renewal playbooks. New-logo conversion declined "
+        "from 22% to 18% because trial onboarding tickets took longer to resolve. "
+        "Three financial services deals worth $920K advanced to procurement review."
+    ),
+    "expected_facts_json": [
+        "Q1 revenue increased 9% quarter over quarter to $6.2M",
+        "Enterprise pipeline coverage improved from 2.8x to 3.1x",
+        "Mid-market pipeline coverage declined from 2.4x to 1.9x",
+        "APAC revenue grew 16%",
+        "EMEA missed target by $210K",
+        "Customer expansion revenue increased 14%",
+        "New-logo conversion declined from 22% to 18%",
+        "Three financial services deals worth $920K advanced to procurement review",
+    ],
+    "expected_risks_json": [
+        "Mid-market pipeline coverage declined",
+        "EMEA missed target",
+        "New-logo conversion declined because onboarding tickets took longer",
+        "Financial services deals are still in procurement review",
+    ],
+    "expected_recommendations_json": [
+        "Reduce trial onboarding ticket resolution time",
+        "Monitor mid-market pipeline coverage",
+        "Prioritize financial services procurement review",
+    ],
+    "expected_output_notes": (
+        "Enterprise pipeline coverage improvement is a supported fact, but should not "
+        "be labeled as an explicit opportunity unless the source says so."
+    ),
+}
+
+REVIEWER_ISSUE = {
+    "claim": "Enterprise renewal pipeline coverage is listed as an opportunity",
+    "problem": (
+        "The source says enterprise renewal pipeline coverage declined, so this "
+        "should be framed as a risk."
+    ),
+    "severity": "medium",
+}
+
+REMEDIATION_PREVIOUS_ISSUE = {
+    "claim": "Enterprise segment pipeline coverage is listed as an opportunity",
+    "problem": (
+        "The source report does not explicitly list enterprise pipeline coverage "
+        "improvement as an opportunity, only as a fact."
+    ),
+    "severity": "low",
+}
 
 
 @dataclass(frozen=True)
@@ -106,6 +201,17 @@ def seed_demo_dataset(
 
         agent_steps += _upsert_agent_steps(db, case, multi_agent_run)
 
+    if workflow_types is None or WorkflowType.sales_report in workflow_types:
+        showcase_summary = _seed_showcase_demo_records(
+            db,
+            created_at_base + timedelta(days=len(selected_cases), hours=1),
+        )
+        uploaded_inputs += showcase_summary.uploaded_inputs
+        workflow_runs += showcase_summary.workflow_runs
+        evaluation_results += showcase_summary.evaluation_results
+        agent_steps += showcase_summary.agent_steps
+        selected_cases.extend(showcase_summary.cases)
+
     db.commit()
     return DemoDatasetSummary(
         evaluation_cases=len(selected_cases),
@@ -119,7 +225,11 @@ def seed_demo_dataset(
 def _upsert_uploaded_input(
     db: Session, case: EvaluationCase, created_at: datetime
 ) -> UploadedInput:
-    title = f"{DEMO_TITLE_PREFIX} {case.title}"
+    title = (
+        case.title
+        if case.title.startswith(DEMO_TITLE_PREFIX)
+        else f"{DEMO_TITLE_PREFIX} {case.title}"
+    )
     input_record = db.query(UploadedInput).filter(UploadedInput.title == title).first()
     if input_record is None:
         input_record = UploadedInput(id=uuid.uuid4(), title=title)
@@ -130,6 +240,317 @@ def _upsert_uploaded_input(
     input_record.notes = (
         "Seeded demo input with gold-standard expected facts, risks, and recommendations."
     )
+    input_record.file_name = None
+    input_record.file_type = "demo"
+    input_record.file_size = len(case.input_text.encode("utf-8"))
+    input_record.created_at = created_at
+    return input_record
+
+
+@dataclass(frozen=True)
+class _ShowcaseSummary:
+    cases: list[EvaluationCase]
+    uploaded_inputs: int
+    workflow_runs: int
+    evaluation_results: int
+    agent_steps: int
+
+
+def _seed_showcase_demo_records(db: Session, created_at_base: datetime) -> _ShowcaseSummary:
+    action_case = _upsert_showcase_case(db, REVIEWER_ISSUE_DEMO_CASE, created_at_base)
+    impact_case = _upsert_showcase_case(
+        db,
+        REMEDIATION_IMPACT_DEMO_CASE,
+        created_at_base + timedelta(minutes=30),
+    )
+
+    action_counts = _seed_action_ready_showcase(
+        db,
+        action_case,
+        created_at_base + timedelta(minutes=5),
+    )
+    impact_counts = _seed_impact_ready_showcase(
+        db,
+        impact_case,
+        created_at_base + timedelta(minutes=35),
+    )
+    return _ShowcaseSummary(
+        cases=[action_case, impact_case],
+        uploaded_inputs=action_counts.uploaded_inputs + impact_counts.uploaded_inputs,
+        workflow_runs=action_counts.workflow_runs + impact_counts.workflow_runs,
+        evaluation_results=(
+            action_counts.evaluation_results + impact_counts.evaluation_results
+        ),
+        agent_steps=action_counts.agent_steps + impact_counts.agent_steps,
+    )
+
+
+def _upsert_showcase_case(
+    db: Session,
+    default: dict[str, Any],
+    created_at: datetime,
+) -> EvaluationCase:
+    case = (
+        db.query(EvaluationCase)
+        .filter(
+            EvaluationCase.workflow_type == WorkflowType.sales_report,
+            EvaluationCase.title == default["title"],
+        )
+        .first()
+    )
+    if case is None:
+        case = EvaluationCase(
+            id=uuid.uuid4(),
+            workflow_type=WorkflowType.sales_report,
+            title=default["title"],
+            created_at=created_at,
+        )
+        db.add(case)
+
+    case.input_text = default["input_text"]
+    case.expected_facts_json = default["expected_facts_json"]
+    case.expected_risks_json = default["expected_risks_json"]
+    case.expected_recommendations_json = default["expected_recommendations_json"]
+    case.expected_themes_json = None
+    case.expected_timeline_json = None
+    case.expected_output_notes = default["expected_output_notes"]
+    return case
+
+
+def _seed_action_ready_showcase(
+    db: Session,
+    case: EvaluationCase,
+    created_at: datetime,
+) -> DemoDatasetSummary:
+    input_record = _upsert_uploaded_input(db, case, created_at)
+    baseline_run = _upsert_workflow_run(
+        db,
+        case=case,
+        input_record=input_record,
+        run_mode=RunMode.baseline,
+        final_output=(
+            "In Q2, revenue grew 8% to $5.9M. APAC revenue grew 15%, while Central "
+            "missed target by $260K. Mid-market churn rose to 9% because onboarding "
+            "tickets remained unresolved. Three healthcare renewal deals worth $810K "
+            "moved to legal review."
+        ),
+        quality_score=0.84,
+        cost=0.00031,
+        total_tokens=830,
+        latency_ms=2100,
+        retry_count=0,
+        created_at=created_at + timedelta(minutes=1),
+    )
+    multi_agent_run = _upsert_workflow_run(
+        db,
+        case=case,
+        input_record=input_record,
+        run_mode=RunMode.multi_agent,
+        final_output=(
+            "Executive Summary\n\n"
+            "Q2 revenue increased 8% quarter over quarter to $5.9M. APAC grew 15%, "
+            "and expansion revenue improved 11%. Enterprise renewal pipeline coverage "
+            "declined from 3.2x to 2.4x, but the draft incorrectly lists that pipeline "
+            "movement as an opportunity. Central missed target by $260K, mid-market "
+            "churn rose from 6% to 9% because onboarding tickets remained unresolved, "
+            "and three healthcare renewal deals totaling $810K moved to legal review."
+        ),
+        quality_score=0.82,
+        cost=0.00172,
+        total_tokens=1970,
+        latency_ms=11800,
+        retry_count=0,
+        created_at=created_at + timedelta(minutes=3),
+    )
+    _flush_pending_parents(db)
+
+    _upsert_evaluation_result(
+        db,
+        case=case,
+        run=baseline_run,
+        factual_accuracy=0.88,
+        unsupported_claim_rate=0.04,
+        completeness_score=0.82,
+        human_approval_required=False,
+        human_approved=None,
+        judge_notes="Demo baseline for reviewer issue correction path.",
+        created_at=baseline_run.created_at,
+    )
+    _upsert_evaluation_result(
+        db,
+        case=case,
+        run=multi_agent_run,
+        factual_accuracy=0.86,
+        unsupported_claim_rate=0.18,
+        completeness_score=0.90,
+        human_approval_required=True,
+        human_approved=None,
+        judge_notes=(
+            "Demo multi-agent result intentionally includes one reviewer issue so "
+            "the correction action is available."
+        ),
+        created_at=multi_agent_run.created_at,
+    )
+    steps = _upsert_agent_steps(db, case, multi_agent_run, reviewer_issues=[REVIEWER_ISSUE])
+    return DemoDatasetSummary(
+        evaluation_cases=1,
+        uploaded_inputs=1,
+        workflow_runs=2,
+        evaluation_results=2,
+        agent_steps=steps,
+    )
+
+
+def _seed_impact_ready_showcase(
+    db: Session,
+    case: EvaluationCase,
+    created_at: datetime,
+) -> DemoDatasetSummary:
+    source_input = _upsert_uploaded_input(db, case, created_at)
+    corrected_input = _upsert_showcase_uploaded_input(
+        db,
+        case=case,
+        title=f"{case.title} corrected",
+        notes=(
+            f"{CORRECTED_RUN_MARKER} Seeded demo correction uses the previous "
+            "reviewer issue as guidance."
+        ),
+        created_at=created_at + timedelta(minutes=6),
+    )
+
+    baseline_run = _upsert_workflow_run(
+        db,
+        case=case,
+        input_record=source_input,
+        run_mode=RunMode.baseline,
+        final_output=(
+            "In Q1, total revenue grew 9% to $6.2M. Enterprise pipeline coverage "
+            "strengthened from 2.8x to 3.1x, while mid-market pipeline coverage "
+            "decreased from 2.4x to 1.9x. APAC grew 16%, EMEA missed target by "
+            "$210K, and three financial services deals worth $920K advanced to "
+            "procurement review."
+        ),
+        quality_score=0.88,
+        cost=0.00034,
+        total_tokens=840,
+        latency_ms=2420,
+        retry_count=0,
+        created_at=created_at + timedelta(minutes=1),
+    )
+    previous_multi_agent_run = _upsert_workflow_run(
+        db,
+        case=case,
+        input_record=source_input,
+        run_mode=RunMode.multi_agent,
+        final_output=(
+            "Executive Summary\n\n"
+            "Q1 revenue increased 9% to $6.2M. Enterprise pipeline coverage improved "
+            "from 2.8x to 3.1x and is listed as an opportunity. APAC grew 16%, EMEA "
+            "missed target by $210K, mid-market coverage declined to 1.9x, and "
+            "new-logo conversion declined because onboarding tickets took longer."
+        ),
+        quality_score=0.90,
+        cost=0.00205,
+        total_tokens=2210,
+        latency_ms=10230,
+        retry_count=0,
+        created_at=created_at + timedelta(minutes=3),
+    )
+    corrected_multi_agent_run = _upsert_workflow_run(
+        db,
+        case=case,
+        input_record=corrected_input,
+        run_mode=RunMode.multi_agent,
+        final_output=(
+            "Executive Summary\n\n"
+            "Q1 revenue increased 9% quarter over quarter, reaching $6.2M. Enterprise "
+            "pipeline coverage improved from 2.8x to 3.1x as a supported fact, while "
+            "mid-market pipeline coverage declined from 2.4x to 1.9x. APAC revenue "
+            "grew 16%, EMEA missed target by $210K, customer expansion revenue rose "
+            "14%, and three financial services deals worth $920K are in procurement "
+            "review. The corrected output avoids labeling enterprise coverage as an "
+            "explicit opportunity."
+        ),
+        quality_score=0.93,
+        cost=0.00198,
+        total_tokens=2160,
+        latency_ms=7930,
+        retry_count=0,
+        created_at=created_at + timedelta(minutes=8),
+    )
+    _flush_pending_parents(db)
+
+    _upsert_evaluation_result(
+        db,
+        case=case,
+        run=baseline_run,
+        factual_accuracy=0.94,
+        unsupported_claim_rate=0.00,
+        completeness_score=0.91,
+        human_approval_required=False,
+        human_approved=None,
+        judge_notes="Seeded baseline for remediation impact demo.",
+        created_at=baseline_run.created_at,
+    )
+    _upsert_evaluation_result(
+        db,
+        case=case,
+        run=previous_multi_agent_run,
+        factual_accuracy=1.00,
+        unsupported_claim_rate=0.00,
+        completeness_score=1.00,
+        human_approval_required=True,
+        human_approved=None,
+        judge_notes="Previous multi-agent run intentionally has one reviewer issue.",
+        created_at=previous_multi_agent_run.created_at,
+    )
+    _upsert_evaluation_result(
+        db,
+        case=case,
+        run=corrected_multi_agent_run,
+        factual_accuracy=0.94,
+        unsupported_claim_rate=0.33,
+        completeness_score=0.96,
+        human_approval_required=False,
+        human_approved=True,
+        judge_notes=(
+            "Corrected run removes reviewer issues but demonstrates mixed benchmark "
+            "impact for unsupported-claim scoring."
+        ),
+        created_at=corrected_multi_agent_run.created_at,
+    )
+    previous_steps = _upsert_agent_steps(
+        db,
+        case,
+        previous_multi_agent_run,
+        reviewer_issues=[REMEDIATION_PREVIOUS_ISSUE],
+    )
+    corrected_steps = _upsert_agent_steps(db, case, corrected_multi_agent_run)
+    return DemoDatasetSummary(
+        evaluation_cases=1,
+        uploaded_inputs=2,
+        workflow_runs=3,
+        evaluation_results=3,
+        agent_steps=previous_steps + corrected_steps,
+    )
+
+
+def _upsert_showcase_uploaded_input(
+    db: Session,
+    *,
+    case: EvaluationCase,
+    title: str,
+    notes: str,
+    created_at: datetime,
+) -> UploadedInput:
+    input_record = db.query(UploadedInput).filter(UploadedInput.title == title).first()
+    if input_record is None:
+        input_record = UploadedInput(id=uuid.uuid4(), title=title)
+        db.add(input_record)
+
+    input_record.input_type = InputType(case.workflow_type.value)
+    input_record.raw_text = case.input_text
+    input_record.notes = notes
     input_record.file_name = None
     input_record.file_type = "demo"
     input_record.file_size = len(case.input_text.encode("utf-8"))
@@ -231,7 +652,13 @@ def _upsert_evaluation_result(
     return result
 
 
-def _upsert_agent_steps(db: Session, case: EvaluationCase, run: WorkflowRun) -> int:
+def _upsert_agent_steps(
+    db: Session,
+    case: EvaluationCase,
+    run: WorkflowRun,
+    reviewer_issues: list[dict[str, Any]] | None = None,
+) -> int:
+    issues = reviewer_issues or []
     step_specs = [
         (
             1,
@@ -250,9 +677,9 @@ def _upsert_agent_steps(db: Session, case: EvaluationCase, run: WorkflowRun) -> 
             "Demo Reviewer Agent",
             "reviewer",
             {
-                "approved": True,
-                "quality_score": 0.91,
-                "issues": [],
+                "approved": not issues,
+                "quality_score": 0.91 if not issues else 0.78,
+                "issues": issues,
                 "unsupported_claim_checks": case.expected_risks_json,
             },
             0.033,

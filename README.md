@@ -26,10 +26,10 @@ and workflow events.
 
 ## Current Demo Results
 
-The seeded demo dataset contains 30 evaluation cases: 10 sales reports, 10 customer
-feedback datasets, and 10 incident logs. Each case includes expected facts, risks,
-recommendations, and workflow-specific expectations such as feedback themes or
-incident timeline events.
+The seeded demo dataset contains 32 evaluation cases: 10 sales reports, 10 customer
+feedback datasets, 10 incident logs, and 2 sales remediation showcase cases. Each
+case includes expected facts, risks, recommendations, and workflow-specific
+expectations such as feedback themes or incident timeline events.
 
 | Metric | Single-Agent Baseline | Multi-Agent Workflow |
 | --- | ---: | ---: |
@@ -229,6 +229,9 @@ Seed polished demo data from the UI:
 1. Open `http://localhost:3000/demo`.
 2. Run one workflow demo or the full evaluation demo.
 3. Open `/workflow-comparison` or `/evaluation` to inspect results.
+
+For a scripted reviewer/remediation demo path, follow
+[`docs/demo-walkthrough.md`](docs/demo-walkthrough.md).
 
 Seed from the API CLI:
 

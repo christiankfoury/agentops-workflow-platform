@@ -70,6 +70,18 @@ function formatPercentDelta(value: number | null): string {
   return `${prefix}${percentagePoints}pp`;
 }
 
+function formatQualityDelta(value: number | null): string {
+  if (value === null) return "n/a";
+  if (value === 0) return "0pp no change";
+  return `${formatPercentDelta(value)} ${value > 0 ? "better" : "worse"}`;
+}
+
+function formatUnsupportedDelta(value: number | null): string {
+  if (value === null) return "n/a";
+  if (value === 0) return "0pp no change";
+  return `${formatPercentDelta(value)} ${value < 0 ? "better" : "worse"}`;
+}
+
 function formatCost(value: number): string {
   return `$${value.toFixed(4)}`;
 }
@@ -77,6 +89,11 @@ function formatCost(value: number): string {
 function formatSignedCost(value: number): string {
   const prefix = value >= 0 ? "+" : "-";
   return `${prefix}${formatCost(Math.abs(value))}`;
+}
+
+function formatCostDelta(value: number): string {
+  if (value === 0) return "$0.0000 no change";
+  return `${formatSignedCost(value)} ${value > 0 ? "higher" : "lower"}`;
 }
 
 function formatLatency(value: number): string {
@@ -89,8 +106,23 @@ function formatSignedLatency(value: number): string {
   return `${prefix}${formatLatency(Math.abs(value))}`;
 }
 
+function formatLatencyDelta(value: number): string {
+  if (value === 0) return "0ms no change";
+  return `${formatSignedLatency(value)} ${value > 0 ? "slower" : "faster"}`;
+}
+
 function formatIssueDelta(previous: number, current: number): string {
   return `${previous} to ${current}`;
+}
+
+function qualityDirection(value: number | null): boolean | null {
+  if (value === null || value === 0) return null;
+  return value > 0;
+}
+
+function unsupportedDirection(value: number | null): boolean | null {
+  if (value === null || value === 0) return null;
+  return value < 0;
 }
 
 function issueSeverity(issue: Record<string, unknown>): string | null {
@@ -206,15 +238,24 @@ function severityClasses(severity: string | null): string {
 function MetricChip({
   label,
   value,
+  context,
   positive,
 }: {
   label: string;
   value: string;
+  context?: string;
   positive?: boolean | null;
 }) {
   return (
     <div className="rounded-md border border-border bg-background px-3 py-2">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        {context && (
+          <span className="text-[11px] font-medium text-muted-foreground">
+            {context}
+          </span>
+        )}
+      </div>
       <p
         className={cn(
           "mt-1 text-sm font-semibold",
@@ -327,6 +368,7 @@ function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
       <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
         <MetricChip
           label="Reviewer issues"
+          context="vs previous run"
           value={formatIssueDelta(
             impact.previous_reviewer_issue_count,
             impact.current_reviewer_issue_count,
@@ -339,33 +381,25 @@ function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
         />
         <MetricChip
           label="Unsupported"
-          value={formatPercentDelta(impact.unsupported_claim_rate_delta)}
-          positive={
-            impact.unsupported_claim_rate_delta === null
-              ? null
-              : impact.unsupported_claim_rate_delta <= 0
-          }
+          context="vs previous run"
+          value={formatUnsupportedDelta(impact.unsupported_claim_rate_delta)}
+          positive={unsupportedDirection(impact.unsupported_claim_rate_delta)}
         />
         <MetricChip
           label="Accuracy"
-          value={formatPercentDelta(impact.factual_accuracy_delta)}
-          positive={
-            impact.factual_accuracy_delta === null
-              ? null
-              : impact.factual_accuracy_delta >= 0
-          }
+          context="vs previous run"
+          value={formatQualityDelta(impact.factual_accuracy_delta)}
+          positive={qualityDirection(impact.factual_accuracy_delta)}
         />
         <MetricChip
           label="Completeness"
-          value={formatPercentDelta(impact.completeness_score_delta)}
-          positive={
-            impact.completeness_score_delta === null
-              ? null
-              : impact.completeness_score_delta >= 0
-          }
+          context="vs previous run"
+          value={formatQualityDelta(impact.completeness_score_delta)}
+          positive={qualityDirection(impact.completeness_score_delta)}
         />
         <MetricChip
           label="Cost / Latency"
+          context="vs previous run"
           value={`${formatSignedCost(impact.cost_delta)} / ${formatSignedLatency(
             impact.latency_delta_ms,
           )}`}
@@ -464,7 +498,7 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
               <th className="px-4 py-3">Metric</th>
               <th className="px-4 py-3 text-right">Baseline</th>
               <th className="px-4 py-3 text-right">Multi-Agent</th>
-              <th className="px-4 py-3 text-right">Delta</th>
+              <th className="px-4 py-3 text-right">Delta vs baseline</th>
             </tr>
           </thead>
           <tbody>
@@ -593,27 +627,32 @@ function ComparisonCard({
       <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
         <MetricChip
           label="Accuracy"
-          value={formatPercentDelta(scores.accuracy)}
-          positive={scores.accuracy === null ? null : scores.accuracy >= 0}
+          context="vs baseline"
+          value={formatQualityDelta(scores.accuracy)}
+          positive={qualityDirection(scores.accuracy)}
         />
         <MetricChip
           label="Unsupported"
-          value={formatPercentDelta(scores.unsupported)}
-          positive={scores.unsupported === null ? null : scores.unsupported <= 0}
+          context="vs baseline"
+          value={formatUnsupportedDelta(scores.unsupported)}
+          positive={unsupportedDirection(scores.unsupported)}
         />
         <MetricChip
           label="Completeness"
-          value={formatPercentDelta(scores.completeness)}
-          positive={scores.completeness === null ? null : scores.completeness >= 0}
+          context="vs baseline"
+          value={formatQualityDelta(scores.completeness)}
+          positive={qualityDirection(scores.completeness)}
         />
         <MetricChip
           label="Cost"
-          value={formatSignedCost(comparison.cost_difference)}
+          context="vs baseline"
+          value={formatCostDelta(comparison.cost_difference)}
           positive={comparison.cost_difference <= 0}
         />
         <MetricChip
           label="Latency"
-          value={formatSignedLatency(comparison.latency_difference_ms)}
+          context="vs baseline"
+          value={formatLatencyDelta(comparison.latency_difference_ms)}
           positive={comparison.latency_difference_ms <= 0}
         />
       </div>
@@ -663,17 +702,17 @@ function SummaryHeader({ comparisons }: { comparisons: EvaluationComparison[] })
       />
       <SummaryCard
         label="Avg Unsupported Delta"
-        value={formatPercentDelta(unsupported)}
-        hint="negative means fewer unsupported claims"
+        value={formatUnsupportedDelta(unsupported)}
+        hint="lower is better"
       />
       <SummaryCard
         label="Avg Cost Delta"
-        value={formatSignedCost(cost)}
+        value={formatCostDelta(cost)}
         hint="per comparison"
       />
       <SummaryCard
         label="Avg Latency Delta"
-        value={formatSignedLatency(latency)}
+        value={formatLatencyDelta(latency)}
         hint="per comparison"
       />
     </section>
