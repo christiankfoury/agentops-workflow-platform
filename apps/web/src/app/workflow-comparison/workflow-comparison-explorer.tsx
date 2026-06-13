@@ -988,8 +988,8 @@ function SummaryHeader({ comparisons }: { comparisons: EvaluationComparison[] })
       />
       <SummaryCard
         label="Avg Accuracy Delta"
-        value={formatPercentDelta(accuracy)}
-        hint="higher favors multi-agent"
+        value={formatQualityDelta(accuracy)}
+        hint="higher is better"
       />
       <SummaryCard
         label="Avg Unsupported Claim Delta"

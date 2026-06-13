@@ -267,6 +267,36 @@ export async function runSalesBaseline(runId: string): Promise<AgentStep> {
   return res.json() as Promise<AgentStep>;
 }
 
+export async function runCustomerFeedbackClassifier(
+  runId: string,
+): Promise<AgentStep> {
+  const res = await apiFetch(`/workflow-runs/${runId}/run-classifier`, {
+    method: "POST",
+    signal: AbortSignal.timeout(AGENT_ACTION_FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof body?.detail === "string" ? body.detail : String(res.status);
+    throw new Error(`Failed to run classifier: ${detail}`);
+  }
+  return res.json() as Promise<AgentStep>;
+}
+
+export async function runCustomerFeedbackInsight(
+  runId: string,
+): Promise<AgentStep> {
+  const res = await apiFetch(`/workflow-runs/${runId}/run-insight`, {
+    method: "POST",
+    signal: AbortSignal.timeout(AGENT_ACTION_FETCH_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof body?.detail === "string" ? body.detail : String(res.status);
+    throw new Error(`Failed to run insight agent: ${detail}`);
+  }
+  return res.json() as Promise<AgentStep>;
+}
+
 export async function runSalesReviewer(runId: string): Promise<AgentStep> {
   const res = await apiFetch(`/workflow-runs/${runId}/run-reviewer`, {
     method: "POST",

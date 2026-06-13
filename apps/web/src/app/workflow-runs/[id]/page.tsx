@@ -13,6 +13,8 @@ import { CancelWorkflowForm } from "./cancel-workflow-form";
 import { CreateEvaluationComparisonForm } from "./create-evaluation-comparison-form";
 import { RunAnalystForm } from "./run-analyst-form";
 import { RunBaselineForm } from "./run-baseline-form";
+import { RunClassifierForm } from "./run-classifier-form";
+import { RunInsightForm } from "./run-insight-form";
 import { RunReviewerForm } from "./run-reviewer-form";
 import { RunWriterForm } from "./run-writer-form";
 
@@ -365,6 +367,22 @@ export default async function WorkflowRunDetailPage({
   const latestCompletedAnalystStep = agentSteps
     .filter((step) => step.agent_type === "analyst" && step.status === "completed")
     .at(-1);
+  const latestCompletedClassifierStep = agentSteps
+    .filter(
+      (step) => step.agent_type === "classifier" && step.status === "completed",
+    )
+    .at(-1);
+  const latestCompletedInsightStep = agentSteps
+    .filter((step) => step.agent_type === "insight" && step.status === "completed")
+    .at(-1);
+  const reviewerSourceStep =
+    run.workflow_type === "customer_feedback"
+      ? latestCompletedInsightStep
+      : latestCompletedAnalystStep;
+  const reviewerSourceInputKey =
+    run.workflow_type === "customer_feedback"
+      ? "insight_step_id"
+      : "analyst_step_id";
   const canRunAnalyst =
     (run.status === "created" || run.status === "retrying") &&
     run.workflow_type === "sales_report" &&
@@ -372,7 +390,6 @@ export default async function WorkflowRunDetailPage({
     uploadedInput !== null;
   const canRunBaseline =
     run.status === "created" &&
-    run.workflow_type === "sales_report" &&
     run.run_mode === "baseline" &&
     uploadedInput !== null &&
     !agentSteps.some(
@@ -380,21 +397,44 @@ export default async function WorkflowRunDetailPage({
         step.agent_type === "baseline" &&
         (step.status === "running" || step.status === "completed"),
     );
-  const canRunReviewer =
-    run.status === "reviewer_running" &&
-    run.workflow_type === "sales_report" &&
+  const canRunClassifier =
+    run.status === "created" &&
+    run.workflow_type === "customer_feedback" &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null &&
-    latestCompletedAnalystStep !== undefined &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "classifier" &&
+        (step.status === "running" || step.status === "completed"),
+    );
+  const canRunInsight =
+    run.status === "running" &&
+    run.workflow_type === "customer_feedback" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    latestCompletedClassifierStep !== undefined &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "insight" &&
+        (step.status === "running" || step.status === "completed"),
+    );
+  const canRunReviewer =
+    run.status === "reviewer_running" &&
+    (run.workflow_type === "sales_report" ||
+      run.workflow_type === "customer_feedback") &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    reviewerSourceStep !== undefined &&
     !agentSteps.some(
       (step) =>
         step.agent_type === "reviewer" &&
         (step.status === "running" || step.status === "completed") &&
-        step.input_json?.analyst_step_id === latestCompletedAnalystStep.id,
+        step.input_json?.[reviewerSourceInputKey] === reviewerSourceStep.id,
     );
   const canRunWriter =
     run.status === "writer_running" &&
-    run.workflow_type === "sales_report" &&
+    (run.workflow_type === "sales_report" ||
+      run.workflow_type === "customer_feedback") &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null &&
     !agentSteps.some(
@@ -461,6 +501,10 @@ export default async function WorkflowRunDetailPage({
       )}
 
       {canRunBaseline && <RunBaselineForm runId={run.id} />}
+
+      {canRunClassifier && <RunClassifierForm runId={run.id} />}
+
+      {canRunInsight && <RunInsightForm runId={run.id} />}
 
       {canRunReviewer && <RunReviewerForm runId={run.id} />}
 

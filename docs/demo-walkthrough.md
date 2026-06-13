@@ -61,6 +61,14 @@ and demo data has been seeded.
    - reviewer output
    - cost, token, and latency metadata
 
+## Manual Customer Feedback Demo
+
+When creating a customer feedback workflow manually from `/workflow-runs/new`,
+paste only the source customer comments into the input text. Do not include an
+`Expected themes` answer key in the workflow input; expected themes belong in
+evaluation cases, not live demo inputs. Keeping the input to raw feedback makes
+the classifier, insight, reviewer, and human approval flow easier to trust.
+
 ## Dashboard Tour
 
 After the comparison flow, visit:

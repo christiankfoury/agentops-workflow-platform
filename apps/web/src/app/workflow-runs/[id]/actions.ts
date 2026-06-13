@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import {
   cancelWorkflowRun,
   createEvaluationComparisonFromRun,
+  runCustomerFeedbackClassifier,
+  runCustomerFeedbackInsight,
   runSalesAnalyst,
   runSalesBaseline,
   runSalesReviewer,
@@ -50,6 +52,47 @@ export async function runBaselineAction(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Failed to run baseline.",
+    };
+  }
+
+  redirect(`/workflow-runs/${runId}`);
+}
+
+export async function runClassifierAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  try {
+    await runCustomerFeedbackClassifier(runId);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to run classifier.",
+    };
+  }
+
+  redirect(`/workflow-runs/${runId}`);
+}
+
+export async function runInsightAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  try {
+    await runCustomerFeedbackInsight(runId);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to run insight agent.",
     };
   }
 
