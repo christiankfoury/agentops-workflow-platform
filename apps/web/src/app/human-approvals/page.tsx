@@ -1,35 +1,10 @@
 import Link from "next/link";
-import { LocalDateTime } from "@/components/local-date-time";
 import { getWorkflowRun, listHumanApprovals } from "@/lib/api";
 import type { HumanApproval, WorkflowRun } from "@/lib/types";
-
-function statusClass(status: string): string {
-  if (status === "blocked") {
-    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
-  }
-  if (status === "approved") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300";
-  }
-  if (status === "rejected") {
-    return "border-destructive/30 bg-destructive/10 text-destructive";
-  }
-  if (status === "retry_requested") {
-    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
-  }
-  return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300";
-}
-
-function formatWorkflow(value: string | undefined): string {
-  if (value === "customer_feedback") return "Customer Feedback";
-  if (value === "incident_log") return "Incident Log";
-  if (value === "sales_report") return "Sales Report";
-  return "Unknown";
-}
-
-function scoreLabel(value: number | null): string {
-  if (value == null) return "-";
-  return `${Math.round(value * 100)}%`;
-}
+import {
+  HumanApprovalsTable,
+  type HumanApprovalTableRow,
+} from "./human-approvals-table";
 
 function approvalDisplayStatus(
   approval: HumanApproval,
@@ -91,7 +66,14 @@ export default async function HumanApprovalsPage() {
     );
   }).length;
   const resolvedCount = approvals.length - actionablePendingCount - blockedCount;
-  const editedCount = approvals.filter((approval) => approval.edited_analysis_json).length;
+  const approvalRows: HumanApprovalTableRow[] = approvals.map((approval) => {
+    const run = runsById.get(approval.workflow_run_id);
+    return {
+      approval,
+      displayStatus: approvalDisplayStatus(approval, run),
+      run: run ?? null,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -139,55 +121,7 @@ export default async function HumanApprovalsPage() {
           </Link>
         </section>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium">Approval</th>
-                <th className="px-4 py-3 text-left font-medium">Workflow</th>
-                <th className="px-4 py-3 text-left font-medium">Status</th>
-                <th className="px-4 py-3 text-left font-medium">Score</th>
-                <th className="px-4 py-3 text-left font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {approvals.map((approval) => {
-                const run = runsById.get(approval.workflow_run_id);
-                const displayStatus = approvalDisplayStatus(approval, run);
-                return (
-                  <tr key={approval.id} className="hover:bg-muted/50">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/human-approvals/${approval.id}`}
-                        className="font-mono text-xs text-primary underline hover:opacity-80"
-                      >
-                        {approval.id.slice(0, 8)}...
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-medium">
-                      {formatWorkflow(run?.workflow_type)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass(
-                          displayStatus,
-                        )}`}
-                      >
-                        {displayStatus}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {scoreLabel(approval.reviewer_score)}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      <LocalDateTime value={approval.created_at} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <HumanApprovalsTable rows={approvalRows} />
       )}
     </div>
   );

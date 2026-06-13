@@ -51,17 +51,48 @@ from src.services.workflow_state import InvalidTransitionError, transition
 router = APIRouter()
 
 
+def _workflow_run_payload(run: WorkflowRun, input_title: str | None = None) -> dict[str, object]:
+    return {
+        "id": run.id,
+        "organization_id": run.organization_id,
+        "created_by_user_id": run.created_by_user_id,
+        "workflow_type": run.workflow_type,
+        "run_mode": run.run_mode,
+        "status": run.status,
+        "input_id": run.input_id,
+        "input_title": input_title,
+        "final_output": run.final_output,
+        "quality_score": run.quality_score,
+        "total_cost": run.total_cost,
+        "total_tokens": run.total_tokens,
+        "latency_ms": run.latency_ms,
+        "retry_count": run.retry_count,
+        "created_at": run.created_at,
+        "completed_at": run.completed_at,
+    }
+
+
+def _input_title_for_run(db: Session, run: WorkflowRun) -> str | None:
+    if run.input_id is None:
+        return None
+    uploaded_input = db.query(UploadedInput).filter(UploadedInput.id == run.input_id).first()
+    return uploaded_input.title if uploaded_input is not None else None
+
+
 @router.get("", response_model=list[WorkflowRunRead])
-def list_workflow_runs(db: Session = Depends(get_db)) -> list[WorkflowRun]:
-    return db.query(WorkflowRun).order_by(WorkflowRun.created_at.desc()).all()
+def list_workflow_runs(db: Session = Depends(get_db)) -> list[dict[str, object]]:
+    runs = db.query(WorkflowRun).order_by(WorkflowRun.created_at.desc()).all()
+    uploaded_inputs = db.query(UploadedInput).all()
+    input_titles = {uploaded_input.id: uploaded_input.title for uploaded_input in uploaded_inputs}
+    return [_workflow_run_payload(run, input_titles.get(run.input_id)) for run in runs]
 
 
 @router.get("/{run_id}", response_model=WorkflowRunRead)
-def get_workflow_run(run_id: uuid.UUID, db: Session = Depends(get_db)) -> WorkflowRun:
+def get_workflow_run(run_id: uuid.UUID, db: Session = Depends(get_db)) -> dict[str, object]:
     run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
-    return run
+    return _workflow_run_payload(run, _input_title_for_run(db, run))
 
 
 @router.get("/{run_id}/agent-steps", response_model=list[AgentStepRead])
@@ -242,7 +273,8 @@ def create_evaluation_comparison_from_run(
 
 
 @router.post("", response_model=WorkflowRunRead, status_code=201)
-def create_workflow_run(body: WorkflowRunCreate, db: Session = Depends(get_db)) -> WorkflowRun:
+def create_workflow_run(body: WorkflowRunCreate, db: Session = Depends(get_db)) -> dict[str, object]:
+    uploaded_input: UploadedInput | None = None
     if body.input_id is not None:
         uploaded_input = db.query(UploadedInput).filter(UploadedInput.id == body.input_id).first()
         if uploaded_input is None:
@@ -273,28 +305,30 @@ def create_workflow_run(body: WorkflowRunCreate, db: Session = Depends(get_db)) 
             "input_id": run.input_id,
         },
     )
-    return run
+    return _workflow_run_payload(run, uploaded_input.title if uploaded_input else None)
 
 
 @router.patch("/{run_id}/status", response_model=WorkflowRunRead)
 def update_workflow_status(
     run_id: uuid.UUID, body: WorkflowRunTransition, db: Session = Depends(get_db)
-) -> WorkflowRun:
+) -> dict[str, object]:
     run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     try:
-        return transition(run, body.status, db)
+        updated_run = transition(run, body.status, db)
+        return _workflow_run_payload(updated_run, _input_title_for_run(db, updated_run))
     except InvalidTransitionError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
 
 @router.post("/{run_id}/cancel", response_model=WorkflowRunRead)
-def cancel_run(run_id: uuid.UUID, db: Session = Depends(get_db)) -> WorkflowRun:
+def cancel_run(run_id: uuid.UUID, db: Session = Depends(get_db)) -> dict[str, object]:
     run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     try:
-        return cancel_workflow_run(db, run)
+        cancelled_run = cancel_workflow_run(db, run)
+        return _workflow_run_payload(cancelled_run, _input_title_for_run(db, cancelled_run))
     except InvalidTransitionError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e

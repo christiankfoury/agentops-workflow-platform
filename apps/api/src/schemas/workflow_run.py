@@ -26,6 +26,7 @@ class WorkflowRunRead(BaseModel):
     run_mode: RunMode
     status: WorkflowStatus
     input_id: uuid.UUID | None
+    input_title: str | None = None
     final_output: str | None
     quality_score: float | None
     total_cost: float | None

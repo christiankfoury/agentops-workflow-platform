@@ -12,6 +12,13 @@ const demoTargets = new Set<DemoSeedTarget>([
   "full-evaluation",
 ]);
 
+const demoDestinations: Record<DemoSeedTarget, string> = {
+  "sales-report": "/workflow-comparison?search=Sales",
+  "customer-feedback": "/workflow-comparison?search=Feedback",
+  "incident-log": "/workflow-comparison?search=Incident",
+  "full-evaluation": "/evaluation",
+};
+
 export async function seedDemoAction(formData: FormData): Promise<void> {
   const target = formData.get("target");
   if (typeof target !== "string" || !demoTargets.has(target as DemoSeedTarget)) {
@@ -27,8 +34,5 @@ export async function seedDemoAction(formData: FormData): Promise<void> {
   revalidatePath("/agent-performance");
   revalidatePath("/improvements");
 
-  if (target === "full-evaluation") {
-    redirect("/evaluation");
-  }
-  redirect("/workflow-comparison");
+  redirect(demoDestinations[target as DemoSeedTarget]);
 }

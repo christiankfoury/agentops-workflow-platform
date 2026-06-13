@@ -14,33 +14,38 @@ const demoCards: {
   title: string;
   workflowType?: WorkflowType;
   primaryMetric: string;
+  actionLabel: string;
   destination: string;
 }[] = [
   {
     target: "sales-report",
-    title: "Run Demo Sales Workflow",
+    title: "Sales Workflow Demo",
     workflowType: "sales_report",
-    primaryMetric: "executive summaries",
-    destination: "/workflow-comparison",
+    primaryMetric: "Compare baseline vs reviewed executive summaries.",
+    actionLabel: "Load Sales Demo",
+    destination: "/workflow-comparison?search=Sales",
   },
   {
     target: "customer-feedback",
-    title: "Run Demo Feedback Workflow",
+    title: "Feedback Workflow Demo",
     workflowType: "customer_feedback",
-    primaryMetric: "product insights",
-    destination: "/workflow-comparison",
+    primaryMetric: "Show product recommendations with human approval.",
+    actionLabel: "Load Feedback Demo",
+    destination: "/workflow-comparison?search=Feedback",
   },
   {
     target: "incident-log",
-    title: "Run Demo Incident Workflow",
+    title: "Incident Workflow Demo",
     workflowType: "incident_log",
-    primaryMetric: "post-incident reports",
-    destination: "/workflow-comparison",
+    primaryMetric: "Inspect incident analysis and final report flow.",
+    actionLabel: "Load Incident Demo",
+    destination: "/workflow-comparison?search=Incident",
   },
   {
     target: "full-evaluation",
-    title: "Run Full Evaluation",
-    primaryMetric: "all workflows",
+    title: "Full Portfolio Demo",
+    primaryMetric: "Populate all dashboards for a portfolio walkthrough.",
+    actionLabel: "Load Full Demo",
     destination: "/evaluation",
   },
 ];
@@ -50,13 +55,13 @@ const guidedStories = [
     title: "Reviewer issue correction path",
     href: "/workflow-comparison?search=%5BDemo%5D%20Reviewer%20issue%20correction%20path",
     description:
-      "Open the action-ready case where a reviewer issue can create a corrected multi-agent run.",
+      "Proves the reviewer can catch weak outputs and turn issues into a corrected multi-agent run.",
   },
   {
     title: "Remediation impact showcase",
     href: "/workflow-comparison?search=%5BDemo%5D%20Remediation%20impact%20showcase",
     description:
-      "Open the impact-ready case where corrected-vs-previous run metrics are visible.",
+      "Shows corrected-vs-previous impact with measurable changes in quality and trust metrics.",
   },
 ];
 
@@ -74,6 +79,10 @@ function countRunsForWorkflow(
   return summaries
     .filter((summary) => summary.workflow_type === workflowType)
     .reduce((total, summary) => total + summary.run_count, 0);
+}
+
+function evaluationResultLabel(workflowType?: WorkflowType): string {
+  return workflowType ? "Evaluation Results" : "Total Evaluation Results";
 }
 
 function formatPercent(value: number): string {
@@ -156,84 +165,145 @@ export default async function DemoPage() {
       </div>
 
       <section className="mt-8 rounded-lg border border-border bg-card p-5">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <h2 className="text-lg font-semibold">Guided comparison stories</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              After seeding the full evaluation demo, use these paths to show
-              reviewer correction and remediation impact.
+            <h2 className="text-lg font-semibold">What these demo actions do</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              These controls load repeatable demo datasets: workflow runs,
+              agent traces, reviewer outcomes, final reports, and stored
+              evaluation results. They prepare the product for a predictable
+              walkthrough; manual workflow intake still starts from New Workflow.
             </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              The accuracy values come from completed multi-agent evaluation
+              results returned by the evaluation summary API. For seeded demos,
+              those records are deterministic demo data, so the numbers stay
+              stable across presentations.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="border-l border-border pl-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  1. Seed
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Load one focused workflow dataset or the full portfolio.
+                </p>
+              </div>
+              <div className="border-l border-border pl-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  2. Inspect
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Open filtered comparisons, final outputs, cost, trend, and
+                  trace dashboards.
+                </p>
+              </div>
+              <div className="border-l border-border pl-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">
+                  3. Demo
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Use the guided stories to show review, correction, and
+                  remediation impact.
+                </p>
+              </div>
+            </div>
           </div>
-          <Link
-            href="/workflow-comparison"
-            className="mt-3 w-fit rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent sm:mt-0"
-          >
-            Open Compare
-          </Link>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-          {guidedStories.map((story) => (
-            <Link
-              key={story.href}
-              href={story.href}
-              className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-accent"
-            >
-              <span className="text-sm font-medium">{story.title}</span>
-              <span className="mt-1 block text-sm leading-6 text-muted-foreground">
-                {story.description}
-              </span>
-            </Link>
-          ))}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Guided stories</h2>
+              <Link
+                href="/workflow-comparison"
+                className="rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                Open Compare
+              </Link>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Use these after seeding the full evaluation demo.
+            </p>
+            <div className="mt-3 space-y-2">
+              {guidedStories.map((story) => (
+                <Link
+                  key={story.href}
+                  href={story.href}
+                  className="block rounded-md border border-border bg-background p-3 transition-colors hover:bg-accent"
+                >
+                  <span className="text-sm font-medium">{story.title}</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    {story.description}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold">Demo data loaders</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Seed one focused workflow or load the full dataset for portfolio-wide
+          dashboards.
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Accuracy is factual accuracy across completed multi-agent evaluation
+          results.
+        </p>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         {demoCards.map((card) => (
           <form
             key={card.target}
             action={seedDemoAction}
-            className="rounded-lg border border-border bg-card p-5"
+            className="rounded-lg border border-border bg-card p-4"
           >
             <input type="hidden" name="target" value={card.target} />
-            <div className="flex min-h-44 flex-col justify-between gap-5">
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {card.workflowType
-                    ? workflowLabels[card.workflowType]
-                    : "Portfolio demo"}
-                </p>
-                <h2 className="mt-2 text-lg font-semibold">{card.title}</h2>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Seeded Runs</p>
-                    <p className="mt-1 font-medium">
-                      {countRunsForWorkflow(summaries, card.workflowType)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Accuracy</p>
-                    <p className="mt-1 font-medium">
-                      {averageAccuracy(summaries, card.workflowType)}
-                    </p>
-                  </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {card.workflowType
+                      ? workflowLabels[card.workflowType]
+                      : "Portfolio demo"}
+                  </p>
+                  <h2 className="mt-2 text-lg font-semibold">{card.title}</h2>
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    {card.primaryMetric}
+                  </p>
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  {card.primaryMetric}
-                </p>
+                <button
+                  type="submit"
+                  className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  {card.actionLabel}
+                </button>
               </div>
-              <div className="flex items-center justify-between gap-3">
+              <div className="grid grid-cols-2 gap-3 rounded-md bg-muted p-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {evaluationResultLabel(card.workflowType)}
+                  </p>
+                  <p className="mt-1 font-medium">
+                    {countRunsForWorkflow(summaries, card.workflowType)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Multi-agent Accuracy
+                  </p>
+                  <p className="mt-1 font-medium">
+                    {averageAccuracy(summaries, card.workflowType)}
+                  </p>
+                </div>
+              </div>
+              <div>
                 <Link
                   href={card.destination}
                   className="text-sm text-primary underline hover:opacity-80"
                 >
-                  View output
+                  Open existing output
                 </Link>
-                <button
-                  type="submit"
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-                >
-                  Run
-                </button>
               </div>
             </div>
           </form>

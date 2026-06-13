@@ -133,6 +133,14 @@ def test_create_workflow_run_with_input_id():
 
     assert created.status_code == 201
     assert created.json()["input_id"] == str(uploaded_input.id)
+
+    listed = client.get("/workflow-runs")
+    assert listed.status_code == 200
+    assert listed.json()[0]["input_title"] == "Q1 Sales Report"
+
+    detail = client.get(f"/workflow-runs/{created.json()['id']}")
+    assert detail.status_code == 200
+    assert detail.json()["input_title"] == "Q1 Sales Report"
     app.dependency_overrides.clear()
 
 

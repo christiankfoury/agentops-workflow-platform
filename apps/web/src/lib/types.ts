@@ -57,6 +57,7 @@ export interface WorkflowRun {
   run_mode: RunMode;
   status: WorkflowStatus;
   input_id: string | null;
+  input_title: string | null;
   final_output: string | null;
   quality_score: number | null;
   total_cost: number | null;

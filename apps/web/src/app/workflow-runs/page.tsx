@@ -1,31 +1,8 @@
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
-import { LocalDateTime } from "@/components/local-date-time";
 import { listWorkflowRuns } from "@/lib/api";
 import type { WorkflowRun } from "@/lib/types";
-
-function formatWorkflow(value: string): string {
-  if (value === "customer_feedback") return "Customer Feedback";
-  if (value === "incident_log") return "Incident Log";
-  return "Sales Report";
-}
-
-function formatMode(value: string): string {
-  return value === "multi_agent" ? "Multi-Agent" : "Baseline";
-}
-
-function statusClass(status: string): string {
-  if (status === "completed") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300";
-  }
-  if (status === "failed" || status === "cancelled") {
-    return "border-destructive/30 bg-destructive/10 text-destructive";
-  }
-  if (status === "waiting_for_human" || status === "retrying") {
-    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
-  }
-  return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300";
-}
+import { WorkflowRunsTable } from "./workflow-runs-table";
 
 function countRuns(runs: WorkflowRun[], statuses: string[]): number {
   return runs.filter((run) => statuses.includes(run.status)).length;
@@ -122,51 +99,7 @@ export default async function WorkflowRunsPage() {
           </div>
         </section>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium">Run</th>
-                <th className="px-4 py-3 text-left font-medium">Workflow</th>
-                <th className="px-4 py-3 text-left font-medium">Mode</th>
-                <th className="px-4 py-3 text-left font-medium">Status</th>
-                <th className="px-4 py-3 text-left font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {runs.map((run) => (
-                <tr key={run.id} className="hover:bg-muted/50">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/workflow-runs/${run.id}`}
-                      className="font-mono text-xs text-primary underline hover:opacity-80"
-                    >
-                      {run.id.slice(0, 8)}...
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    {formatWorkflow(run.workflow_type)}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatMode(run.run_mode)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass(
-                        run.status,
-                      )}`}
-                    >
-                      {run.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <LocalDateTime value={run.created_at} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <WorkflowRunsTable runs={runs} />
       )}
     </div>
   );

@@ -818,6 +818,7 @@ export default async function WorkflowRunDetailPage({
   const canCancelWorkflow = !["completed", "failed", "cancelled"].includes(run.status);
   const usedHumanApprovedAnalysis =
     run.final_output !== null && hasHumanApprovedEvent(workflowEvents);
+  const workflowTitle = uploadedInput?.title ?? run.input_title;
 
   return (
     <div>
@@ -829,8 +830,9 @@ export default async function WorkflowRunDetailPage({
         Workflow Runs
       </Link>
 
-      <h1 className="mt-4 text-2xl font-bold tracking-tight">Workflow Run</h1>
-      <p className="font-mono text-sm text-muted-foreground">{run.id}</p>
+      <h1 className="mt-4 text-2xl font-bold tracking-tight">
+        {workflowTitle ? `Workflow Run of ${workflowTitle}` : "Workflow Run"}
+      </h1>
 
       {canRunAnalyst && (
         <RunAnalystForm runId={run.id} />
