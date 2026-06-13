@@ -101,7 +101,7 @@ function SummaryCard({ summary }: { summary: EvaluationMetricsSummary }) {
           </p>
         </div>
         <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium">
-          {summary.run_mode}
+          {formatMode(summary.run_mode)}
         </span>
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">

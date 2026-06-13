@@ -31,6 +31,7 @@ import type {
 
 const DEFAULT_FETCH_TIMEOUT_MS = 2500;
 const AGENT_ACTION_FETCH_TIMEOUT_MS = 120000;
+const EVALUATION_RESULTS_FETCH_TIMEOUT_MS = 10000;
 const EVALUATION_COMPARISON_FETCH_TIMEOUT_MS = 300000;
 
 function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
@@ -138,6 +139,7 @@ export async function listWorkflowEvents(runId: string): Promise<WorkflowEvent[]
 export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]> {
   const res = await apiFetch("/evaluation-results/summary", {
     cache: "no-store",
+    signal: AbortSignal.timeout(EVALUATION_RESULTS_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary: ${res.status}`);
   return res.json() as Promise<EvaluationMetricsSummary[]>;
@@ -146,6 +148,7 @@ export async function getEvaluationSummary(): Promise<EvaluationMetricsSummary[]
 export async function listEvaluationResults(): Promise<EvaluationResult[]> {
   const res = await apiFetch("/evaluation-results", {
     cache: "no-store",
+    signal: AbortSignal.timeout(EVALUATION_RESULTS_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Failed to fetch evaluation results: ${res.status}`);
   return res.json() as Promise<EvaluationResult[]>;
