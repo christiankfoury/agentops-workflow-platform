@@ -84,3 +84,13 @@ class EvaluationComparisonRead(BaseModel):
     reviewer_issues: list[dict[str, Any]]
     cost_difference: float
     latency_difference_ms: int
+
+
+class CorrectedEvaluationComparisonRead(BaseModel):
+    evaluation_case_id: uuid.UUID
+    baseline_result_id: uuid.UUID
+    corrected_result_id: uuid.UUID
+    baseline_run_id: uuid.UUID
+    source_multi_agent_run_id: uuid.UUID
+    corrected_multi_agent_run_id: uuid.UUID
+    comparison_url: str

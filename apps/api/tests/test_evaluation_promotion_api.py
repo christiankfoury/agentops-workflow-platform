@@ -9,6 +9,7 @@ from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
 from src.models.evaluation_case import EvaluationCase
+from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
@@ -102,6 +103,48 @@ def make_source_step(run_id: uuid.UUID) -> AgentStep:
         retry_count=0,
         created_at=datetime.now(UTC),
         completed_at=datetime.now(UTC),
+    )
+
+
+def make_reviewer_step(
+    run_id: uuid.UUID,
+    issues: list[dict[str, str]] | None = None,
+) -> AgentStep:
+    return AgentStep(
+        id=uuid.uuid4(),
+        workflow_run_id=run_id,
+        agent_name="Reviewer Agent",
+        agent_type="reviewer",
+        step_order=2,
+        status=AgentStepStatus.completed,
+        output_json={
+            "approved": True,
+            "quality_score": 0.9,
+            "retry_recommended": False,
+            "issues": issues if issues is not None else [],
+        },
+        retry_count=0,
+        created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+
+
+def make_evaluation_result(
+    case_id: uuid.UUID,
+    run: WorkflowRun,
+) -> EvaluationResult:
+    return EvaluationResult(
+        id=uuid.uuid4(),
+        evaluation_case_id=case_id,
+        workflow_run_id=run.id,
+        run_mode=run.run_mode,
+        status=EvaluationRunStatus.completed,
+        factual_accuracy=0.9,
+        unsupported_claim_rate=0.1,
+        completeness_score=0.8,
+        cost=run.total_cost,
+        latency_ms=run.latency_ms,
+        created_at=datetime.now(UTC),
     )
 
 
@@ -234,4 +277,84 @@ def test_rejects_multi_agent_run_without_completed_structured_step():
 
     assert response.status_code == 422
     assert "completed analyst step" in response.json()["detail"]
+    clear_overrides()
+
+
+def test_create_corrected_run_reuses_baseline_and_adds_multi_agent_result():
+    db, source_run = make_db_with_run(RunMode.multi_agent)
+    baseline_run = make_source_run(db.inputs[0].id, run_mode=RunMode.baseline)
+    case = EvaluationCase(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        title="[Promoted] Q4 Sales Risk Review",
+        input_text=db.inputs[0].raw_text,
+        expected_facts_json=["Q4 revenue increased 6% quarter over quarter to $5.4M."],
+        expected_risks_json=["Pipeline decline could affect future sales."],
+        expected_recommendations_json=["Prioritize enterprise pipeline recovery."],
+        expected_output_notes="Promoted from a completed workflow run.",
+        created_at=datetime.now(UTC),
+    )
+    db.evaluation_cases.append(case)
+    db.runs.append(baseline_run)
+    baseline_result = make_evaluation_result(case.id, baseline_run)
+    source_result = make_evaluation_result(case.id, source_run)
+    db.evaluation_results.extend([baseline_result, source_result])
+    db.steps.append(
+        make_reviewer_step(
+            source_run.id,
+            [
+                {
+                    "claim": "Enterprise coverage is an opportunity.",
+                    "problem": "Source lists it as a fact, not an explicit opportunity.",
+                    "severity": "low",
+                }
+            ],
+        )
+    )
+    original_run_ids = {item.id for item in db.runs}
+    client = client_for(db)
+
+    response = client.post(f"/evaluation-results/comparisons/{case.id}/corrected-run")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["baseline_result_id"] == str(baseline_result.id)
+    assert body["source_multi_agent_run_id"] == str(source_run.id)
+    assert body["corrected_multi_agent_run_id"] != str(source_run.id)
+    assert len([item for item in db.runs if item.id not in original_run_ids]) == 1
+    assert len(db.evaluation_results) == 3
+    assert db.evaluation_results[-1].run_mode == RunMode.multi_agent
+    assert "Enterprise coverage is an opportunity." in (db.inputs[-1].notes or "")
+    assert case.expected_output_notes == "Promoted from a completed workflow run."
+    clear_overrides()
+
+
+def test_create_corrected_run_rejects_clean_comparison():
+    db, source_run = make_db_with_run(RunMode.multi_agent)
+    baseline_run = make_source_run(db.inputs[0].id, run_mode=RunMode.baseline)
+    case = EvaluationCase(
+        id=uuid.uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        title="[Promoted] Q4 Sales Risk Review",
+        input_text=db.inputs[0].raw_text,
+        expected_facts_json=["Q4 revenue increased 6% quarter over quarter to $5.4M."],
+        expected_risks_json=["Pipeline decline could affect future sales."],
+        expected_recommendations_json=["Prioritize enterprise pipeline recovery."],
+        created_at=datetime.now(UTC),
+    )
+    db.evaluation_cases.append(case)
+    db.runs.append(baseline_run)
+    db.evaluation_results.extend(
+        [
+            make_evaluation_result(case.id, baseline_run),
+            make_evaluation_result(case.id, source_run),
+        ]
+    )
+    db.steps.append(make_reviewer_step(source_run.id, []))
+    client = client_for(db)
+
+    response = client.post(f"/evaluation-results/comparisons/{case.id}/corrected-run")
+
+    assert response.status_code == 422
+    assert "no reviewer issues" in response.json()["detail"]
     clear_overrides()

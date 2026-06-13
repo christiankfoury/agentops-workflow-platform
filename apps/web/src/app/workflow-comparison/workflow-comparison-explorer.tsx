@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type {
   EvaluationComparison,
   EvaluationComparisonRun,
   WorkflowType,
 } from "@/lib/types";
+import { createCorrectedRunAction } from "./actions";
 
 type QuickFilter = "all" | WorkflowType | "needs_review";
 type SortKey =
@@ -88,7 +89,14 @@ function formatSignedLatency(value: number): string {
 }
 
 function issueSeverity(issue: Record<string, unknown>): string | null {
-  return typeof issue.severity === "string" ? issue.severity : null;
+  return typeof issue.severity === "string" ? issue.severity.toLowerCase() : null;
+}
+
+function hasSeriousReviewerIssue(issues: Record<string, unknown>[]): boolean {
+  return issues.some((issue) => {
+    const severity = issueSeverity(issue);
+    return severity !== "low";
+  });
 }
 
 function formatIssue(issue: Record<string, unknown>): string {
@@ -285,6 +293,43 @@ function OutputPanel({
   );
 }
 
+function CreateCorrectedRunForm({
+  evaluationCaseId,
+}: {
+  evaluationCaseId: string;
+}) {
+  const [state, formAction, pending] = useActionState(createCorrectedRunAction, {
+    error: null,
+  });
+
+  return (
+    <form action={formAction} className="rounded-lg border border-border bg-muted/40 p-4">
+      <input type="hidden" name="evaluation_case_id" value={evaluationCaseId} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium">Create a corrected multi-agent run</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Uses these reviewer issues as guidance, auto-runs the workflow, and
+            updates this comparison.
+          </p>
+        </div>
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending ? "Creating..." : "Create corrected run"}
+        </button>
+      </div>
+      {state.error && (
+        <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {state.error}
+        </p>
+      )}
+    </form>
+  );
+}
+
 function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
   const rows = metricRows(comparison);
   const severityCounts = comparison.reviewer_issues.reduce<Record<string, number>>(
@@ -351,29 +396,32 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
             No reviewer issues were recorded for this comparison.
           </p>
         ) : (
-          <ul className="mt-3 space-y-2">
-            {comparison.reviewer_issues.map((issue, index) => {
-              const severity = issueSeverity(issue);
-              return (
-                <li
-                  key={`${comparison.evaluation_case_id}-${index}`}
-                  className="rounded-md border border-border bg-background p-3 text-sm"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <p>{formatIssue(issue)}</p>
-                    <span
-                      className={cn(
-                        "w-fit rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
-                        severityClasses(severity),
-                      )}
-                    >
-                      {severity ?? "unspecified"}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="mt-3 space-y-3">
+            <CreateCorrectedRunForm evaluationCaseId={comparison.evaluation_case_id} />
+            <ul className="space-y-2">
+              {comparison.reviewer_issues.map((issue, index) => {
+                const severity = issueSeverity(issue);
+                return (
+                  <li
+                    key={`${comparison.evaluation_case_id}-${index}`}
+                    className="rounded-md border border-border bg-background p-3 text-sm"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <p>{formatIssue(issue)}</p>
+                      <span
+                        className={cn(
+                          "w-fit rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
+                          severityClasses(severity),
+                        )}
+                      >
+                        {severity ?? "unspecified"}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </section>
     </div>
@@ -391,6 +439,7 @@ function ComparisonCard({
 }) {
   const scores = comparisonScore(comparison);
   const hasIssues = comparison.reviewer_issues.length > 0;
+  const seriousIssues = hasSeriousReviewerIssue(comparison.reviewer_issues);
   const better = isMultiAgentBetter(comparison);
   const higherCost = comparison.cost_difference > 0;
 
@@ -402,8 +451,10 @@ function ComparisonCard({
             <Badge>{workflowLabels[comparison.workflow_type]}</Badge>
             {better && <Badge variant="good">Multi-agent better</Badge>}
             {higherCost && <Badge variant="warning">Higher cost</Badge>}
-            {hasIssues ? (
+            {seriousIssues ? (
               <Badge variant="danger">Needs review</Badge>
+            ) : hasIssues ? (
+              <Badge variant="warning">Minor issue</Badge>
             ) : (
               <Badge variant="good">Reviewer clean</Badge>
             )}

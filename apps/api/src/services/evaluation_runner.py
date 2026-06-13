@@ -61,6 +61,7 @@ def run_sales_evaluation_case(
     evaluation_case: EvaluationCase,
     run_mode: RunMode,
     llm_client: LLMClientLike,
+    correction_guidance: str | None = None,
 ) -> EvaluationResult:
     if evaluation_case.workflow_type not in {
         WorkflowType.sales_report,
@@ -83,7 +84,11 @@ def run_sales_evaluation_case(
 
     try:
         _record_router_detection(db, result, evaluation_case, llm_client)
-        uploaded_input = _create_uploaded_input(db, evaluation_case)
+        uploaded_input = _create_uploaded_input(
+            db,
+            evaluation_case,
+            correction_guidance=correction_guidance,
+        )
         run = _create_workflow_run(db, evaluation_case, uploaded_input, run_mode)
         if run_mode == RunMode.baseline:
             run_sales_baseline(db, run, llm_client)
@@ -170,12 +175,21 @@ def _set_router_tracking(
     result.router_correct = result.router_detected_workflow_type == evaluation_case.workflow_type
 
 
-def _create_uploaded_input(db: Session, evaluation_case: EvaluationCase) -> UploadedInput:
+def _create_uploaded_input(
+    db: Session,
+    evaluation_case: EvaluationCase,
+    *,
+    correction_guidance: str | None = None,
+) -> UploadedInput:
+    notes = "Created by evaluation runner."
+    if correction_guidance:
+        notes = f"{notes}\n\n{correction_guidance}"
+
     uploaded_input = UploadedInput(
         title=f"Evaluation: {evaluation_case.title}",
         input_type=InputType(evaluation_case.workflow_type.value),
         raw_text=evaluation_case.input_text,
-        notes="Created by evaluation runner.",
+        notes=notes,
     )
     db.add(uploaded_input)
     db.commit()

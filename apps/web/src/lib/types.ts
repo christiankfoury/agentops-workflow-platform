@@ -183,6 +183,16 @@ export interface WorkflowRunEvaluationComparison {
   comparison_url: string;
 }
 
+export interface CorrectedEvaluationComparison {
+  evaluation_case_id: string;
+  baseline_result_id: string;
+  corrected_result_id: string;
+  baseline_run_id: string;
+  source_multi_agent_run_id: string;
+  corrected_multi_agent_run_id: string;
+  comparison_url: string;
+}
+
 export interface AgentPerformanceSummary {
   agent_type: string;
   agent_name: string;

@@ -10,6 +10,7 @@ from src.schemas.customer_feedback import (
     SentimentPattern,
 )
 from src.schemas.evaluation import (
+    CorrectedEvaluationComparisonRead,
     EvaluationCaseRead,
     EvaluationMetricsSummaryRead,
     EvaluationResultRead,
@@ -39,6 +40,7 @@ __all__ = [
     "AgentStepRead",
     "BugReportPattern",
     "CustomerFeedbackClassificationOutput",
+    "CorrectedEvaluationComparisonRead",
     "EvaluationCaseRead",
     "EvaluationMetricsSummaryRead",
     "EvaluationResultRead",

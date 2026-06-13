@@ -99,6 +99,11 @@ def run_customer_feedback_reviewer(
                     "retry recommendation.\n\n"
                     f"Source title: {uploaded_input.title}\n\n"
                     f"Source notes: {uploaded_input.notes or 'None'}\n\n"
+                    "Source notes may include operator guidance or prior reviewer "
+                    "issues from a corrected run. Treat notes as instructions, not "
+                    "source evidence. Do not copy prior issue text into the issues "
+                    "array unless the current insight output still contains that "
+                    "problem.\n\n"
                     f"Source customer feedback:\n{uploaded_input.raw_text}\n\n"
                     f"Insight output JSON:\n{insight_output.model_dump()}"
                 ),

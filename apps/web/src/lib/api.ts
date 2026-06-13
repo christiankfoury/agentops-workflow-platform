@@ -5,6 +5,7 @@ import type {
   AgentStep,
   AgentSetting,
   AgentPerformanceSummary,
+  CorrectedEvaluationComparison,
   CreateUploadedInputRequest,
   DemoDatasetSummary,
   DemoSeedTarget,
@@ -315,6 +316,23 @@ export async function createEvaluationComparisonFromRun(
     throw new Error(`Failed to create evaluation comparison: ${detail}`);
   }
   return res.json() as Promise<WorkflowRunEvaluationComparison>;
+}
+
+export async function createCorrectedEvaluationComparisonRun(
+  evaluationCaseId: string,
+): Promise<CorrectedEvaluationComparison> {
+  const res = await apiFetch(
+    `/evaluation-results/comparisons/${evaluationCaseId}/corrected-run`,
+    {
+      method: "POST",
+      signal: AbortSignal.timeout(EVALUATION_COMPARISON_FETCH_TIMEOUT_MS),
+    },
+  );
+  if (!res.ok) {
+    const detail = await getErrorDetail(res);
+    throw new Error(`Failed to create corrected run: ${detail}`);
+  }
+  return res.json() as Promise<CorrectedEvaluationComparison>;
 }
 
 export async function listHumanApprovals(): Promise<HumanApproval[]> {

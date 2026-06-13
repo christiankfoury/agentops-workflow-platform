@@ -1,13 +1,17 @@
-from fastapi import APIRouter, Depends
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from src.database import get_db
+from src.dependencies import get_llm_client
 from src.models.agent_step import AgentStep
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowType
 from src.schemas.evaluation import (
+    CorrectedEvaluationComparisonRead,
     EvaluationComparisonRead,
     EvaluationMetricsSummaryRead,
     EvaluationResultRead,
@@ -19,6 +23,12 @@ from src.services.evaluation_exports import (
     build_evaluation_markdown_export,
 )
 from src.services.evaluation_metrics import summarize_evaluation_results
+from src.services.evaluation_remediation import (
+    CorrectedEvaluationComparisonResult,
+    EvaluationRemediationError,
+    create_corrected_evaluation_comparison_run,
+)
+from src.services.llm_client import LLMClient
 
 router = APIRouter()
 
@@ -75,6 +85,25 @@ def get_evaluation_comparisons(
     runs = db.query(WorkflowRun).all()
     steps = db.query(AgentStep).all()
     return build_evaluation_comparisons(cases, results, runs, steps)
+
+
+@router.post(
+    "/comparisons/{evaluation_case_id}/corrected-run",
+    response_model=CorrectedEvaluationComparisonRead,
+)
+def create_corrected_comparison_run(
+    evaluation_case_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    llm_client: LLMClient = Depends(get_llm_client),
+) -> CorrectedEvaluationComparisonResult:
+    try:
+        return create_corrected_evaluation_comparison_run(
+            db,
+            evaluation_case_id,
+            llm_client,
+        )
+    except EvaluationRemediationError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @router.get("/export/json")
