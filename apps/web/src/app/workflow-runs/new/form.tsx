@@ -74,149 +74,177 @@ export function NewWorkflowForm() {
   }
 
   return (
-    <form action={formAction} className="mt-6 space-y-5">
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium">
-          Input Title
-        </label>
-        <input
-          id="title"
-          name="title"
-          type="text"
-          required
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Q1 Sales Report"
-        />
+    <form
+      action={formAction}
+      className="rounded-lg border border-border bg-card p-5 shadow-sm"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Workflow details</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Paste source text or attach a supported text file.
+          </p>
+        </div>
+        <span className="w-fit rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          .txt .md .csv
+        </span>
       </div>
 
-      <div>
-        <label htmlFor="raw_text" className="block text-sm font-medium">
-          Input Text
-        </label>
-        <textarea
-          id="raw_text"
-          name="raw_text"
-          rows={10}
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Paste a sales report, customer feedback, or incident log..."
-        />
-      </div>
+      <div className="mt-6 space-y-6">
+        <section className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_15rem]">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium">
+                Input Title
+              </label>
+              <input
+                id="title"
+                name="title"
+                type="text"
+                required
+                className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Q1 Sales Report"
+              />
+            </div>
 
-      <div>
-        <label htmlFor="input_file" className="block text-sm font-medium">
-          Upload Text File
-        </label>
-        <input
-          id="input_file"
-          name="input_file"
-          type="file"
-          accept=".txt,.md,.csv,text/plain,text/markdown,text/csv"
-          onChange={handleFileChange}
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
-        />
-      </div>
+            <div>
+              <label htmlFor="run_mode" className="block text-sm font-medium">
+                Run Mode
+              </label>
+              <select
+                id="run_mode"
+                name="run_mode"
+                required
+                className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="multi_agent">Multi-Agent</option>
+                <option value="baseline">Baseline</option>
+              </select>
+            </div>
+          </div>
 
-      {(csvPreviewRows.length > 0 || csvPreviewError) && (
-        <section className="rounded-lg border border-border p-4">
-          <h2 className="text-sm font-semibold">CSV Preview</h2>
-          {csvPreviewError ? (
-            <p className="mt-2 text-sm text-destructive">{csvPreviewError}</p>
-          ) : (
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="text-xs uppercase text-muted-foreground">
-                  <tr>
-                    {previewColumns.map((column) => (
-                      <th key={column} className="px-2 py-2 font-medium">
-                        {column}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {csvPreviewRows.map((row, index) => (
-                    <tr key={`${row.feedback}-${index}`}>
+          <div>
+            <label htmlFor="raw_text" className="block text-sm font-medium">
+              Input Text
+            </label>
+            <textarea
+              id="raw_text"
+              name="raw_text"
+              rows={12}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Paste a sales report, customer feedback, or incident log..."
+            />
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label htmlFor="input_file" className="block text-sm font-medium">
+              Upload Text File
+            </label>
+            <input
+              id="input_file"
+              name="input_file"
+              type="file"
+              accept=".txt,.md,.csv,text/plain,text/markdown,text/csv"
+              onChange={handleFileChange}
+              className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-3 file:py-1.5 file:text-sm"
+            />
+          </div>
+
+          <label className="flex min-h-11 items-center gap-3 self-end rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              name="auto_detect_workflow"
+              className="h-4 w-4 rounded border-input"
+            />
+            <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Auto-detect workflow type</span>
+          </label>
+        </section>
+
+        {(csvPreviewRows.length > 0 || csvPreviewError) && (
+          <section className="rounded-lg border border-border p-4">
+            <h2 className="text-sm font-semibold">CSV Preview</h2>
+            {csvPreviewError ? (
+              <p className="mt-2 text-sm text-destructive">{csvPreviewError}</p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs uppercase text-muted-foreground">
+                    <tr>
                       {previewColumns.map((column) => (
-                        <td key={column} className="max-w-64 px-2 py-2 align-top">
-                          {row[column] || "-"}
-                        </td>
+                        <th key={column} className="px-2 py-2 font-medium">
+                          {column}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {csvPreviewRows.map((row, index) => (
+                      <tr key={`${row.feedback}-${index}`}>
+                        {previewColumns.map((column) => (
+                          <td
+                            key={column}
+                            className="max-w-64 px-2 py-2 align-top"
+                          >
+                            {row[column] || "-"}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
+          <div>
+            <label htmlFor="workflow_type" className="block text-sm font-medium">
+              Workflow Type
+            </label>
+            <select
+              id="workflow_type"
+              name="workflow_type"
+              required
+              className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="sales_report">Sales Report</option>
+              <option value="customer_feedback">Customer Feedback</option>
+              <option value="incident_log">Incident Log</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium">
+              Notes
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Optional context for this run"
+            />
+          </div>
         </section>
-      )}
 
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium">
-          Notes
-        </label>
-        <textarea
-          id="notes"
-          name="notes"
-          rows={3}
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="Optional context for this run"
-        />
-      </div>
+        {state.error && (
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {state.error}
+          </p>
+        )}
 
-      <div>
-        <label htmlFor="workflow_type" className="block text-sm font-medium">
-          Workflow Type
-        </label>
-        <select
-          id="workflow_type"
-          name="workflow_type"
-          required
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
-          <option value="sales_report">Sales Report</option>
-          <option value="customer_feedback">Customer Feedback</option>
-          <option value="incident_log">Incident Log</option>
-        </select>
+          {pending ? "Creating..." : "Create Workflow Run"}
+        </button>
       </div>
-
-      <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
-        <input
-          type="checkbox"
-          name="auto_detect_workflow"
-          className="h-4 w-4 rounded border-input"
-        />
-        <Sparkles className="h-4 w-4" aria-hidden="true" />
-        <span>Auto-detect workflow type</span>
-      </label>
-
-      <div>
-        <label htmlFor="run_mode" className="block text-sm font-medium">
-          Run Mode
-        </label>
-        <select
-          id="run_mode"
-          name="run_mode"
-          required
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="multi_agent">Multi-Agent</option>
-          <option value="baseline">Baseline</option>
-        </select>
-      </div>
-
-      {state.error && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pending ? "Creating..." : "Create Workflow Run"}
-      </button>
     </form>
   );
 }

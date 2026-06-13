@@ -143,7 +143,11 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /uploadInputFile/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /detectWorkflowType/);
+  assert.match(read("src/app/workflow-runs/new/page.tsx"), /Workflow intake/);
+  assert.match(read("src/app/workflow-runs/new/page.tsx"), /Supported inputs/);
+  assert.match(read("src/app/workflow-runs/new/page.tsx"), /Run mode choice/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /useActionState/);
+  assert.match(read("src/app/workflow-runs/new/form.tsx"), /Workflow details/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /Auto-detect workflow type/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /\.csv/);
   assert.match(read("src/app/workflow-runs/new/form.tsx"), /CSV Preview/);
