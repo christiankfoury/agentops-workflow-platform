@@ -9,6 +9,7 @@ from src.dependencies import get_llm_client
 from src.models.agent_step import AgentStep
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult
+from src.models.uploaded_input import UploadedInput
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowType
 from src.schemas.evaluation import (
     CorrectedEvaluationComparisonRead,
@@ -84,7 +85,8 @@ def get_evaluation_comparisons(
     results = db.query(EvaluationResult).all()
     runs = db.query(WorkflowRun).all()
     steps = db.query(AgentStep).all()
-    return build_evaluation_comparisons(cases, results, runs, steps)
+    uploaded_inputs = db.query(UploadedInput).all()
+    return build_evaluation_comparisons(cases, results, runs, steps, uploaded_inputs)
 
 
 @router.post(

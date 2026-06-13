@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type {
   EvaluationComparison,
   EvaluationComparisonRun,
+  RemediationImpact,
   WorkflowType,
 } from "@/lib/types";
 import { createCorrectedRunAction } from "./actions";
@@ -86,6 +87,10 @@ function formatLatency(value: number): string {
 function formatSignedLatency(value: number): string {
   const prefix = value >= 0 ? "+" : "-";
   return `${prefix}${formatLatency(Math.abs(value))}`;
+}
+
+function formatIssueDelta(previous: number, current: number): string {
+  return `${previous} to ${current}`;
 }
 
 function issueSeverity(issue: Record<string, unknown>): string | null {
@@ -266,6 +271,111 @@ function SummaryCard({
   );
 }
 
+function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
+  const unsupportedWorsened =
+    impact.unsupported_claim_rate_delta !== null &&
+    impact.unsupported_claim_rate_delta > 0;
+  const issuesImproved =
+    impact.current_reviewer_issue_count < impact.previous_reviewer_issue_count;
+  const statusLabel =
+    impact.impact_status === "improved"
+      ? "Improved"
+      : impact.impact_status === "worsened"
+        ? "Worsened"
+        : "Mixed";
+  const statusVariant =
+    impact.impact_status === "improved"
+      ? "good"
+      : impact.impact_status === "worsened"
+        ? "danger"
+        : "warning";
+  const summary =
+    impact.impact_status === "improved"
+      ? "The corrected run improved the available quality signals versus the previous multi-agent run."
+      : impact.impact_status === "worsened"
+        ? "The corrected run worsened the available quality signals versus the previous multi-agent run."
+        : issuesImproved && unsupportedWorsened
+          ? "Reviewer issues improved, but unsupported claims worsened versus the previous multi-agent run."
+          : "The corrected run has a mix of improved and worsened signals versus the previous multi-agent run.";
+
+  return (
+    <section className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold">Remediation impact</h3>
+            <Badge variant={statusVariant}>{statusLabel}</Badge>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">{summary}</p>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs">
+          <Link
+            href={`/workflow-runs/${impact.previous_multi_agent_run_id}`}
+            className="font-mono text-primary underline hover:opacity-80"
+          >
+            previous {impact.previous_multi_agent_run_id.slice(0, 8)}
+          </Link>
+          <Link
+            href={`/workflow-runs/${impact.corrected_multi_agent_run_id}`}
+            className="font-mono text-primary underline hover:opacity-80"
+          >
+            corrected {impact.corrected_multi_agent_run_id.slice(0, 8)}
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
+        <MetricChip
+          label="Reviewer issues"
+          value={formatIssueDelta(
+            impact.previous_reviewer_issue_count,
+            impact.current_reviewer_issue_count,
+          )}
+          positive={
+            impact.current_reviewer_issue_count === impact.previous_reviewer_issue_count
+              ? null
+              : impact.current_reviewer_issue_count < impact.previous_reviewer_issue_count
+          }
+        />
+        <MetricChip
+          label="Unsupported"
+          value={formatPercentDelta(impact.unsupported_claim_rate_delta)}
+          positive={
+            impact.unsupported_claim_rate_delta === null
+              ? null
+              : impact.unsupported_claim_rate_delta <= 0
+          }
+        />
+        <MetricChip
+          label="Accuracy"
+          value={formatPercentDelta(impact.factual_accuracy_delta)}
+          positive={
+            impact.factual_accuracy_delta === null
+              ? null
+              : impact.factual_accuracy_delta >= 0
+          }
+        />
+        <MetricChip
+          label="Completeness"
+          value={formatPercentDelta(impact.completeness_score_delta)}
+          positive={
+            impact.completeness_score_delta === null
+              ? null
+              : impact.completeness_score_delta >= 0
+          }
+        />
+        <MetricChip
+          label="Cost / Latency"
+          value={`${formatSignedCost(impact.cost_delta)} / ${formatSignedLatency(
+            impact.latency_delta_ms,
+          )}`}
+          positive={null}
+        />
+      </div>
+    </section>
+  );
+}
+
 function OutputPanel({
   title,
   run,
@@ -343,6 +453,10 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
 
   return (
     <div className="mt-5 border-t border-border pt-5">
+      {comparison.remediation_impact && (
+        <RemediationImpactPanel impact={comparison.remediation_impact} />
+      )}
+
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-left text-sm">
           <thead className="bg-muted text-xs uppercase text-muted-foreground">

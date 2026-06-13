@@ -74,6 +74,19 @@ class EvaluationComparisonRunRead(BaseModel):
     latency_ms: int
 
 
+class RemediationImpactRead(BaseModel):
+    previous_multi_agent_run_id: uuid.UUID
+    corrected_multi_agent_run_id: uuid.UUID
+    previous_reviewer_issue_count: int
+    current_reviewer_issue_count: int
+    factual_accuracy_delta: float | None
+    unsupported_claim_rate_delta: float | None
+    completeness_score_delta: float | None
+    cost_delta: float
+    latency_delta_ms: int
+    impact_status: str
+
+
 class EvaluationComparisonRead(BaseModel):
     evaluation_case_id: uuid.UUID
     workflow_type: WorkflowType
@@ -84,6 +97,7 @@ class EvaluationComparisonRead(BaseModel):
     reviewer_issues: list[dict[str, Any]]
     cost_difference: float
     latency_difference_ms: int
+    remediation_impact: RemediationImpactRead | None = None
 
 
 class CorrectedEvaluationComparisonRead(BaseModel):

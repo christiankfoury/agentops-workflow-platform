@@ -162,6 +162,19 @@ export interface EvaluationComparisonRun {
   latency_ms: number;
 }
 
+export interface RemediationImpact {
+  previous_multi_agent_run_id: string;
+  corrected_multi_agent_run_id: string;
+  previous_reviewer_issue_count: number;
+  current_reviewer_issue_count: number;
+  factual_accuracy_delta: number | null;
+  unsupported_claim_rate_delta: number | null;
+  completeness_score_delta: number | null;
+  cost_delta: number;
+  latency_delta_ms: number;
+  impact_status: "improved" | "mixed" | "worsened";
+}
+
 export interface EvaluationComparison {
   evaluation_case_id: string;
   workflow_type: WorkflowType;
@@ -172,6 +185,7 @@ export interface EvaluationComparison {
   reviewer_issues: Record<string, unknown>[];
   cost_difference: number;
   latency_difference_ms: number;
+  remediation_impact: RemediationImpact | null;
 }
 
 export interface WorkflowRunEvaluationComparison {
