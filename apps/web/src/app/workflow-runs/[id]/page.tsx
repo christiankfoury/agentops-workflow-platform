@@ -112,6 +112,10 @@ function getStructuredPromotionAgentType(workflowType: string): string {
   return "analyst";
 }
 
+function hasHumanApprovedEvent(events: WorkflowEvent[]): boolean {
+  return events.some((event) => event.event_type === "human_approved");
+}
+
 function RecoverySummary({
   status,
   messages,
@@ -455,6 +459,8 @@ export default async function WorkflowRunDetailPage({
     (run.run_mode === "baseline" ||
       (run.run_mode === "multi_agent" && hasPromotionStructuredStep));
   const canCancelWorkflow = !["completed", "failed", "cancelled"].includes(run.status);
+  const usedHumanApprovedAnalysis =
+    run.final_output !== null && hasHumanApprovedEvent(workflowEvents);
 
   const fields = [
     { label: "Status", value: run.status },
@@ -595,6 +601,12 @@ export default async function WorkflowRunDetailPage({
       {run.final_output && (
         <div className="mt-6">
           <h2 className="text-lg font-semibold">Final Output</h2>
+          {usedHumanApprovedAnalysis && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Writer output generated after human approval, using the reviewed
+              analysis as the source of truth.
+            </p>
+          )}
           <pre className="mt-2 rounded-lg border border-border bg-muted p-4 text-sm whitespace-pre-wrap">
             {run.final_output}
           </pre>

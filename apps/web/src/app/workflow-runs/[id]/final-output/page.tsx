@@ -99,6 +99,21 @@ function getWriterOutput(step: AgentStep | undefined, run: WorkflowRun): string 
   return run.final_output ?? "Not recorded.";
 }
 
+function getAnalysisTraceLabel(workflowType: string): string {
+  if (workflowType === "customer_feedback") return "Insight Output";
+  if (workflowType === "incident_log") return "Root Cause Output";
+  return "Analyst Output";
+}
+
+function getAnalysisTraceStep(
+  steps: AgentStep[],
+  workflowType: string,
+): AgentStep | undefined {
+  if (workflowType === "customer_feedback") return getLatestStep(steps, "insight");
+  if (workflowType === "incident_log") return getLatestStep(steps, "root_cause");
+  return getLatestStep(steps, "analyst");
+}
+
 export default async function FinalOutputPage({
   params,
 }: {
@@ -114,10 +129,12 @@ export default async function FinalOutputPage({
   const approvals = (await listHumanApprovals()).filter(
     (approval) => approval.workflow_run_id === run.id,
   );
-  const analystStep = getLatestStep(agentSteps, "analyst");
+  const analysisStep = getAnalysisTraceStep(agentSteps, run.workflow_type);
   const reviewerStep = getLatestStep(agentSteps, "reviewer");
   const writerStep = getLatestStep(agentSteps, "writer");
   const latestApproval = getLatestApproval(approvals);
+  const analysisLabel = getAnalysisTraceLabel(run.workflow_type);
+  const usedHumanApprovedAnalysis = latestApproval?.status === "approved";
 
   const metrics = [
     { label: "Workflow Status", value: run.status },
@@ -156,7 +173,9 @@ export default async function FinalOutputPage({
           <div>
             <h2 className="text-lg font-semibold">Final Output</h2>
             <p className="text-sm text-muted-foreground">
-              Sales report executive summary generated from approved analysis.
+              {usedHumanApprovedAnalysis
+                ? "Writer output generated from the human-approved analysis."
+                : "Writer output generated from reviewed workflow analysis."}
             </p>
           </div>
           <span className="w-fit rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
@@ -191,11 +210,11 @@ export default async function FinalOutputPage({
             {uploadedInput?.raw_text ?? "Uploaded input not found."}
           </TracePanel>
           <TracePanel
-            title="Analyst Output"
-            summary={analystStep?.agent_name ?? "No completed analyst step"}
+            title={analysisLabel}
+            summary={analysisStep?.agent_name ?? `No completed ${analysisLabel.toLowerCase()}`}
             open
           >
-            {formatJson(analystStep?.output_json)}
+            {formatJson(analysisStep?.output_json)}
           </TracePanel>
           <TracePanel
             title="Reviewer Feedback"

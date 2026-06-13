@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
@@ -22,7 +22,7 @@ from src.services.agent_settings import (
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
-from src.services.sales_reviewer import SALES_REVIEW_SCHEMA, SalesReviewOutput
+from src.services.sales_reviewer import ReviewIssue
 from src.services.structured_output_guardrails import validate_or_repair_structured_response
 from src.services.workflow_events import (
     log_agent_completed,
@@ -32,10 +32,73 @@ from src.services.workflow_events import (
 )
 
 CUSTOMER_FEEDBACK_REVIEWER_AGENT_NAME = "Reviewer Agent"
+CUSTOMER_FEEDBACK_REVIEW_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "approved": {"type": "boolean"},
+        "quality_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "approval_rationale": {"type": "string", "minLength": 1},
+        "passed_checks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "minLength": 1},
+                    "status": {"type": "string", "enum": ["passed", "needs_review"]},
+                    "rationale": {"type": "string", "minLength": 1},
+                },
+                "required": ["name", "status", "rationale"],
+                "additionalProperties": False,
+            },
+        },
+        "issues": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "claim": {"type": "string"},
+                    "problem": {"type": "string"},
+                    "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+                },
+                "required": ["claim", "problem", "severity"],
+                "additionalProperties": False,
+            },
+        },
+        "retry_recommended": {"type": "boolean"},
+    },
+    "required": [
+        "approved",
+        "quality_score",
+        "approval_rationale",
+        "passed_checks",
+        "issues",
+        "retry_recommended",
+    ],
+    "additionalProperties": False,
+}
 
 
 class CustomerFeedbackReviewerRunError(Exception):
     pass
+
+
+class CustomerFeedbackReviewCheck(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    status: str = Field(pattern="^(passed|needs_review)$")
+    rationale: str = Field(min_length=1)
+
+
+class CustomerFeedbackReviewOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    approved: bool
+    quality_score: float = Field(ge=0, le=1)
+    approval_rationale: str = Field(min_length=1)
+    passed_checks: list[CustomerFeedbackReviewCheck]
+    issues: list[ReviewIssue]
+    retry_recommended: bool
 
 
 class LLMClientLike(Protocol):
@@ -95,8 +158,12 @@ def run_customer_feedback_reviewer(
                     "Review the Customer Feedback Insight Agent output against the "
                     "source feedback. Check whether insights, risks, feature requests, "
                     "and recommendations are supported by actual feedback examples. "
-                    "Return structured JSON with approval, quality score, issues, and "
-                    "retry recommendation.\n\n"
+                    "Return structured JSON with explicit passed checks, approval "
+                    "rationale, approval, quality score, issues, and retry "
+                    "recommendation. Include checks for evidence support, missing "
+                    "important feedback, priority/severity accuracy, recommendation "
+                    "evidence, and unsupported inference. Approved means factually "
+                    "supported by the source feedback, not business-perfect.\n\n"
                     f"Source title: {uploaded_input.title}\n\n"
                     f"Source notes: {uploaded_input.notes or 'None'}\n\n"
                     "Source notes may include operator guidance or prior reviewer "
@@ -112,16 +179,16 @@ def run_customer_feedback_reviewer(
         response = llm_client.generate_structured(
             messages=messages,
             system=prompt.template,
-            schema=SALES_REVIEW_SCHEMA,
+            schema=CUSTOMER_FEEDBACK_REVIEW_SCHEMA,
             **runtime_config.generation_kwargs(),
         )
         output, response = validate_or_repair_structured_response(
             response=response,
-            output_model=SalesReviewOutput,
+            output_model=CustomerFeedbackReviewOutput,
             llm_client=llm_client,
             messages=messages,
             system=prompt.template,
-            schema=SALES_REVIEW_SCHEMA,
+            schema=CUSTOMER_FEEDBACK_REVIEW_SCHEMA,
             request_kwargs=runtime_config.generation_kwargs(),
         )
     except (Exception, ValidationError) as e:

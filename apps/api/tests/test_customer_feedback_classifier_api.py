@@ -310,6 +310,7 @@ def test_run_customer_feedback_classifier_success_creates_completed_step():
     assert len(db.cost_events) == 1
     assert db.cost_events[0].agent_step_id == db.steps[0].id
     assert "Customer feedback:" in llm.messages[0]["content"]
+    assert "Classify noisy notifications" in llm.messages[0]["content"]
     assert llm.schema is not None
     assert llm.system == "Classify customer feedback."
     clear_overrides()

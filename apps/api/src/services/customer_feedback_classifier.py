@@ -199,6 +199,10 @@ def run_customer_feedback_classifier(
                 "role": "user",
                 "content": (
                     "Classify this customer feedback and return structured JSON.\n\n"
+                    "Use bugs only for product defects such as crashes, freezes, "
+                    "broken flows, errors, or failed uploads. Classify noisy "
+                    "notifications, confusing settings, or hard-to-configure behavior "
+                    "as usability unless the feedback describes a concrete defect.\n\n"
                     f"Title: {uploaded_input.title}\n\n"
                     f"Notes: {uploaded_input.notes or 'None'}\n\n"
                     f"Customer feedback:\n{uploaded_input.raw_text}"

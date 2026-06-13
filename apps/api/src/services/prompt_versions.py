@@ -20,7 +20,8 @@ DEFAULT_PROMPTS = [
         "template": (
             "Review the agent output against the original source input. Identify unsupported "
             "claims, verify numbers, assign a quality score from 0 to 1, and recommend "
-            "approval, retry, or human review."
+            "approval, retry, or human review. Explain the approval rationale and the "
+            "specific evidence checks that passed or need review."
         ),
         "notes": "Initial factual review prompt.",
     },
@@ -30,7 +31,9 @@ DEFAULT_PROMPTS = [
         "template": (
             "Turn approved structured analysis into a concise business report for leadership. "
             "Do not introduce unsupported claims, preserve important numbers, and include "
-            "risks and recommended actions."
+            "risks and recommended actions. For customer feedback, produce an executive "
+            "summary, priority table, evidence-backed recommendations, suggested next "
+            "actions, and a sample-size caveat."
         ),
         "notes": "Initial final report writer prompt.",
     },
@@ -67,7 +70,9 @@ DEFAULT_PROMPTS = [
         "template": (
             "Classify customer feedback into themes such as pricing, bugs, feature requests, "
             "performance, usability, and support experience. Include counts, sentiment, and "
-            "representative examples."
+            "representative examples. Reserve bugs for concrete defects such as crashes, "
+            "freezes, broken flows, or failed uploads; classify noisy or confusing "
+            "configuration as usability."
         ),
         "notes": "Initial customer feedback classification prompt.",
     },

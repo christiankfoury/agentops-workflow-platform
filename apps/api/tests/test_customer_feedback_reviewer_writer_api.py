@@ -83,6 +83,29 @@ CLASSIFIER_OUTPUT = {
     ],
 }
 
+REVIEWER_OUTPUT = {
+    "approved": True,
+    "quality_score": 0.91,
+    "approval_rationale": (
+        "The recommendations are supported by source feedback examples and no "
+        "important feedback themes are missing."
+    ),
+    "passed_checks": [
+        {
+            "name": "Evidence support",
+            "status": "passed",
+            "rationale": "Each recommendation includes matching customer feedback.",
+        },
+        {
+            "name": "Missing important feedback",
+            "status": "passed",
+            "rationale": "Bulk export and mobile performance feedback are represented.",
+        },
+    ],
+    "issues": [],
+    "retry_recommended": False,
+}
+
 
 class FakeReviewerLLMClient:
     def __init__(self, invalid_output: bool = False) -> None:
@@ -107,12 +130,7 @@ class FakeReviewerLLMClient:
                 usage=LLMUsage(input_tokens=90, output_tokens=30),
             )
         return StructuredResponse(
-            data={
-                "approved": True,
-                "quality_score": 0.91,
-                "issues": [],
-                "retry_recommended": False,
-            },
+            data=REVIEWER_OUTPUT,
             model="gpt-reviewer-test",
             usage=LLMUsage(input_tokens=90, output_tokens=30),
         )
@@ -160,12 +178,7 @@ class FakeEndToEndLLMClient:
             data = PRODUCT_INSIGHT_OUTPUT
             usage = LLMUsage(input_tokens=120, output_tokens=70)
         else:
-            data = {
-                "approved": True,
-                "quality_score": 0.91,
-                "issues": [],
-                "retry_recommended": False,
-            }
+            data = REVIEWER_OUTPUT
             usage = LLMUsage(input_tokens=90, output_tokens=30)
         return StructuredResponse(data=data, model="gpt-e2e-test", usage=usage)
 
@@ -253,10 +266,7 @@ def make_completed_reviewer_step(run_id: uuid.UUID) -> AgentStep:
         step_order=3,
         status=AgentStepStatus.completed,
         output_json={
-            "approved": True,
-            "quality_score": 0.91,
-            "issues": [],
-            "retry_recommended": False,
+            **REVIEWER_OUTPUT,
         },
         model="gpt-reviewer-test",
         tokens_input=90,
@@ -322,6 +332,10 @@ def test_run_customer_feedback_reviewer_creates_review_and_pending_approval():
     assert body["status"] == AgentStepStatus.completed
     assert body["input_json"]["insight_step_id"] == str(insight_step.id)
     assert body["output_json"]["quality_score"] == 0.91
+    assert body["output_json"]["approval_rationale"].startswith(
+        "The recommendations are supported",
+    )
+    assert body["output_json"]["passed_checks"][0]["name"] == "Evidence support"
     assert body["cost"] == pytest.approx(0.000084)
     assert run.status == WorkflowStatus.waiting_for_human
     assert run.quality_score == 0.91
@@ -331,6 +345,8 @@ def test_run_customer_feedback_reviewer_creates_review_and_pending_approval():
     assert db.approvals[0].status == ApprovalStatus.pending
     assert db.approvals[0].reviewer_score == 0.91
     assert "supported by actual feedback examples" in llm.messages[0]["content"]
+    assert "approval rationale" in llm.messages[0]["content"]
+    assert "missing important feedback" in llm.messages[0]["content"]
     clear_overrides()
 
 
@@ -403,6 +419,10 @@ def test_run_customer_feedback_writer_completes_workflow_and_stores_report():
     assert run.total_tokens == 550
     assert run.total_cost == pytest.approx(0.000448)
     assert "product insights report" in llm.messages[0]["content"]
+    assert "Executive Summary" in llm.messages[0]["content"]
+    assert "Priority Table" in llm.messages[0]["content"]
+    assert "SSO as Enterprise blocker" in llm.messages[0]["content"]
+    assert "generated from human-approved" in llm.messages[0]["content"]
     clear_overrides()
 
 
