@@ -13,6 +13,12 @@ function ActionLinks() {
         Open Demo Mode
       </Link>
       <Link
+        href="/workflow-runs"
+        className="rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+      >
+        Workflow Runs
+      </Link>
+      <Link
         href="/evaluation"
         className="rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
       >
@@ -49,7 +55,8 @@ export default async function WorkflowComparisonPage({
             Workflow Comparison
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Compact baseline vs multi-agent comparisons for matched evaluation inputs.
+            Baseline vs multi-agent comparisons for matched evaluation inputs,
+            reviewer issues, and corrected-run impact.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -73,7 +80,7 @@ export default async function WorkflowComparisonPage({
           <h2 className="font-semibold">Workflow comparison data is unavailable.</h2>
           <p className="mt-1">
             The API did not respond, so paired baseline and multi-agent runs could
-            not be loaded.
+            not be loaded. Start the API, then return here or seed the demo data.
           </p>
           <ActionLinks />
         </section>
@@ -85,8 +92,9 @@ export default async function WorkflowComparisonPage({
             No paired comparison runs yet.
           </h2>
           <p className="mt-1">
-            Seed demo workflows or run evaluations to populate baseline and
-            multi-agent comparisons.
+            Seed demo workflows, run evaluations, or open a completed workflow run
+            and use Compare This Run. A comparison needs one completed baseline
+            and one completed multi-agent result for the same input.
           </p>
           <ActionLinks />
         </section>

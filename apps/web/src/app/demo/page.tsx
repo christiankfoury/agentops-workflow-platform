@@ -45,6 +45,21 @@ const demoCards: {
   },
 ];
 
+const guidedStories = [
+  {
+    title: "Reviewer issue correction path",
+    href: "/workflow-comparison?search=%5BDemo%5D%20Reviewer%20issue%20correction%20path",
+    description:
+      "Open the action-ready case where a reviewer issue can create a corrected multi-agent run.",
+  },
+  {
+    title: "Remediation impact showcase",
+    href: "/workflow-comparison?search=%5BDemo%5D%20Remediation%20impact%20showcase",
+    description:
+      "Open the impact-ready case where corrected-vs-previous run metrics are visible.",
+  },
+];
+
 function emptySummaries(): EvaluationMetricsSummary[] {
   return [];
 }
@@ -139,6 +154,38 @@ export default async function DemoPage() {
           </p>
         </div>
       </div>
+
+      <section className="mt-8 rounded-lg border border-border bg-card p-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Guided comparison stories</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              After seeding the full evaluation demo, use these paths to show
+              reviewer correction and remediation impact.
+            </p>
+          </div>
+          <Link
+            href="/workflow-comparison"
+            className="mt-3 w-fit rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent sm:mt-0"
+          >
+            Open Compare
+          </Link>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          {guidedStories.map((story) => (
+            <Link
+              key={story.href}
+              href={story.href}
+              className="rounded-md border border-border bg-background p-4 transition-colors hover:bg-accent"
+            >
+              <span className="text-sm font-medium">{story.title}</span>
+              <span className="mt-1 block text-sm leading-6 text-muted-foreground">
+                {story.description}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         {demoCards.map((card) => (

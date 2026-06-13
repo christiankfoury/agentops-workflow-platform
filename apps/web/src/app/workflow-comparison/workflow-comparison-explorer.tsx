@@ -1,19 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  GitBranch,
+  RotateCcw,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { LocalDateTime } from "@/components/local-date-time";
 import { cn } from "@/lib/utils";
 import type {
   EvaluationComparison,
   EvaluationComparisonRun,
-  RemediationImpact,
   WorkflowType,
 } from "@/lib/types";
 import { createCorrectedRunAction } from "./actions";
 
-type QuickFilter = "all" | WorkflowType | "needs_review";
+type QuickFilter =
+  | "all"
+  | WorkflowType
+  | "needs_review"
+  | "reviewer_clean"
+  | "corrected"
+  | "mixed";
 type SortKey =
   | "accuracy"
   | "unsupported"
@@ -36,6 +50,22 @@ const quickFilters: { key: QuickFilter; label: string }[] = [
   { key: "customer_feedback", label: "Feedback" },
   { key: "incident_log", label: "Incidents" },
   { key: "needs_review", label: "Needs Review" },
+  { key: "reviewer_clean", label: "Reviewer Clean" },
+  { key: "corrected", label: "Corrected" },
+  { key: "mixed", label: "Mixed Outcome" },
+];
+
+const demoShortcuts = [
+  {
+    label: "Reviewer issue correction path",
+    search: "[Demo] Reviewer issue correction path",
+    hint: "Finds the case with an active reviewer issue and correction action.",
+  },
+  {
+    label: "Remediation impact showcase",
+    search: "[Demo] Remediation impact showcase",
+    hint: "Finds the case where the latest corrected run is compared to the previous run.",
+  },
 ];
 
 const sortOptions: { key: SortKey; label: string }[] = [
@@ -139,19 +169,57 @@ function hasSeriousReviewerIssue(issues: Record<string, unknown>[]): boolean {
   });
 }
 
-function formatIssue(issue: Record<string, unknown>): string {
-  const claim = typeof issue.claim === "string" ? issue.claim : "Reviewer issue";
-  const problem = typeof issue.problem === "string" ? issue.problem : "";
-  return problem ? `${claim}: ${problem}` : claim;
+function issueField(issue: Record<string, unknown>, field: string): string | null {
+  const value = issue[field];
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function hasReviewerIssues(comparison: EvaluationComparison): boolean {
+  return comparison.reviewer_issues.length > 0;
+}
+
+function isReviewerClean(comparison: EvaluationComparison): boolean {
+  return !hasReviewerIssues(comparison);
+}
+
+function isCorrectedComparison(comparison: EvaluationComparison): boolean {
+  return comparison.remediation_impact !== null;
+}
+
+function isMixedOutcome(comparison: EvaluationComparison): boolean {
+  const impact = comparison.remediation_impact;
+  if (impact) return impact.impact_status === "mixed";
+
+  const scores = comparisonScore(comparison);
+  const qualityImproved =
+    (scores.accuracy !== null && scores.accuracy > 0) ||
+    (scores.completeness !== null && scores.completeness > 0);
+  const trustWorsened = scores.unsupported !== null && scores.unsupported > 0;
+  return qualityImproved && trustWorsened;
+}
+
+function comparisonMatchesFilter(
+  comparison: EvaluationComparison,
+  filter: QuickFilter,
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "needs_review") return hasReviewerIssues(comparison);
+  if (filter === "reviewer_clean") return isReviewerClean(comparison);
+  if (filter === "corrected") return isCorrectedComparison(comparison);
+  if (filter === "mixed") return isMixedOutcome(comparison);
+  return comparison.workflow_type === filter;
 }
 
 function metricRows(comparison: EvaluationComparison) {
   return [
     {
-      label: "Factual Accuracy",
+      label: "Factual accuracy",
+      direction: "Higher is better",
       baseline: formatPercent(comparison.baseline.factual_accuracy),
       multiAgent: formatPercent(comparison.multi_agent.factual_accuracy),
-      delta: formatPercentDelta(
+      delta: formatQualityDelta(
         delta(
           comparison.baseline.factual_accuracy,
           comparison.multi_agent.factual_accuracy,
@@ -159,10 +227,11 @@ function metricRows(comparison: EvaluationComparison) {
       ),
     },
     {
-      label: "Unsupported Claims",
+      label: "Unsupported claim rate",
+      direction: "Lower is better",
       baseline: formatPercent(comparison.baseline.unsupported_claim_rate),
       multiAgent: formatPercent(comparison.multi_agent.unsupported_claim_rate),
-      delta: formatPercentDelta(
+      delta: formatUnsupportedDelta(
         delta(
           comparison.baseline.unsupported_claim_rate,
           comparison.multi_agent.unsupported_claim_rate,
@@ -171,9 +240,10 @@ function metricRows(comparison: EvaluationComparison) {
     },
     {
       label: "Completeness",
+      direction: "Higher is better",
       baseline: formatPercent(comparison.baseline.completeness_score),
       multiAgent: formatPercent(comparison.multi_agent.completeness_score),
-      delta: formatPercentDelta(
+      delta: formatQualityDelta(
         delta(
           comparison.baseline.completeness_score,
           comparison.multi_agent.completeness_score,
@@ -181,16 +251,18 @@ function metricRows(comparison: EvaluationComparison) {
       ),
     },
     {
-      label: "Cost",
+      label: "Estimated cost",
+      direction: "Tradeoff",
       baseline: formatCost(comparison.baseline.cost),
       multiAgent: formatCost(comparison.multi_agent.cost),
-      delta: formatSignedCost(comparison.cost_difference),
+      delta: formatCostDelta(comparison.cost_difference),
     },
     {
       label: "Latency",
+      direction: "Tradeoff",
       baseline: formatLatency(comparison.baseline.latency_ms),
       multiAgent: formatLatency(comparison.multi_agent.latency_ms),
-      delta: formatSignedLatency(comparison.latency_difference_ms),
+      delta: formatLatencyDelta(comparison.latency_difference_ms),
     },
   ];
 }
@@ -263,7 +335,7 @@ function MetricChip({
   positive?: boolean | null;
 }) {
   return (
-    <div className="rounded-md border border-border bg-background px-3 py-2">
+    <div className="min-w-0 rounded-md border border-border bg-background px-3 py-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">{label}</p>
         {context && (
@@ -274,7 +346,7 @@ function MetricChip({
       </div>
       <p
         className={cn(
-          "mt-1 text-sm font-semibold",
+          "mt-1 break-words text-sm font-semibold",
           positive === true && "text-emerald-700 dark:text-emerald-300",
           positive === false && "text-amber-700 dark:text-amber-300",
         )}
@@ -328,7 +400,109 @@ function SummaryCard({
   );
 }
 
-function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
+function ComparisonGuide() {
+  return (
+    <section className="rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <GitBranch size={17} className="text-primary" />
+            <h2 className="font-semibold">How to read this comparison</h2>
+          </div>
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
+            Each card pairs the latest completed single-agent baseline with the
+            latest completed multi-agent result for the same evaluation input.
+            Accuracy and completeness measure quality; unsupported claim rate
+            measures trust risk; cost and latency show the operational tradeoff.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3 lg:min-w-[33rem]">
+          <div className="rounded-md border border-border bg-background p-3">
+            <p className="font-medium">Quality metrics</p>
+            <p className="mt-1 text-muted-foreground">
+              Accuracy and completeness are better when higher.
+            </p>
+          </div>
+          <div className="rounded-md border border-border bg-background p-3">
+            <p className="font-medium">Trust risk</p>
+            <p className="mt-1 text-muted-foreground">
+              Unsupported claim rate is better when lower.
+            </p>
+          </div>
+          <div className="rounded-md border border-border bg-background p-3">
+            <p className="font-medium">Tradeoffs</p>
+            <p className="mt-1 text-muted-foreground">
+              Higher cost or latency can be acceptable if trust improves.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DemoShortcuts({ onSelect }: { onSelect: (search: string) => void }) {
+  return (
+    <section className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="flex items-center gap-2">
+        <Sparkles size={17} className="text-primary" />
+        <h2 className="font-semibold">Demo story shortcuts</h2>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {demoShortcuts.map((shortcut) => (
+          <button
+            key={shortcut.search}
+            type="button"
+            onClick={() => onSelect(shortcut.search)}
+            className="rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+          >
+            <span className="text-sm font-medium">{shortcut.label}</span>
+            <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+              {shortcut.hint}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function LineageStep({
+  title,
+  body,
+  href,
+  runId,
+}: {
+  title: string;
+  body: string;
+  href?: string;
+  runId?: string;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-background p-3">
+      <p className="text-sm font-medium">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{body}</p>
+      {href && runId && (
+        <Link
+          href={href}
+          className="mt-2 inline-flex items-center gap-1 font-mono text-xs text-primary underline hover:opacity-80"
+        >
+          {runId.slice(0, 8)}
+          <ExternalLink size={12} />
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function RemediationImpactPanel({
+  comparison,
+}: {
+  comparison: EvaluationComparison;
+}) {
+  const impact = comparison.remediation_impact;
+  if (!impact) return null;
+
   const unsupportedWorsened =
     impact.unsupported_claim_rate_delta !== null &&
     impact.unsupported_claim_rate_delta > 0;
@@ -357,31 +531,47 @@ function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
 
   return (
     <section className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold">Remediation impact</h3>
-            <Badge variant={statusVariant}>{statusLabel}</Badge>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">{summary}</p>
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <GitBranch size={17} className="text-primary" />
+          <h3 className="font-semibold">Remediation impact</h3>
+          <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs">
-          <Link
-            href={`/workflow-runs/${impact.previous_multi_agent_run_id}`}
-            className="font-mono text-primary underline hover:opacity-80"
-          >
-            previous {impact.previous_multi_agent_run_id.slice(0, 8)}
-          </Link>
-          <Link
-            href={`/workflow-runs/${impact.corrected_multi_agent_run_id}`}
-            className="font-mono text-primary underline hover:opacity-80"
-          >
-            corrected {impact.corrected_multi_agent_run_id.slice(0, 8)}
-          </Link>
-        </div>
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
+          {summary} This panel compares the corrected multi-agent run against
+          the previous multi-agent run. The baseline remains the same reference
+          point for the main comparison.
+        </p>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
+      <div className="mt-4 grid grid-cols-1 items-stretch gap-2 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
+        <LineageStep
+          title="Baseline stays fixed"
+          body="The single-agent baseline is not recreated during correction."
+          href={`/workflow-runs/${comparison.baseline.workflow_run_id}`}
+          runId={comparison.baseline.workflow_run_id}
+        />
+        <div className="hidden items-center justify-center text-muted-foreground lg:flex">
+          <ArrowRight size={18} />
+        </div>
+        <LineageStep
+          title="Previous multi-agent run"
+          body="This is the reviewed run whose issues supplied the correction guidance."
+          href={`/workflow-runs/${impact.previous_multi_agent_run_id}`}
+          runId={impact.previous_multi_agent_run_id}
+        />
+        <div className="hidden items-center justify-center text-muted-foreground lg:flex">
+          <ArrowRight size={18} />
+        </div>
+        <LineageStep
+          title="Corrected multi-agent run"
+          body="This is a new run. It does not mutate the original workflow output."
+          href={`/workflow-runs/${impact.corrected_multi_agent_run_id}`}
+          runId={impact.corrected_multi_agent_run_id}
+        />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
         <MetricChip
           label="Reviewer issues"
           context="vs previous run"
@@ -414,11 +604,15 @@ function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
           positive={qualityDirection(impact.completeness_score_delta)}
         />
         <MetricChip
-          label="Cost / Latency"
+          label="Cost"
           context="vs previous run"
-          value={`${formatCostDelta(impact.cost_delta)} / ${formatLatencyDelta(
-            impact.latency_delta_ms,
-          )}`}
+          value={formatCostDelta(impact.cost_delta)}
+          positive={null}
+        />
+        <MetricChip
+          label="Latency"
+          context="vs previous run"
+          value={formatLatencyDelta(impact.latency_delta_ms)}
           positive={null}
         />
       </div>
@@ -439,9 +633,10 @@ function OutputPanel({
         <h3 className="font-semibold">{title}</h3>
         <Link
           href={`/workflow-runs/${run.workflow_run_id}`}
-          className="font-mono text-xs text-primary underline hover:opacity-80"
+          className="inline-flex items-center gap-1 font-mono text-xs text-primary underline hover:opacity-80"
         >
           {run.workflow_run_id.slice(0, 8)}
+          <ExternalLink size={12} />
         </Link>
       </div>
       <div className="mt-3 max-h-80 overflow-auto rounded-lg border border-border bg-background p-4">
@@ -467,17 +662,21 @@ function CreateCorrectedRunForm({
       <input type="hidden" name="evaluation_case_id" value={evaluationCaseId} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium">Create a corrected multi-agent run</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Uses these reviewer issues as guidance, auto-runs the workflow, and
-            updates this comparison.
+          <p className="text-sm font-medium">
+            Create a new corrected multi-agent run
+          </p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
+            Keeps the baseline and original multi-agent run unchanged. The new
+            run uses these reviewer issues as correction guidance, then this
+            comparison shows corrected-vs-previous impact.
           </p>
         </div>
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
+          <RotateCcw size={16} />
           {pending ? "Creating..." : "Create corrected run"}
         </button>
       </div>
@@ -487,6 +686,83 @@ function CreateCorrectedRunForm({
         </p>
       )}
     </form>
+  );
+}
+
+function EvaluationRationale({
+  comparison,
+}: {
+  comparison: EvaluationComparison;
+}) {
+  return (
+    <section className="mt-5 rounded-lg border border-border bg-muted/30 p-4">
+      <h3 className="font-semibold">Evaluation rationale</h3>
+      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        These notes come from the persisted evaluation result for each run. They
+        explain why the deterministic benchmark gave the visible scores.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className="rounded-md border border-border bg-background p-3">
+          <p className="text-sm font-medium">Baseline scoring notes</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {comparison.baseline.judge_notes ||
+              "No evaluation notes were stored for the baseline run."}
+          </p>
+        </div>
+        <div className="rounded-md border border-border bg-background p-3">
+          <p className="text-sm font-medium">Multi-agent scoring notes</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {comparison.multi_agent.judge_notes ||
+              "No evaluation notes were stored for the multi-agent run."}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReviewerIssueCard({
+  issue,
+  index,
+}: {
+  issue: Record<string, unknown>;
+  index: number;
+}) {
+  const severity = issueSeverity(issue);
+  const claim = issueField(issue, "claim") ?? "Reviewer issue";
+  const problem =
+    issueField(issue, "problem") ??
+    "The reviewer recorded an issue, but did not include a detailed problem statement.";
+
+  return (
+    <li className="rounded-md border border-border bg-background p-3 text-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <p className="font-medium">Issue {index + 1}</p>
+        <span
+          className={cn(
+            "w-fit rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
+            severityClasses(severity),
+          )}
+        >
+          {severity ?? "unspecified"}
+        </span>
+      </div>
+
+      <dl className="mt-3 space-y-3">
+        <div>
+          <dt className="text-xs font-medium uppercase text-muted-foreground">
+            Reviewed claim
+          </dt>
+          <dd className="mt-1 leading-6">{claim}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium uppercase text-muted-foreground">
+            Why it matters
+          </dt>
+          <dd className="mt-1 leading-6 text-muted-foreground">{problem}</dd>
+        </div>
+      </dl>
+    </li>
   );
 }
 
@@ -504,14 +780,15 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
   return (
     <div className="mt-5 border-t border-border pt-5">
       {comparison.remediation_impact && (
-        <RemediationImpactPanel impact={comparison.remediation_impact} />
+        <RemediationImpactPanel comparison={comparison} />
       )}
 
-      <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="min-w-[760px] w-full text-left text-sm">
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Metric</th>
+              <th className="px-4 py-3">Direction</th>
               <th className="px-4 py-3 text-right">Baseline</th>
               <th className="px-4 py-3 text-right">Multi-Agent</th>
               <th className="px-4 py-3 text-right">Delta vs baseline</th>
@@ -521,6 +798,9 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
             {rows.map((row) => (
               <tr key={row.label} className="border-t border-border">
                 <td className="px-4 py-3 font-medium">{row.label}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {row.direction}
+                </td>
                 <td className="px-4 py-3 text-right">{row.baseline}</td>
                 <td className="px-4 py-3 text-right">{row.multiAgent}</td>
                 <td className="px-4 py-3 text-right">{row.delta}</td>
@@ -529,6 +809,8 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
           </tbody>
         </table>
       </div>
+
+      <EvaluationRationale comparison={comparison} />
 
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
         <OutputPanel title="Baseline Output" run={comparison.baseline} />
@@ -563,27 +845,13 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
           <div className="mt-3 space-y-3">
             <CreateCorrectedRunForm evaluationCaseId={comparison.evaluation_case_id} />
             <ul className="space-y-2">
-              {comparison.reviewer_issues.map((issue, index) => {
-                const severity = issueSeverity(issue);
-                return (
-                  <li
-                    key={`${comparison.evaluation_case_id}-${index}`}
-                    className="rounded-md border border-border bg-background p-3 text-sm"
-                  >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <p>{formatIssue(issue)}</p>
-                      <span
-                        className={cn(
-                          "w-fit rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
-                          severityClasses(severity),
-                        )}
-                      >
-                        {severity ?? "unspecified"}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
+              {comparison.reviewer_issues.map((issue, index) => (
+                <ReviewerIssueCard
+                  key={`${comparison.evaluation_case_id}-${index}`}
+                  issue={issue}
+                  index={index}
+                />
+              ))}
             </ul>
           </div>
         )}
@@ -606,6 +874,8 @@ function ComparisonCard({
   const seriousIssues = hasSeriousReviewerIssue(comparison.reviewer_issues);
   const better = isMultiAgentBetter(comparison);
   const higherCost = comparison.cost_difference > 0;
+  const corrected = isCorrectedComparison(comparison);
+  const mixed = isMixedOutcome(comparison);
 
   return (
     <section className="rounded-lg border border-border bg-card p-4">
@@ -613,8 +883,10 @@ function ComparisonCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{workflowLabels[comparison.workflow_type]}</Badge>
-            {better && <Badge variant="good">Multi-agent better</Badge>}
-            {higherCost && <Badge variant="warning">Higher cost</Badge>}
+            {better && <Badge variant="good">Quality gain</Badge>}
+            {corrected && <Badge variant="good">Corrected run</Badge>}
+            {mixed && <Badge variant="warning">Mixed outcome</Badge>}
+            {higherCost && <Badge variant="warning">Cost tradeoff</Badge>}
             {seriousIssues ? (
               <Badge variant="danger">Needs review</Badge>
             ) : hasIssues ? (
@@ -651,7 +923,7 @@ function ComparisonCard({
           positive={qualityDirection(scores.accuracy)}
         />
         <MetricChip
-          label="Unsupported"
+          label="Unsupported claim rate"
           context="vs baseline"
           value={formatUnsupportedDelta(scores.unsupported)}
           positive={unsupportedDirection(scores.unsupported)}
@@ -663,7 +935,7 @@ function ComparisonCard({
           positive={qualityDirection(scores.completeness)}
         />
         <MetricChip
-          label="Cost"
+          label="Estimated cost"
           context="vs baseline"
           value={formatCostDelta(comparison.cost_difference)}
           positive={comparison.cost_difference <= 0}
@@ -717,22 +989,22 @@ function SummaryHeader({ comparisons }: { comparisons: EvaluationComparison[] })
       <SummaryCard
         label="Avg Accuracy Delta"
         value={formatPercentDelta(accuracy)}
-        hint="positive favors multi-agent"
+        hint="higher favors multi-agent"
       />
       <SummaryCard
-        label="Avg Unsupported Delta"
+        label="Avg Unsupported Claim Delta"
         value={formatUnsupportedDelta(unsupported)}
         hint="lower is better"
       />
       <SummaryCard
         label="Avg Cost Delta"
         value={formatCostDelta(cost)}
-        hint="per comparison"
+        hint="tradeoff per comparison"
       />
       <SummaryCard
         label="Avg Latency Delta"
         value={formatLatencyDelta(latency)}
-        hint="per comparison"
+        hint="tradeoff per comparison"
       />
     </section>
   );
@@ -770,11 +1042,7 @@ export function WorkflowComparisonExplorer({
   const filteredComparisons = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return comparisons
-      .filter((comparison) => {
-        if (filter === "needs_review") return comparison.reviewer_issues.length > 0;
-        if (filter === "all") return true;
-        return comparison.workflow_type === filter;
-      })
+      .filter((comparison) => comparisonMatchesFilter(comparison, filter))
       .filter((comparison) => {
         if (!normalizedQuery) return true;
         const searchable = `${comparison.title} ${comparison.input_preview}`.toLowerCase();
@@ -808,7 +1076,15 @@ export function WorkflowComparisonExplorer({
 
   return (
     <div className="mt-6 space-y-5">
+      <ComparisonGuide />
       <SummaryHeader comparisons={comparisons} />
+      <DemoShortcuts
+        onSelect={(search) => {
+          setQuery(search);
+          setFilter("all");
+          setSort("title");
+        }}
+      />
 
       <section className="rounded-lg border border-border bg-card p-4">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
@@ -864,7 +1140,13 @@ export function WorkflowComparisonExplorer({
 
       {filteredComparisons.length === 0 ? (
         <section className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-          <p>No comparison results match the current filters.</p>
+          <h2 className="font-semibold text-foreground">
+            No comparison results match this view.
+          </h2>
+          <p className="mt-1">
+            Clear the filters or use a demo story shortcut to find the seeded
+            reviewer correction and remediation impact cases.
+          </p>
           <button
             type="button"
             onClick={() => {

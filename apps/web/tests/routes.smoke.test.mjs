@@ -57,6 +57,7 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/demo/page.tsx"), /Run Demo Feedback Workflow/);
   assert.match(read("src/app/demo/page.tsx"), /Run Demo Incident Workflow/);
   assert.match(read("src/app/demo/page.tsx"), /Run Full Evaluation/);
+  assert.match(read("src/app/demo/page.tsx"), /Guided comparison stories/);
   assert.match(read("src/app/demo/actions.ts"), /seedDemoDataset/);
   assert.match(read("src/app/agent-performance/page.tsx"), /Agent Performance Dashboard/);
   assert.match(read("src/app/agent-performance/page.tsx"), /getAgentPerformanceSummary/);
@@ -67,6 +68,42 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(
     read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
     /Reviewer Issues/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /How to read this comparison/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Unsupported claim rate is better when lower/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Demo story shortcuts/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Reviewer Clean/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Mixed Outcome/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Evaluation rationale/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Baseline stays fixed/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Reviewed claim/,
+  );
+  assert.match(
+    read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
+    /Keeps the baseline and original multi-agent run unchanged/,
   );
   assert.match(
     read("src/app/workflow-comparison/workflow-comparison-explorer.tsx"),
@@ -97,6 +134,10 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/run-reviewer-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/run-writer-form.tsx"), /useActionState/);
   assert.match(read("src/app/workflow-runs/[id]/create-evaluation-comparison-form.tsx"), /Compare This Run/);
+  assert.match(
+    read("src/app/workflow-runs/[id]/create-evaluation-comparison-form.tsx"),
+    /only\s+the\s+missing\s+baseline\s+or\s+multi-agent\s+side\s+is\s+created/s,
+  );
   assert.match(read("src/app/workflow-runs/[id]/cancel-workflow-form.tsx"), /Cancel Workflow/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createWorkflowRun/);
   assert.match(read("src/app/workflow-runs/new/actions.ts"), /createUploadedInput/);
@@ -132,6 +173,7 @@ test("workflow API client exposes workflow and uploaded input calls", () => {
   assert.match(api, /export async function listEvaluationResults/);
   assert.match(api, /export async function getEvaluationComparisons/);
   assert.match(api, /export async function createEvaluationComparisonFromRun/);
+  assert.match(api, /export async function createCorrectedEvaluationComparisonRun/);
   assert.match(api, /export async function seedDemoDataset/);
   assert.match(api, /export async function getAgentPerformanceSummary/);
   assert.match(api, /export async function listPromptVersions/);

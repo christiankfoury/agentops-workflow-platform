@@ -158,6 +158,7 @@ export interface EvaluationComparisonRun {
   factual_accuracy: number | null;
   unsupported_claim_rate: number | null;
   completeness_score: number | null;
+  judge_notes: string | null;
   cost: number;
   latency_ms: number;
   created_at: string;

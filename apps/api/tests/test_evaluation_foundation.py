@@ -74,6 +74,7 @@ def make_result(
     unsupported_claim_rate: float,
     completeness: float,
     created_at: datetime,
+    judge_notes: str = "Captured expected deterministic checks.",
     status: EvaluationRunStatus = EvaluationRunStatus.completed,
 ) -> EvaluationResult:
     return EvaluationResult(
@@ -85,6 +86,7 @@ def make_result(
         factual_accuracy=accuracy,
         unsupported_claim_rate=unsupported_claim_rate,
         completeness_score=completeness,
+        judge_notes=judge_notes,
         cost=run.total_cost,
         latency_ms=run.latency_ms,
         created_at=created_at,
@@ -197,8 +199,10 @@ def test_evaluation_comparison_uses_latest_completed_baseline_and_multi_agent_pa
     comparison = comparisons[0]
     assert comparison.baseline.final_output == "Latest baseline output"
     assert comparison.baseline.factual_accuracy == 0.6
+    assert comparison.baseline.judge_notes == "Captured expected deterministic checks."
     assert comparison.multi_agent.final_output == "Latest multi-agent output"
     assert comparison.multi_agent.factual_accuracy == 0.9
+    assert comparison.multi_agent.judge_notes == "Captured expected deterministic checks."
     assert comparison.reviewer_issues == [{"claim": "Unsupported uplift", "severity": "medium"}]
     assert comparison.cost_difference == pytest.approx(0.15)
     assert comparison.latency_difference_ms == 2000

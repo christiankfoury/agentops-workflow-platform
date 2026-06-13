@@ -22,7 +22,8 @@ export function CreateEvaluationComparisonForm({ runId }: { runId: string }) {
         {pending ? "Creating comparison..." : "Compare This Run"}
       </button>
       <p className="mt-2 text-xs text-muted-foreground">
-        Uses this completed run and creates only the missing comparison side.
+        Reuses this completed run. If the counterpart does not exist yet, only
+        the missing baseline or multi-agent side is created.
       </p>
       {state.error && (
         <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

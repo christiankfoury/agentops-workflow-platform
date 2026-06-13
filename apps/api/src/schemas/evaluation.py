@@ -70,6 +70,7 @@ class EvaluationComparisonRunRead(BaseModel):
     factual_accuracy: float | None
     unsupported_claim_rate: float | None
     completeness_score: float | None
+    judge_notes: str | None
     cost: float
     latency_ms: int
     created_at: datetime

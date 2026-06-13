@@ -102,6 +102,7 @@ def make_result(
     latency_ms: int,
     unsupported_claim_rate: float = 0.1,
     completeness_score: float = 0.8,
+    judge_notes: str = "Captured expected deterministic checks.",
     created_at: datetime | None = None,
 ) -> EvaluationResult:
     return EvaluationResult(
@@ -113,6 +114,7 @@ def make_result(
         factual_accuracy=factual_accuracy,
         unsupported_claim_rate=unsupported_claim_rate,
         completeness_score=completeness_score,
+        judge_notes=judge_notes,
         cost=cost,
         latency_ms=latency_ms,
         created_at=created_at or datetime.now(UTC),
@@ -235,8 +237,10 @@ def test_get_evaluation_comparisons_pairs_latest_completed_results():
     comparison = body[0]
     assert comparison["title"] == "Q1 sales retention risk"
     assert comparison["baseline"]["final_output"] == "Baseline summary"
+    assert comparison["baseline"]["judge_notes"] == "Captured expected deterministic checks."
     assert comparison["multi_agent"]["final_output"] == "Reviewed executive summary"
     assert comparison["multi_agent"]["factual_accuracy"] == 0.9
+    assert comparison["multi_agent"]["judge_notes"] == "Captured expected deterministic checks."
     assert comparison["baseline"]["created_at"] is not None
     assert comparison["multi_agent"]["created_at"] is not None
     assert comparison["reviewer_issues"][0]["severity"] == "high"
