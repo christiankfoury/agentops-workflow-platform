@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import {
   getHumanApproval,
   getUploadedInput,
@@ -214,8 +215,9 @@ function InputHygieneWarning({ rawText }: { rawText: string }) {
 
   return (
     <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-      Demo note: this input includes expected themes, which can make the run look
-      pre-answered. For recruiter demos, use only the source feedback.
+      Demo note: expected themes are useful for evaluation cases, but this
+      workflow input includes them as source text. For live recruiter demos,
+      paste only the customer feedback so the agent output is easier to trust.
     </p>
   );
 }
@@ -228,8 +230,8 @@ function ApprovalActionControls({
   isActionable: boolean;
 }) {
   return (
-    <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <form action={approveAction} className="lg:min-w-72">
+    <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+      <form action={approveAction}>
         <input type="hidden" name="approval_id" value={approval.id} />
         <input
           type="hidden"
@@ -244,7 +246,7 @@ function ApprovalActionControls({
           Approve
         </button>
       </form>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto">
+      <div className="contents">
         <form action={requestRetryAction}>
           <input type="hidden" name="approval_id" value={approval.id} />
           <input
@@ -293,33 +295,36 @@ function WorkflowLineage({
   return (
     <section className="mt-4 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-sm font-semibold">Workflow Lineage</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Waiting for reviewer-approved human decision
-          </p>
-        </div>
-      <ol className="flex flex-wrap items-center gap-2">
-        {steps.map((step, index) => {
-          const isCurrent = index === steps.length - 1;
-          return (
-            <li key={step} className="flex items-center gap-2">
-              <span
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-                  isCurrent
-                    ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
-                }`}
-              >
-                {step} <span className="text-xs">{isCurrent ? currentStatus : "Complete"}</span>
-              </span>
-              {index < steps.length - 1 && (
-                <span className="hidden text-muted-foreground sm:inline">{"->"}</span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+        <h2 className="text-sm font-semibold">Workflow Lineage</h2>
+        <ol className="flex flex-wrap items-center gap-2">
+          {steps.map((step, index) => {
+            const isCurrent = index === steps.length - 1;
+            return (
+              <li key={step} className="flex items-center gap-2">
+                <span
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+                    isCurrent
+                      ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
+                  }`}
+                >
+                  {step}{" "}
+                  <span className="text-xs">
+                    {isCurrent ? currentStatus : "Complete"}
+                  </span>
+                </span>
+                {index < steps.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="hidden h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-muted-foreground sm:inline-flex"
+                  >
+                    <ArrowRight size={14} strokeWidth={2.25} />
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );
@@ -341,9 +346,9 @@ function EvidenceList({
   if (items.length === 0) return null;
 
   return (
-    <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+    <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
       {items.map((item) => (
-        <li key={item} className="rounded-md bg-muted px-3 py-2">
+        <li key={item} className="rounded-md bg-muted px-3 py-1.5">
           {item}
         </li>
       ))}
@@ -368,9 +373,9 @@ function InsightList({
   }
 
   return (
-    <ul className="space-y-2 text-sm">
+    <ul className="space-y-1.5 text-sm">
       {items.map((item) => (
-        <li key={item} className="rounded-md bg-muted px-3 py-2">
+        <li key={item} className="rounded-md bg-muted px-3 py-1.5">
           {item}
         </li>
       ))}
@@ -397,34 +402,34 @@ function CustomerFeedbackBriefing({
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="rounded-lg border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-3">
           <h3 className="font-semibold">Top Insights</h3>
-          <div className="mt-3">
+          <div className="mt-2">
             <InsightList
               emptyText="No top insights were extracted."
               items={asStringArray(analysis.top_insights)}
             />
           </div>
         </article>
-        <article className="rounded-lg border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-3">
           <h3 className="font-semibold">Customer Pain Points</h3>
-          <div className="mt-3">
+          <div className="mt-2">
             <InsightList
               emptyText="No customer pain points were extracted."
               items={asStringArray(analysis.customer_pain_points)}
             />
           </div>
         </article>
-        <article className="rounded-lg border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-3">
           <h3 className="font-semibold">Risks</h3>
-          <div className="mt-3">
+          <div className="mt-2">
             <InsightList
               emptyText="No risks were extracted."
               items={asStringArray(analysis.risks)}
             />
           </div>
         </article>
-        <article className="rounded-lg border border-border bg-card p-4">
+        <article className="rounded-lg border border-border bg-card p-3">
           <h3 className="font-semibold">Feature Requests</h3>
           {featureRequests.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
@@ -475,12 +480,12 @@ function CustomerFeedbackBriefing({
               return (
                 <article
                   key={`${title}-${index}`}
-                  className="rounded-lg border border-border bg-card p-4"
+                  className="rounded-lg border border-border bg-card p-3"
                 >
                   <p className="text-xs font-medium uppercase text-muted-foreground">
                     {priority}
                   </p>
-                  <p className="mt-2 font-medium">{title}</p>
+                  <p className="mt-2 text-sm font-medium">{title}</p>
                   {rationale && (
                     <p className="mt-2 text-sm text-muted-foreground">
                       {rationale}
@@ -573,10 +578,10 @@ function ReviewerCheckSummary({
       passed: !retryRecommended,
     },
     {
-      label: "Human approval required",
+      label: "Current gate",
       value:
         approval.status === "pending" && workflowStatus === "waiting_for_human"
-          ? "Yes"
+          ? "Human approval"
           : "No",
       passed:
         approval.status === "pending" && workflowStatus === "waiting_for_human",
@@ -723,11 +728,14 @@ function ApprovalMetadata({
   ];
 
   return (
-    <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-border pt-4 text-sm lg:grid-cols-4">
+    <dl className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4 text-sm">
       {items.map(([label, value]) => (
-        <div key={String(label)}>
-          <dt className="text-xs text-muted-foreground">{label}</dt>
-          <dd className="mt-1 font-medium">{value}</dd>
+        <div
+          key={String(label)}
+          className="rounded-full border border-border bg-muted px-3 py-1.5"
+        >
+          <dt className="inline text-xs text-muted-foreground">{label}: </dt>
+          <dd className="inline font-medium">{value}</dd>
         </div>
       ))}
     </dl>
