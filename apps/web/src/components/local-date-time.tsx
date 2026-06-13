@@ -7,20 +7,24 @@ function parseApiDateTime(value: string): Date {
   return new Date(hasTimezone ? value : `${value}Z`);
 }
 
+function formatApiDateTime(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "short",
+    timeStyle: "medium",
+  }).format(parseApiDateTime(value));
+}
+
 export function LocalDateTime({ value }: { value: string | null }) {
-  const [formatted, setFormatted] = useState<string | null>(null);
+  const [formatted, setFormatted] = useState<string | null>(() =>
+    value ? formatApiDateTime(value) : null,
+  );
 
   useEffect(() => {
     if (!value) {
       setFormatted("-");
       return;
     }
-    setFormatted(
-      new Intl.DateTimeFormat(undefined, {
-        dateStyle: "short",
-        timeStyle: "medium",
-      }).format(parseApiDateTime(value)),
-    );
+    setFormatted(formatApiDateTime(value));
   }, [value]);
 
   if (!value) return <span>-</span>;

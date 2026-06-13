@@ -5,14 +5,20 @@ import { createEvaluationComparisonAction } from "./actions";
 
 const initialState = { error: null };
 
-export function CreateEvaluationComparisonForm({ runId }: { runId: string }) {
+export function CreateEvaluationComparisonForm({
+  compact = false,
+  runId,
+}: {
+  compact?: boolean;
+  runId: string;
+}) {
   const [state, formAction, pending] = useActionState(
     createEvaluationComparisonAction,
     initialState,
   );
 
   return (
-    <form action={formAction} className="mt-4">
+    <form action={formAction} className={compact ? "" : "mt-4"}>
       <input type="hidden" name="run_id" value={runId} />
       <button
         type="submit"
@@ -21,10 +27,12 @@ export function CreateEvaluationComparisonForm({ runId }: { runId: string }) {
       >
         {pending ? "Creating comparison..." : "Compare This Run"}
       </button>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Reuses this completed run. If the counterpart does not exist yet, only
-        the missing baseline or multi-agent side is created.
-      </p>
+      {!compact && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Reuses this completed run. If the counterpart does not exist yet, only
+          the missing baseline or multi-agent side is created.
+        </p>
+      )}
       {state.error && (
         <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {state.error}

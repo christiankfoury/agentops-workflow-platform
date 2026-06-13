@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
+import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
 import { LocalDateTime } from "@/components/local-date-time";
 import {
   getUploadedInput,
@@ -26,6 +28,44 @@ function formatLatency(value: number | null): string {
 
 function formatCost(value: number | null): string {
   return value != null ? `$${value.toFixed(6)}` : "-";
+}
+
+function formatQuality(value: number | null): string {
+  return value != null ? `${Math.round(value * 100)}%` : "-";
+}
+
+function formatWorkflowType(value: string): string {
+  const labels: Record<string, string> = {
+    sales_report: "Sales report",
+    customer_feedback: "Customer feedback",
+    incident_log: "Incident log",
+  };
+  return labels[value] ?? value.replaceAll("_", " ");
+}
+
+function formatRunMode(value: string): string {
+  const labels: Record<string, string> = {
+    multi_agent: "Multi-agent",
+    baseline: "Baseline",
+  };
+  return labels[value] ?? value.replaceAll("_", " ");
+}
+
+function formatRunStatus(value: string): string {
+  const labels: Record<string, string> = {
+    created: "Created",
+    running: "Running",
+    routing: "Routing",
+    analyst_running: "Analyst running",
+    reviewer_running: "Reviewer running",
+    retrying: "Retrying",
+    waiting_for_human: "Waiting for human approval",
+    writer_running: "Writer running",
+    completed: "Completed",
+    failed: "Failed",
+    cancelled: "Cancelled",
+  };
+  return labels[value] ?? value.replaceAll("_", " ");
 }
 
 function formatTokens(step: AgentStep): string {
@@ -116,6 +156,96 @@ function hasHumanApprovedEvent(events: WorkflowEvent[]): boolean {
   return events.some((event) => event.event_type === "human_approved");
 }
 
+function hasEvent(events: WorkflowEvent[], eventType: WorkflowEvent["event_type"]): boolean {
+  return events.some((event) => event.event_type === eventType);
+}
+
+function getWorkflowLineage(workflowType: string): string[] {
+  if (workflowType === "customer_feedback") {
+    return ["Classifier", "Insight Agent", "Reviewer", "Human Approval", "Writer"];
+  }
+  if (workflowType === "incident_log") {
+    return ["Timeline", "Root Cause", "Reviewer", "Human Approval", "Writer"];
+  }
+  return ["Analyst", "Reviewer", "Human Approval", "Writer"];
+}
+
+function getAgentContribution(step: AgentStep): string {
+  const output = step.output_json ?? {};
+  if (step.agent_type === "classifier") {
+    const themes = Array.isArray(output.themes) ? output.themes.length : 0;
+    const bugReports = Array.isArray(output.bug_reports)
+      ? output.bug_reports.length
+      : 0;
+    return `Grouped source feedback into ${themes} theme${themes === 1 ? "" : "s"} and ${bugReports} bug report${bugReports === 1 ? "" : "s"}.`;
+  }
+  if (step.agent_type === "insight") {
+    const recommendations = Array.isArray(output.recommendations)
+      ? output.recommendations.length
+      : 0;
+    return `Generated ${recommendations} evidence-backed recommendation${recommendations === 1 ? "" : "s"} for product review.`;
+  }
+  if (step.agent_type === "reviewer") {
+    const issues = Array.isArray(output.issues) ? output.issues.length : 0;
+    const approved = output.approved === true ? "approved" : "reviewed";
+    return `Reviewer ${approved} factual support with ${issues} blocking issue${issues === 1 ? "" : "s"}.`;
+  }
+  if (step.agent_type === "writer") {
+    return "Produced the final business report from reviewed workflow analysis.";
+  }
+  if (step.agent_type === "analyst") {
+    return "Extracted structured findings, risks, recommendations, and evidence.";
+  }
+  if (step.agent_type === "baseline") {
+    return "Generated the single-agent baseline output for comparison.";
+  }
+  return "Completed this workflow step and recorded trace data.";
+}
+
+function inputIncludesExpectedThemes(rawText: string): boolean {
+  return rawText.toLowerCase().includes("expected themes:");
+}
+
+function MetricCell({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function MetricGroup({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ExpandAffordance({ label = "Expand details" }: { label?: string }) {
+  return (
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors group-open:bg-muted group-hover:bg-muted">
+      {label}
+      <ChevronDown
+        aria-hidden="true"
+        className="h-4 w-4 transition-transform group-open:rotate-180"
+      />
+    </span>
+  );
+}
+
 function RecoverySummary({
   status,
   messages,
@@ -135,6 +265,195 @@ function RecoverySummary({
       <ul className="mt-3 space-y-2 text-sm text-destructive">
         {messages.map((message) => (
           <li key={message}>{message}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function WorkflowLineage({
+  status,
+  workflowType,
+}: {
+  status: string;
+  workflowType: string;
+}) {
+  const steps = getWorkflowLineage(workflowType);
+  const isCompleted = status === "completed";
+
+  return (
+    <section className="mt-4 rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <h2 className="text-sm font-semibold">Workflow Lineage</h2>
+        <ol className="flex flex-wrap items-center gap-2">
+          {steps.map((step, index) => {
+            const isFinalStep = index === steps.length - 1;
+            const tone =
+              isCompleted || !isFinalStep
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
+                : "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200";
+            const stepStatus = isCompleted || !isFinalStep ? "Complete" : formatRunStatus(status);
+
+            return (
+              <li key={step} className="flex items-center gap-2">
+                <span
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium ${tone}`}
+                >
+                  {step} <span className="text-xs">{stepStatus}</span>
+                </span>
+                {index < steps.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="hidden h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-muted-foreground sm:inline-flex"
+                  >
+                    <ArrowRight size={14} strokeWidth={2.25} />
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function CompletedRunSummary({
+  canCreateEvaluationComparison,
+  runId,
+  status,
+}: {
+  canCreateEvaluationComparison: boolean;
+  runId: string;
+  status: string;
+}) {
+  const isCompleted = status === "completed";
+
+  return (
+    <section className="mt-6 rounded-lg border border-border bg-card p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase text-muted-foreground">
+            Run outcome
+          </p>
+          <h2 className="mt-2 text-xl font-semibold">
+            {isCompleted
+              ? "Workflow completed. Final report is ready."
+              : `Workflow is ${formatRunStatus(status).toLowerCase()}.`}
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+            Review the business output first, then expand source input, event
+            logs, and agent JSON when you need trace details.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+          {isCompleted && (
+            <Link
+              href={`/workflow-runs/${runId}/final-output`}
+              className="rounded-md bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              View Final Output
+            </Link>
+          )}
+          {canCreateEvaluationComparison && (
+            <CreateEvaluationComparisonForm compact runId={runId} />
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CompactMetricStrip({
+  completedAt,
+  createdAt,
+  latency,
+  mode,
+  qualityScore,
+  retryCount,
+  status,
+  tokens,
+  totalCost,
+  type,
+}: {
+  completedAt: string | null;
+  createdAt: string;
+  latency: number | null;
+  mode: string;
+  qualityScore: number | null;
+  retryCount: number;
+  status: string;
+  tokens: number | null;
+  totalCost: number | null;
+  type: string;
+}) {
+  return (
+    <section className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1.2fr]">
+      <MetricGroup title="Run">
+        <MetricCell label="Status" value={formatRunStatus(status)} />
+        <MetricCell label="Workflow" value={formatWorkflowType(type)} />
+        <MetricCell label="Mode" value={formatRunMode(mode)} />
+        <MetricCell label="Retries" value={String(retryCount)} />
+      </MetricGroup>
+      <MetricGroup title="Performance">
+        <MetricCell label="Quality" value={formatQuality(qualityScore)} />
+        <MetricCell label="Latency" value={formatLatency(latency)} />
+        <MetricCell label="Cost" value={formatCost(totalCost)} />
+        <MetricCell
+          label="Tokens"
+          value={tokens != null ? tokens.toLocaleString() : "-"}
+        />
+      </MetricGroup>
+      <MetricGroup title="Timing">
+        <MetricCell label="Created" value={<LocalDateTime value={createdAt} />} />
+        <MetricCell
+          label="Completed"
+          value={completedAt ? <LocalDateTime value={completedAt} /> : "-"}
+        />
+      </MetricGroup>
+    </section>
+  );
+}
+
+function OutcomeSummary({
+  agentSteps,
+  events,
+  hasFinalOutput,
+  usedHumanApprovedAnalysis,
+}: {
+  agentSteps: AgentStep[];
+  events: WorkflowEvent[];
+  hasFinalOutput: boolean;
+  usedHumanApprovedAnalysis: boolean;
+}) {
+  const reviewerStep = agentSteps
+    .filter((step) => step.agent_type === "reviewer" && step.status === "completed")
+    .at(-1);
+  const reviewerOutput = reviewerStep?.output_json ?? {};
+  const issues = Array.isArray(reviewerOutput.issues)
+    ? reviewerOutput.issues.length
+    : 0;
+  const items = [
+    hasFinalOutput ? "Final report generated" : "Final report not generated yet",
+    usedHumanApprovedAnalysis
+      ? "Writer used reviewed human-approved analysis"
+      : "Writer approval trace not recorded",
+    hasEvent(events, "human_approved")
+      ? "Human approval completed"
+      : "Human approval pending or not required",
+    issues === 0
+      ? "Reviewer found no blocking issues"
+      : `Reviewer found ${issues} issue${issues === 1 ? "" : "s"}`,
+  ];
+
+  return (
+    <section className="mt-4 rounded-lg border border-border bg-card p-4">
+      <h2 className="text-sm font-semibold">Outcome Summary</h2>
+      <ul className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+        {items.map((item) => (
+          <li key={item} className="rounded-md bg-muted px-3 py-2">
+            {item}
+          </li>
         ))}
       </ul>
     </section>
@@ -168,69 +487,90 @@ function WorkflowEventTimeline({
   steps: AgentStep[];
 }) {
   const stepsById = new Map(steps.map((step) => [step.id, step]));
+  const hasAgentTrace = steps.length > 0;
 
   return (
     <section className="mt-6">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <h2 className="text-lg font-semibold">Observability Timeline</h2>
-        <p className="text-sm text-muted-foreground">
-          {events.length} {events.length === 1 ? "event" : "events"}
-        </p>
-      </div>
-
       {events.length === 0 ? (
-        <div className="mt-3 rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
-          No workflow events have been recorded for this workflow run yet.
+        <div className="rounded-lg border border-dashed border-border p-5">
+          <h2 className="text-lg font-semibold">Observability Timeline</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {hasAgentTrace
+              ? "No event log rows were recorded for this seeded or imported run. The agent step timeline below still shows the execution trace, costs, latency, prompt versions, and outputs."
+              : "No workflow events have been recorded for this workflow run yet."}
+          </p>
         </div>
       ) : (
-        <ol className="mt-4 space-y-4">
-          {events.map((event, index) => {
-            const agentName = getEventAgentName(event, stepsById);
-            return (
-              <li key={event.id} className="relative pl-8">
-                {index < events.length - 1 && (
-                  <div className="absolute left-2 top-2 h-full w-px bg-border" />
-                )}
-                <div className="absolute left-0 top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium">
-                  {index + 1}
-                </div>
-                <article className="rounded-lg border border-border bg-card p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h3 className="font-semibold">{event.message}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        <LocalDateTime value={event.created_at} />
-                        {agentName ? ` - ${agentName}` : ""}
-                      </p>
-                    </div>
-                    <span
-                      className={`w-fit rounded-full border px-2.5 py-1 text-xs font-medium ${getEventClass(
-                        event.event_type,
-                      )}`}
-                    >
-                      {formatEventType(event.event_type)}
-                    </span>
-                  </div>
-
-                  {event.error_message && (
-                    <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                      {event.error_message}
-                    </p>
+        <details className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40">
+          <summary className="cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Observability Timeline</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Expand to inspect workflow events, timestamps, and metadata.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <p className="text-sm text-muted-foreground">
+                  {events.length} {events.length === 1 ? "event" : "events"}
+                </p>
+                <ExpandAffordance />
+              </div>
+            </div>
+          </summary>
+          <ol className="mt-4 space-y-4">
+            {events.map((event, index) => {
+              const agentName = getEventAgentName(event, stepsById);
+              return (
+                <li key={event.id} className="relative pl-8">
+                  {index < events.length - 1 && (
+                    <div className="absolute left-2 top-2 h-full w-px bg-border" />
                   )}
+                  <div className="absolute left-0 top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium">
+                    {index + 1}
+                  </div>
+                  <article className="rounded-lg border border-border bg-card p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold">{event.message}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          <LocalDateTime value={event.created_at} />
+                          {agentName ? ` - ${agentName}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`w-fit rounded-full border px-2.5 py-1 text-xs font-medium ${getEventClass(
+                          event.event_type,
+                        )}`}
+                      >
+                        {formatEventType(event.event_type)}
+                      </span>
+                    </div>
 
-                  <details className="mt-4">
-                    <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
-                      Metadata
-                    </summary>
-                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
-                      {formatMetadata(event.metadata_json)}
-                    </pre>
-                  </details>
-                </article>
-              </li>
-            );
-          })}
-        </ol>
+                    {event.error_message && (
+                      <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                        {event.error_message}
+                      </p>
+                    )}
+
+                    <details className="group mt-4">
+                      <summary className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted">
+                        Metadata
+                        <ChevronDown
+                          aria-hidden="true"
+                          className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
+                        />
+                      </summary>
+                      <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
+                        {formatMetadata(event.metadata_json)}
+                      </pre>
+                    </details>
+                  </article>
+                </li>
+              );
+            })}
+          </ol>
+        </details>
       )}
     </section>
   );
@@ -239,109 +579,126 @@ function WorkflowEventTimeline({
 function AgentStepTimeline({ steps }: { steps: AgentStep[] }) {
   return (
     <section className="mt-6">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <h2 className="text-lg font-semibold">Agent Step Timeline</h2>
-        <p className="text-sm text-muted-foreground">
-          {steps.length} {steps.length === 1 ? "step" : "steps"}
-        </p>
-      </div>
-
       {steps.length === 0 ? (
-        <div className="mt-3 rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
           No agent steps have been recorded for this workflow run yet.
         </div>
       ) : (
-        <ol className="mt-4 space-y-4">
-          {steps.map((step, index) => (
-            <li key={step.id} className="relative pl-8">
-              {index < steps.length - 1 && (
-                <div className="absolute left-2 top-2 h-full w-px bg-border" />
-              )}
-              <div className="absolute left-0 top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium">
-                {step.step_order}
+        <details className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40">
+          <summary className="cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Agent Step Timeline</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Expand to inspect per-agent cost, latency, prompt version, and JSON.
+                </p>
               </div>
-              <article className="rounded-lg border border-border bg-card p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h3 className="font-semibold">{step.agent_name}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {step.agent_type}
-                    </p>
-                  </div>
-                  <span
-                    className={`w-fit rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClass(
-                      step.status,
-                    )}`}
-                  >
-                    {step.status}
-                  </span>
-                </div>
-
-                <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Started</dt>
-                    <dd className="mt-1 font-medium">
-                      <LocalDateTime value={step.created_at} />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Completed</dt>
-                    <dd className="mt-1 font-medium">
-                      <LocalDateTime value={step.completed_at} />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Latency</dt>
-                    <dd className="mt-1 font-medium">
-                      {formatLatency(step.latency_ms)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Model</dt>
-                    <dd className="mt-1 font-medium">{step.model ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Tokens</dt>
-                    <dd className="mt-1 font-medium">{formatTokens(step)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Cost</dt>
-                    <dd className="mt-1 font-medium">
-                      {formatCost(step.cost)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Retry Count</dt>
-                    <dd className="mt-1 font-medium">{step.retry_count}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">
-                      Prompt Version
-                    </dt>
-                    <dd className="mt-1 truncate font-mono text-xs">
-                      {step.prompt_version_id ?? "-"}
-                    </dd>
-                  </div>
-                </dl>
-
-                {step.error_message && (
-                  <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                    {step.error_message}
-                  </p>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <p className="text-sm text-muted-foreground">
+                  {steps.length} {steps.length === 1 ? "step" : "steps"}
+                </p>
+                <ExpandAffordance />
+              </div>
+            </div>
+          </summary>
+          <ol className="mt-4 space-y-4">
+            {steps.map((step, index) => (
+              <li key={step.id} className="relative pl-8">
+                {index < steps.length - 1 && (
+                  <div className="absolute left-2 top-2 h-full w-px bg-border" />
                 )}
-
-                <div className="mt-4">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Output Preview
-                  </p>
-                  <pre className="mt-2 max-h-80 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
-                    {getOutputPreview(step)}
-                  </pre>
+                <div className="absolute left-0 top-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[10px] font-medium">
+                  {step.step_order}
                 </div>
-              </article>
-            </li>
-          ))}
-        </ol>
+                <article className="rounded-lg border border-border bg-card p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="font-semibold">{step.agent_name}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {getAgentContribution(step)}
+                      </p>
+                    </div>
+                    <span
+                      className={`w-fit rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClass(
+                        step.status,
+                      )}`}
+                    >
+                      {step.status}
+                    </span>
+                  </div>
+
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Latency</dt>
+                      <dd className="mt-1 font-medium">
+                        {formatLatency(step.latency_ms)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Model</dt>
+                      <dd className="mt-1 truncate font-medium">{step.model ?? "-"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Tokens</dt>
+                      <dd className="mt-1 font-medium">{formatTokens(step)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Cost</dt>
+                      <dd className="mt-1 font-medium">{formatCost(step.cost)}</dd>
+                    </div>
+                  </dl>
+
+                  {step.error_message && (
+                    <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                      {step.error_message}
+                    </p>
+                  )}
+
+                  <details className="group mt-4 rounded-md border border-border bg-muted p-3">
+                    <summary className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted">
+                      View agent JSON and prompt metadata
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
+                      />
+                    </summary>
+                    <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Started</dt>
+                        <dd className="mt-1 font-medium">
+                          <LocalDateTime value={step.created_at} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Completed</dt>
+                        <dd className="mt-1 font-medium">
+                          <LocalDateTime value={step.completed_at} />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">
+                          Retry Count
+                        </dt>
+                        <dd className="mt-1 font-medium">{step.retry_count}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">
+                          Prompt Version
+                        </dt>
+                        <dd className="mt-1 truncate font-mono text-xs">
+                          {step.prompt_version_id ?? "-"}
+                        </dd>
+                      </div>
+                    </dl>
+                    <pre className="mt-3 max-h-80 overflow-auto rounded-md bg-background p-3 text-sm whitespace-pre-wrap">
+                      {getOutputPreview(step)}
+                    </pre>
+                  </details>
+                </article>
+              </li>
+            ))}
+          </ol>
+        </details>
       )}
     </section>
   );
@@ -462,41 +819,14 @@ export default async function WorkflowRunDetailPage({
   const usedHumanApprovedAnalysis =
     run.final_output !== null && hasHumanApprovedEvent(workflowEvents);
 
-  const fields = [
-    { label: "Status", value: run.status },
-    { label: "Type", value: run.workflow_type },
-    { label: "Mode", value: run.run_mode },
-    { label: "Retry Count", value: String(run.retry_count) },
-    {
-      label: "Quality Score",
-      value: run.quality_score != null ? String(run.quality_score) : "-",
-    },
-    {
-      label: "Total Cost",
-      value: run.total_cost != null ? `$${run.total_cost.toFixed(6)}` : "-",
-    },
-    {
-      label: "Total Tokens",
-      value: run.total_tokens != null ? String(run.total_tokens) : "-",
-    },
-    {
-      label: "Latency",
-      value: run.latency_ms != null ? `${run.latency_ms}ms` : "-",
-    },
-    { label: "Created", value: <LocalDateTime value={run.created_at} /> },
-    {
-      label: "Completed",
-      value: <LocalDateTime value={run.completed_at} />,
-    },
-  ];
-
   return (
     <div>
       <Link
         href="/workflow-runs"
-        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        {"<-"} Workflow Runs
+        <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+        Workflow Runs
       </Link>
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight">Workflow Run</h1>
@@ -516,17 +846,6 @@ export default async function WorkflowRunDetailPage({
 
       {canRunWriter && <RunWriterForm runId={run.id} />}
 
-      {run.final_output && (
-        <div className="mt-4">
-          <Link
-            href={`/workflow-runs/${run.id}/final-output`}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            View Final Output
-          </Link>
-        </div>
-      )}
-
       {pendingApproval && (
         <div className="mt-4">
           <Link
@@ -538,49 +857,100 @@ export default async function WorkflowRunDetailPage({
         </div>
       )}
 
-      {canCreateEvaluationComparison && (
-        <CreateEvaluationComparisonForm runId={run.id} />
-      )}
-
       {canCancelWorkflow && <CancelWorkflowForm runId={run.id} />}
 
       <RecoverySummary status={run.status} messages={recoveryMessages} />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {fields.map(({ label, value }) => (
-          <div
-            key={label}
-            className="rounded-lg border border-border bg-card p-4"
-          >
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 font-medium">{value}</p>
-          </div>
-        ))}
-      </div>
+      <CompletedRunSummary
+        canCreateEvaluationComparison={canCreateEvaluationComparison}
+        runId={run.id}
+        status={run.status}
+      />
 
-      {uploadedInput && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">Input</h2>
-          <div className="mt-2 rounded-lg border border-border bg-card p-4">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-              <div>
-                <p className="font-medium">{uploadedInput.title}</p>
-                {uploadedInput.notes && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {uploadedInput.notes}
-                  </p>
-                )}
-              </div>
-              {uploadedInput.file_name && (
-                <p className="text-xs text-muted-foreground">
-                  {uploadedInput.file_name}
+      <CompactMetricStrip
+        completedAt={run.completed_at}
+        createdAt={run.created_at}
+        latency={run.latency_ms}
+        mode={run.run_mode}
+        qualityScore={run.quality_score}
+        retryCount={run.retry_count}
+        status={run.status}
+        tokens={run.total_tokens}
+        totalCost={run.total_cost}
+        type={run.workflow_type}
+      />
+
+      <WorkflowLineage status={run.status} workflowType={run.workflow_type} />
+
+      <OutcomeSummary
+        agentSteps={agentSteps}
+        events={workflowEvents}
+        hasFinalOutput={run.final_output !== null}
+        usedHumanApprovedAnalysis={usedHumanApprovedAnalysis}
+      />
+
+      {run.final_output && (
+        <section className="mt-6 rounded-lg border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Final Output Preview</h2>
+              {usedHumanApprovedAnalysis && (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Writer output generated after human approval, using the
+                  reviewed analysis as the source of truth.
                 </p>
               )}
             </div>
+            <Link
+              href={`/workflow-runs/${run.id}/final-output`}
+              className="w-fit rounded-md border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Open full report
+            </Link>
+          </div>
+          <pre className="mt-4 max-h-72 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
+            {run.final_output}
+          </pre>
+        </section>
+      )}
+
+      {uploadedInput && (
+        <section className="mt-6">
+          {inputIncludesExpectedThemes(uploadedInput.raw_text) && (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+              Demo note: this stored input includes expected themes. That is
+              useful for evaluation cases, but live recruiter demos are more
+              trustworthy when the workflow input contains only source feedback.
+            </p>
+          )}
+          <details className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-muted-foreground/40">
+            <summary className="cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Source Input</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {uploadedInput.title}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:items-end">
+                  {uploadedInput.file_name && (
+                    <p className="text-xs text-muted-foreground">
+                      {uploadedInput.file_name}
+                    </p>
+                  )}
+                  <ExpandAffordance label="View source" />
+                </div>
+              </div>
+            </summary>
+            {uploadedInput.notes && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {uploadedInput.notes}
+              </p>
+            )}
             <pre className="mt-4 max-h-96 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
               {uploadedInput.raw_text}
             </pre>
-          </div>
+          </details>
         </section>
       )}
 
@@ -597,21 +967,6 @@ export default async function WorkflowRunDetailPage({
       <WorkflowEventTimeline events={workflowEvents} steps={agentSteps} />
 
       <AgentStepTimeline steps={agentSteps} />
-
-      {run.final_output && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold">Final Output</h2>
-          {usedHumanApprovedAnalysis && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Writer output generated after human approval, using the reviewed
-              analysis as the source of truth.
-            </p>
-          )}
-          <pre className="mt-2 rounded-lg border border-border bg-muted p-4 text-sm whitespace-pre-wrap">
-            {run.final_output}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }

@@ -16,7 +16,14 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /listHumanApprovals/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Observability Timeline/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /RecoverySummary/);
-  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /human approval, using the reviewed/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Workflow completed\. Final report is ready\./);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /CompactMetricStrip/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Workflow Lineage/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /ArrowRight/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Outcome Summary/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Final Output Preview/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /Writer output generated after human approval/);
+  assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /seeded or imported run/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /final-output/);
   assert.match(read("src/app/workflow-runs/[id]/page.tsx"), /CreateEvaluationComparisonForm/);
   assert.match(read("src/app/workflow-runs/[id]/final-output/page.tsx"), /Final Executive Summary/);
