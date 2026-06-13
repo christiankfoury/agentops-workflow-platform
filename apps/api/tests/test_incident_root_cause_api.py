@@ -39,8 +39,13 @@ TIMELINE_OUTPUT = {
 
 
 class FakeRootCauseLLMClient:
-    def __init__(self, invalid_output: bool = False) -> None:
+    def __init__(
+        self,
+        invalid_output: bool = False,
+        output_data: dict[str, Any] | None = None,
+    ) -> None:
         self.invalid_output = invalid_output
+        self.output_data = output_data
         self.messages: list[dict[str, Any]] = []
         self.schema: dict[str, Any] | None = None
         self.system: str | None = None
@@ -63,7 +68,8 @@ class FakeRootCauseLLMClient:
                 usage=LLMUsage(input_tokens=120, output_tokens=80),
             )
         return StructuredResponse(
-            data={
+            data=self.output_data
+            or {
                 "impact": [
                     {
                         "description": "Customers experienced elevated API latency.",
@@ -183,6 +189,60 @@ def test_run_incident_root_cause_success_creates_completed_step():
     assert run.total_cost == pytest.approx(0.000272)
     assert "Separate confirmed facts" in llm.messages[0]["content"]
     assert llm.system == "Analyze incident root cause."
+    clear_overrides()
+
+
+def test_run_incident_root_cause_escalates_business_critical_impact():
+    db = FakeSession()
+    uploaded_input = make_input()
+    uploaded_input.raw_text = (
+        "10:02 AM - Checkout API latency increased for customers\n"
+        "10:09 AM - Error rate increased and 2,300 checkout attempts affected\n"
+        "10:40 AM - Latency returned to normal"
+    )
+    run = make_run(status=WorkflowStatus.running, input_id=uploaded_input.id)
+    output_data = {
+        "impact": [
+            {
+                "description": "Checkout confirmation latency delayed customers.",
+                "severity": "medium",
+                "affected_systems": ["Checkout API"],
+            }
+        ],
+        "suspected_root_cause": "Checkout retry policy overloaded a dependency.",
+        "confirmed_facts": [
+            {
+                "claim": "Checkout API latency increased.",
+                "support": "10:02 AM - Checkout API latency increased for customers",
+            }
+        ],
+        "likely_causes": [
+            {
+                "claim": "Retry behavior likely contributed to the incident.",
+                "support": "Error rate increased during checkout impact.",
+            }
+        ],
+        "inferred_claims": [],
+        "unknowns": ["Exact code change is unknown."],
+        "follow_up_actions": [
+            {
+                "action": "Add checkout latency deployment guardrail.",
+                "owner": "payments",
+                "priority": "high",
+            }
+        ],
+    }
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.append(make_timeline_step(run.id))
+    db.prompts.append(make_prompt())
+    override_dependencies(db, FakeRootCauseLLMClient(output_data=output_data))
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-root-cause")
+
+    assert response.status_code == 200
+    assert response.json()["output_json"]["impact"][0]["severity"] == "high"
     clear_overrides()
 
 

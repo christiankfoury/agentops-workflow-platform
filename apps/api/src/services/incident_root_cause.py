@@ -159,7 +159,12 @@ def run_incident_root_cause(
                     "Analyze this incident timeline. Separate confirmed facts from "
                     "likely causes and inferred conclusions, list unknowns, estimate "
                     "impact, and recommend follow-up actions. Use only the source log "
-                    "and timeline as support.\n\n"
+                    "and timeline as support. For checkout, payment, billing, login, "
+                    "or other business-critical flows, mark customer-facing latency, "
+                    "error-rate spikes, or blocked transactions as high severity when "
+                    "the log shows broad user impact, revenue risk, or payment-adjacent "
+                    "degradation. Include an owner-style role for each follow-up action "
+                    "when the source supports a likely accountable team, otherwise use null.\n\n"
                     f"Title: {uploaded_input.title}\n\n"
                     f"Notes: {uploaded_input.notes or 'None'}\n\n"
                     f"Incident log:\n{uploaded_input.raw_text}\n\n"
@@ -182,6 +187,7 @@ def run_incident_root_cause(
             schema=INCIDENT_ROOT_CAUSE_SCHEMA,
             request_kwargs=runtime_config.generation_kwargs(),
         )
+        output = _calibrate_business_critical_impact(output, uploaded_input.raw_text)
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
         log_agent_failed(db, run, step, str(e))
@@ -280,6 +286,37 @@ def _validate_timeline_output(timeline_step: AgentStep) -> IncidentTimelineOutpu
         return IncidentTimelineOutput.model_validate(timeline_step.output_json)
     except ValidationError as e:
         raise RootCauseRunError("Completed timeline output is invalid") from e
+
+
+def _calibrate_business_critical_impact(
+    output: IncidentRootCauseOutput,
+    source_text: str,
+) -> IncidentRootCauseOutput:
+    normalized_source = source_text.lower()
+    critical_flow_terms = (
+        "auth",
+        "billing",
+        "checkout",
+        "login",
+        "payment",
+        "payments",
+    )
+    has_critical_flow = any(term in normalized_source for term in critical_flow_terms)
+    has_broad_impact = any(
+        marker in normalized_source
+        for marker in ("attempts affected", "customers", "error rate", "support received")
+    )
+    if not has_critical_flow or not has_broad_impact:
+        return output
+
+    calibrated_impact = []
+    for item in output.impact:
+        impact_text = " ".join([item.description, *item.affected_systems]).lower()
+        is_critical_impact = any(term in impact_text for term in critical_flow_terms)
+        if item.severity == "medium" and is_critical_impact:
+            item = item.model_copy(update={"severity": "high"})
+        calibrated_impact.append(item)
+    return output.model_copy(update={"impact": calibrated_impact})
 
 
 def _get_root_cause_runtime_config(db: Session) -> AgentRuntimeConfig:

@@ -18,6 +18,8 @@ import { RunBaselineForm } from "./run-baseline-form";
 import { RunClassifierForm } from "./run-classifier-form";
 import { RunInsightForm } from "./run-insight-form";
 import { RunReviewerForm } from "./run-reviewer-form";
+import { RunRootCauseForm } from "./run-root-cause-form";
+import { RunTimelineForm } from "./run-timeline-form";
 import { RunWriterForm } from "./run-writer-form";
 
 function formatLatency(value: number | null): string {
@@ -160,14 +162,37 @@ function hasEvent(events: WorkflowEvent[], eventType: WorkflowEvent["event_type"
   return events.some((event) => event.event_type === eventType);
 }
 
-function getWorkflowLineage(workflowType: string): string[] {
+type LineageStage = {
+  agentType?: string;
+  eventType?: string;
+  label: string;
+};
+
+function getWorkflowLineage(workflowType: string): LineageStage[] {
   if (workflowType === "customer_feedback") {
-    return ["Classifier", "Insight Agent", "Reviewer", "Human Approval", "Writer"];
+    return [
+      { label: "Classifier", agentType: "classifier" },
+      { label: "Insight Agent", agentType: "insight" },
+      { label: "Reviewer", agentType: "reviewer" },
+      { label: "Human Approval", eventType: "human_approved" },
+      { label: "Writer", agentType: "writer" },
+    ];
   }
   if (workflowType === "incident_log") {
-    return ["Timeline", "Root Cause", "Reviewer", "Human Approval", "Writer"];
+    return [
+      { label: "Timeline", agentType: "timeline" },
+      { label: "Root Cause", agentType: "root_cause" },
+      { label: "Reviewer", agentType: "reviewer" },
+      { label: "Human Approval", eventType: "human_approved" },
+      { label: "Writer", agentType: "writer" },
+    ];
   }
-  return ["Analyst", "Reviewer", "Human Approval", "Writer"];
+  return [
+    { label: "Analyst", agentType: "analyst" },
+    { label: "Reviewer", agentType: "reviewer" },
+    { label: "Human Approval", eventType: "human_approved" },
+    { label: "Writer", agentType: "writer" },
+  ];
 }
 
 function getAgentContribution(step: AgentStep): string {
@@ -198,6 +223,26 @@ function getAgentContribution(step: AgentStep): string {
   }
   if (step.agent_type === "baseline") {
     return "Generated the single-agent baseline output for comparison.";
+  }
+  if (step.agent_type === "timeline") {
+    const timeline = Array.isArray(output.timeline) ? output.timeline.length : 0;
+    const ambiguous = Array.isArray(output.ambiguous_events)
+      ? output.ambiguous_events.length
+      : 0;
+    return `Extracted ${timeline} timestamped incident event${timeline === 1 ? "" : "s"} with source evidence${ambiguous > 0 ? ` and flagged ${ambiguous} ambiguous event${ambiguous === 1 ? "" : "s"}` : ""}.`;
+  }
+  if (step.agent_type === "root_cause") {
+    const facts = Array.isArray(output.confirmed_facts)
+      ? output.confirmed_facts.length
+      : 0;
+    const causes = Array.isArray(output.likely_causes)
+      ? output.likely_causes.length
+      : 0;
+    const unknowns = Array.isArray(output.unknowns) ? output.unknowns.length : 0;
+    const actions = Array.isArray(output.follow_up_actions)
+      ? output.follow_up_actions.length
+      : 0;
+    return `Separated ${facts} confirmed fact${facts === 1 ? "" : "s"}, ${causes} likely cause${causes === 1 ? "" : "s"}, ${unknowns} unknown${unknowns === 1 ? "" : "s"}, and ${actions} follow-up action${actions === 1 ? "" : "s"}.`;
   }
   return "Completed this workflow step and recorded trace data.";
 }
@@ -272,14 +317,40 @@ function RecoverySummary({
 }
 
 function WorkflowLineage({
+  agentSteps,
+  events,
   status,
   workflowType,
 }: {
+  agentSteps: AgentStep[];
+  events: WorkflowEvent[];
   status: string;
   workflowType: string;
 }) {
   const steps = getWorkflowLineage(workflowType);
-  const isCompleted = status === "completed";
+  const completedStageKeys = new Set(
+    steps
+      .filter((step) =>
+        step.agentType
+          ? agentSteps.some(
+              (agentStep) =>
+                agentStep.agent_type === step.agentType &&
+                agentStep.status === "completed",
+            )
+          : step.eventType
+            ? hasEvent(events, step.eventType as WorkflowEvent["event_type"])
+            : false,
+      )
+      .map((step) => step.label),
+  );
+  const failedAgentTypes = new Set(
+    agentSteps
+      .filter((step) => step.status === "failed")
+      .map((step) => step.agent_type),
+  );
+  const firstIncompleteIndex = steps.findIndex(
+    (step) => !completedStageKeys.has(step.label),
+  );
 
   return (
     <section className="mt-4 rounded-lg border border-border bg-card p-4">
@@ -287,19 +358,35 @@ function WorkflowLineage({
         <h2 className="text-sm font-semibold">Workflow Lineage</h2>
         <ol className="flex flex-wrap items-center gap-2">
           {steps.map((step, index) => {
-            const isFinalStep = index === steps.length - 1;
-            const tone =
-              isCompleted || !isFinalStep
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
-                : "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200";
-            const stepStatus = isCompleted || !isFinalStep ? "Complete" : formatRunStatus(status);
+            const isComplete = completedStageKeys.has(step.label);
+            const isFailed =
+              step.agentType !== undefined && failedAgentTypes.has(step.agentType);
+            const isCurrent =
+              !isComplete &&
+              !isFailed &&
+              index === firstIncompleteIndex &&
+              !["cancelled", "completed", "failed"].includes(status);
+            const tone = isComplete
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
+              : isFailed
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : isCurrent
+                  ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
+                  : "border-border bg-muted text-muted-foreground";
+            const stepStatus = isComplete
+              ? "Complete"
+              : isFailed
+                ? "Failed"
+                : isCurrent
+                  ? "Current"
+                  : "Pending";
 
             return (
-              <li key={step} className="flex items-center gap-2">
+              <li key={step.label} className="flex items-center gap-2">
                 <span
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium ${tone}`}
                 >
-                  {step} <span className="text-xs">{stepStatus}</span>
+                  {step.label} <span className="text-xs">{stepStatus}</span>
                 </span>
                 {index < steps.length - 1 && (
                   <span
@@ -420,11 +507,13 @@ function OutcomeSummary({
   events,
   hasFinalOutput,
   usedHumanApprovedAnalysis,
+  workflowType,
 }: {
   agentSteps: AgentStep[];
   events: WorkflowEvent[];
   hasFinalOutput: boolean;
   usedHumanApprovedAnalysis: boolean;
+  workflowType: string;
 }) {
   const reviewerStep = agentSteps
     .filter((step) => step.agent_type === "reviewer" && step.status === "completed")
@@ -439,7 +528,9 @@ function OutcomeSummary({
       ? "Writer used reviewed human-approved analysis"
       : "Writer approval trace not recorded",
     hasEvent(events, "human_approved")
-      ? "Human approval completed"
+      ? workflowType === "incident_log"
+        ? "Human confirmed reviewer-approved incident analysis before final report generation"
+        : "Human approval completed"
       : "Human approval pending or not required",
     issues === 0
       ? "Reviewer found no blocking issues"
@@ -736,13 +827,23 @@ export default async function WorkflowRunDetailPage({
   const latestCompletedInsightStep = agentSteps
     .filter((step) => step.agent_type === "insight" && step.status === "completed")
     .at(-1);
+  const latestCompletedTimelineStep = agentSteps
+    .filter((step) => step.agent_type === "timeline" && step.status === "completed")
+    .at(-1);
+  const latestCompletedRootCauseStep = agentSteps
+    .filter((step) => step.agent_type === "root_cause" && step.status === "completed")
+    .at(-1);
   const reviewerSourceStep =
     run.workflow_type === "customer_feedback"
       ? latestCompletedInsightStep
+      : run.workflow_type === "incident_log"
+        ? latestCompletedRootCauseStep
       : latestCompletedAnalystStep;
   const reviewerSourceInputKey =
     run.workflow_type === "customer_feedback"
       ? "insight_step_id"
+      : run.workflow_type === "incident_log"
+        ? "root_cause_step_id"
       : "analyst_step_id";
   const canRunAnalyst =
     (run.status === "created" || run.status === "retrying") &&
@@ -779,10 +880,32 @@ export default async function WorkflowRunDetailPage({
         step.agent_type === "insight" &&
         (step.status === "running" || step.status === "completed"),
     );
+  const canRunTimeline =
+    run.status === "created" &&
+    run.workflow_type === "incident_log" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "timeline" &&
+        (step.status === "running" || step.status === "completed"),
+    );
+  const canRunRootCause =
+    run.status === "running" &&
+    run.workflow_type === "incident_log" &&
+    run.run_mode === "multi_agent" &&
+    uploadedInput !== null &&
+    latestCompletedTimelineStep !== undefined &&
+    !agentSteps.some(
+      (step) =>
+        step.agent_type === "root_cause" &&
+        (step.status === "running" || step.status === "completed"),
+    );
   const canRunReviewer =
     run.status === "reviewer_running" &&
     (run.workflow_type === "sales_report" ||
-      run.workflow_type === "customer_feedback") &&
+      run.workflow_type === "customer_feedback" ||
+      run.workflow_type === "incident_log") &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null &&
     reviewerSourceStep !== undefined &&
@@ -795,7 +918,8 @@ export default async function WorkflowRunDetailPage({
   const canRunWriter =
     run.status === "writer_running" &&
     (run.workflow_type === "sales_report" ||
-      run.workflow_type === "customer_feedback") &&
+      run.workflow_type === "customer_feedback" ||
+      run.workflow_type === "incident_log") &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null &&
     !agentSteps.some(
@@ -844,6 +968,10 @@ export default async function WorkflowRunDetailPage({
 
       {canRunInsight && <RunInsightForm runId={run.id} />}
 
+      {canRunTimeline && <RunTimelineForm runId={run.id} />}
+
+      {canRunRootCause && <RunRootCauseForm runId={run.id} />}
+
       {canRunReviewer && <RunReviewerForm runId={run.id} />}
 
       {canRunWriter && <RunWriterForm runId={run.id} />}
@@ -882,13 +1010,19 @@ export default async function WorkflowRunDetailPage({
         type={run.workflow_type}
       />
 
-      <WorkflowLineage status={run.status} workflowType={run.workflow_type} />
+      <WorkflowLineage
+        agentSteps={agentSteps}
+        events={workflowEvents}
+        status={run.status}
+        workflowType={run.workflow_type}
+      />
 
       <OutcomeSummary
         agentSteps={agentSteps}
         events={workflowEvents}
         hasFinalOutput={run.final_output !== null}
         usedHumanApprovedAnalysis={usedHumanApprovedAnalysis}
+        workflowType={run.workflow_type}
       />
 
       {run.final_output && (

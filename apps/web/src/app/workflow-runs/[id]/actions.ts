@@ -6,6 +6,8 @@ import {
   createEvaluationComparisonFromRun,
   runCustomerFeedbackClassifier,
   runCustomerFeedbackInsight,
+  runIncidentRootCause,
+  runIncidentTimeline,
   runSalesAnalyst,
   runSalesBaseline,
   runSalesReviewer,
@@ -93,6 +95,48 @@ export async function runInsightAction(
     return {
       error:
         error instanceof Error ? error.message : "Failed to run insight agent.",
+    };
+  }
+
+  redirect(`/workflow-runs/${runId}`);
+}
+
+export async function runTimelineAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  try {
+    await runIncidentTimeline(runId);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to run timeline agent.",
+    };
+  }
+
+  redirect(`/workflow-runs/${runId}`);
+}
+
+export async function runRootCauseAction(
+  _previousState: RunAnalystState,
+  formData: FormData,
+): Promise<RunAnalystState> {
+  const runId = formData.get("run_id");
+  if (typeof runId !== "string" || runId.length === 0) {
+    return { error: "Workflow run id is required." };
+  }
+
+  try {
+    await runIncidentRootCause(runId);
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error ? error.message : "Failed to run root cause agent.",
     };
   }
 

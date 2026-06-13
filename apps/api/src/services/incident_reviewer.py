@@ -99,7 +99,11 @@ def run_incident_reviewer(
                     "Review the incident timeline and root-cause analysis against "
                     "the source log. Check timeline accuracy, root-cause support, "
                     "whether inferred claims are clearly labeled, and whether "
-                    "follow-up actions are reasonable.\n\n"
+                    "follow-up actions are reasonable. Reserve a 1.0 quality score "
+                    "for outputs with no meaningful unknowns, no inferred causal "
+                    "claims, and direct source support for every conclusion. Clean, "
+                    "well-supported incident analyses that still include unknowns or "
+                    "inferences should usually score between 0.92 and 0.96.\n\n"
                     f"Source title: {uploaded_input.title}\n\n"
                     f"Source notes: {uploaded_input.notes or 'None'}\n\n"
                     "Source notes may include operator guidance or prior reviewer "
@@ -128,6 +132,7 @@ def run_incident_reviewer(
             schema=SALES_REVIEW_SCHEMA,
             request_kwargs=runtime_config.generation_kwargs(),
         )
+        output = _calibrate_incident_review_score(output, root_output)
     except (Exception, ValidationError) as e:
         _mark_step_failed(step, str(e), started, db)
         log_agent_failed(db, run, step, str(e))
@@ -233,6 +238,19 @@ def _validate_root_output(step: AgentStep) -> IncidentRootCauseOutput:
         return IncidentRootCauseOutput.model_validate(step.output_json)
     except ValidationError as e:
         raise IncidentReviewerRunError("Completed root cause output is invalid") from e
+
+
+def _calibrate_incident_review_score(
+    output: SalesReviewOutput,
+    root_output: IncidentRootCauseOutput,
+) -> SalesReviewOutput:
+    if output.issues or output.retry_recommended or not output.approved:
+        return output
+    if output.quality_score < 0.97:
+        return output
+    if root_output.unknowns or root_output.inferred_claims:
+        return output.model_copy(update={"quality_score": 0.95})
+    return output
 
 
 def _ensure_no_reviewer_for_root_cause(

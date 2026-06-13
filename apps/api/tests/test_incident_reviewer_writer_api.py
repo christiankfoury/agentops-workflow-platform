@@ -55,8 +55,13 @@ ROOT_CAUSE_OUTPUT = {
 
 
 class FakeIncidentLLMClient:
-    def __init__(self, empty_writer_output: bool = False) -> None:
+    def __init__(
+        self,
+        empty_writer_output: bool = False,
+        reviewer_quality_score: float = 0.9,
+    ) -> None:
         self.empty_writer_output = empty_writer_output
+        self.reviewer_quality_score = reviewer_quality_score
         self.structured_calls = 0
         self.messages: list[dict[str, Any]] = []
 
@@ -79,7 +84,7 @@ class FakeIncidentLLMClient:
         else:
             data = {
                 "approved": True,
-                "quality_score": 0.9,
+                "quality_score": self.reviewer_quality_score,
                 "issues": [],
                 "retry_recommended": False,
             }
@@ -206,6 +211,30 @@ def test_run_incident_reviewer_creates_review_and_pending_approval():
     clear_overrides()
 
 
+def test_run_incident_reviewer_caps_perfect_score_when_unknowns_remain():
+    db = FakeSession()
+    uploaded_input = make_input()
+    run = make_run(status=WorkflowStatus.reviewer_running, input_id=uploaded_input.id)
+    db.inputs.append(uploaded_input)
+    db.runs.append(run)
+    db.steps.extend(
+        [
+            make_step(run.id, AgentType.timeline, TIMELINE_OUTPUT),
+            make_step(run.id, AgentType.root_cause, ROOT_CAUSE_OUTPUT),
+        ]
+    )
+    db.prompts.append(make_prompt(AgentType.reviewer))
+    override_dependencies(db, FakeIncidentLLMClient(reviewer_quality_score=1.0))
+    client = TestClient(app)
+
+    response = client.post(f"/workflow-runs/{run.id}/run-reviewer")
+
+    assert response.status_code == 200
+    assert response.json()["output_json"]["quality_score"] == 0.95
+    assert run.quality_score == 0.95
+    clear_overrides()
+
+
 def test_run_incident_writer_completes_workflow_and_stores_report():
     db = FakeSession()
     uploaded_input = make_input()
@@ -233,7 +262,8 @@ def test_run_incident_writer_completes_workflow_and_stores_report():
     assert body["output_json"]["final_output"] == "Incident Report\nAPI latency recovered."
     assert run.status == WorkflowStatus.completed
     assert run.final_output == "Incident Report\nAPI latency recovered."
-    assert "confirmed facts from inferred conclusions" in llm.messages[0]["content"]
+    assert "Executive Summary" in llm.messages[0]["content"]
+    assert "strongly support the deployment as the likely cause" in llm.messages[0]["content"]
     clear_overrides()
 
 
