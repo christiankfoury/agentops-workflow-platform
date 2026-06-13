@@ -116,6 +116,7 @@ def _comparison_run(
         completeness_score=result.completeness_score,
         cost=result.cost if result.cost is not None else run.total_cost or 0.0,
         latency_ms=result.latency_ms if result.latency_ms is not None else run.latency_ms or 0,
+        created_at=result.created_at,
     )
 
 

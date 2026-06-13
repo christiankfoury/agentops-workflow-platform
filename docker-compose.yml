@@ -46,6 +46,12 @@ services:
     environment:
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - api
     healthcheck:

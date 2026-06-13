@@ -237,6 +237,8 @@ def test_get_evaluation_comparisons_pairs_latest_completed_results():
     assert comparison["baseline"]["final_output"] == "Baseline summary"
     assert comparison["multi_agent"]["final_output"] == "Reviewed executive summary"
     assert comparison["multi_agent"]["factual_accuracy"] == 0.9
+    assert comparison["baseline"]["created_at"] is not None
+    assert comparison["multi_agent"]["created_at"] is not None
     assert comparison["reviewer_issues"][0]["severity"] == "high"
     assert comparison["cost_difference"] == pytest.approx(0.08)
     assert comparison["latency_difference_ms"] == 2000

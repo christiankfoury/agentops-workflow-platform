@@ -72,6 +72,7 @@ class EvaluationComparisonRunRead(BaseModel):
     completeness_score: float | None
     cost: float
     latency_ms: int
+    created_at: datetime
 
 
 class RemediationImpactRead(BaseModel):

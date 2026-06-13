@@ -160,6 +160,7 @@ export interface EvaluationComparisonRun {
   completeness_score: number | null;
   cost: number;
   latency_ms: number;
+  created_at: string;
 }
 
 export interface RemediationImpact {

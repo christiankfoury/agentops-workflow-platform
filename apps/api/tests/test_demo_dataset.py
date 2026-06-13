@@ -145,6 +145,7 @@ def test_seed_demo_dataset_adds_reviewer_issue_and_impact_showcases():
     db = FakeSession()
 
     seed_demo_dataset(db)
+    seeded_at = datetime.now(UTC)
 
     action_case = next(
         case for case in db.cases if case.title == "[Demo] Reviewer issue correction path"
@@ -183,6 +184,7 @@ def test_seed_demo_dataset_adds_reviewer_issue_and_impact_showcases():
         if input_record.id == corrected_run.input_id
     )
     assert "Corrected comparison run guidance." in corrected_input.notes
+    assert corrected_result.created_at <= seeded_at
 
 
 def test_seed_demo_dataset_is_idempotent_and_refreshes_existing_records():

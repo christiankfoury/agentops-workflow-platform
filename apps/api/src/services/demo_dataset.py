@@ -204,7 +204,7 @@ def seed_demo_dataset(
     if workflow_types is None or WorkflowType.sales_report in workflow_types:
         showcase_summary = _seed_showcase_demo_records(
             db,
-            created_at_base + timedelta(days=len(selected_cases), hours=1),
+            created_at_base + timedelta(days=max(len(selected_cases) - 1, 0), hours=1),
         )
         uploaded_inputs += showcase_summary.uploaded_inputs
         workflow_runs += showcase_summary.workflow_runs

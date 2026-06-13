@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { LocalDateTime } from "@/components/local-date-time";
 import { cn } from "@/lib/utils";
 import type {
   EvaluationComparison,
@@ -18,6 +19,7 @@ type SortKey =
   | "unsupported"
   | "cost"
   | "latency"
+  | "recent"
   | "title";
 
 const pageSize = 10;
@@ -41,6 +43,7 @@ const sortOptions: { key: SortKey; label: string }[] = [
   { key: "unsupported", label: "Unsupported reduction" },
   { key: "cost", label: "Cost delta" },
   { key: "latency", label: "Latency delta" },
+  { key: "recent", label: "Most recent" },
   { key: "title", label: "Title" },
 ];
 
@@ -222,6 +225,19 @@ function isMultiAgentBetter(comparison: EvaluationComparison): boolean {
   return qualityImproved && unsupportedNotWorse;
 }
 
+function comparisonCreatedAt(comparison: EvaluationComparison): number {
+  return Math.max(
+    Date.parse(comparison.baseline.created_at),
+    Date.parse(comparison.multi_agent.created_at),
+  );
+}
+
+function comparisonCreatedAtValue(comparison: EvaluationComparison): string {
+  return comparisonCreatedAt(comparison) === Date.parse(comparison.baseline.created_at)
+    ? comparison.baseline.created_at
+    : comparison.multi_agent.created_at;
+}
+
 function severityClasses(severity: string | null): string {
   if (severity === "high") {
     return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200";
@@ -400,7 +416,7 @@ function RemediationImpactPanel({ impact }: { impact: RemediationImpact }) {
         <MetricChip
           label="Cost / Latency"
           context="vs previous run"
-          value={`${formatSignedCost(impact.cost_delta)} / ${formatSignedLatency(
+          value={`${formatCostDelta(impact.cost_delta)} / ${formatLatencyDelta(
             impact.latency_delta_ms,
           )}`}
           positive={null}
@@ -608,6 +624,9 @@ function ComparisonCard({
             )}
           </div>
           <h2 className="mt-3 text-lg font-semibold">{comparison.title}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Latest result <LocalDateTime value={comparisonCreatedAtValue(comparison)} />
+          </p>
           <p className="mt-2 line-clamp-2 max-w-4xl text-sm leading-6 text-muted-foreground">
             {comparison.input_preview}
           </p>
@@ -777,6 +796,9 @@ export function WorkflowComparisonExplorer({
         if (sort === "latency") {
           return left.latency_difference_ms - right.latency_difference_ms;
         }
+        if (sort === "recent") {
+          return comparisonCreatedAt(right) - comparisonCreatedAt(left);
+        }
         return left.title.localeCompare(right.title);
       });
   }, [comparisons, filter, query, sort]);
@@ -789,19 +811,21 @@ export function WorkflowComparisonExplorer({
       <SummaryHeader comparisons={comparisons} />
 
       <section className="rounded-lg border border-border bg-card p-4">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <label className="relative block">
-            <span className="sr-only">Search comparisons</span>
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search title or input"
-              className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
-            />
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-xs text-muted-foreground">Search</span>
+            <span className="relative block">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search title or input"
+                className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
+              />
+            </span>
           </label>
           <label className="flex flex-col gap-1 text-sm lg:w-64">
             <span className="text-xs text-muted-foreground">Sort by</span>
