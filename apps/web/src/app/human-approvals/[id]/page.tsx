@@ -228,8 +228,8 @@ function ApprovalActionControls({
   isActionable: boolean;
 }) {
   return (
-    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <form action={approveAction}>
+    <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <form action={approveAction} className="lg:min-w-72">
         <input type="hidden" name="approval_id" value={approval.id} />
         <input
           type="hidden"
@@ -244,36 +244,38 @@ function ApprovalActionControls({
           Approve
         </button>
       </form>
-      <form action={requestRetryAction}>
-        <input type="hidden" name="approval_id" value={approval.id} />
-        <input
-          type="hidden"
-          name="human_feedback"
-          value={approval.human_feedback ?? ""}
-        />
-        <button
-          type="submit"
-          disabled={!isActionable}
-          className="w-full rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Request Retry
-        </button>
-      </form>
-      <form action={rejectAction}>
-        <input type="hidden" name="approval_id" value={approval.id} />
-        <input
-          type="hidden"
-          name="human_feedback"
-          value={approval.human_feedback ?? ""}
-        />
-        <button
-          type="submit"
-          disabled={!isActionable}
-          className="w-full rounded-md border border-destructive/40 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Reject Workflow
-        </button>
-      </form>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto">
+        <form action={requestRetryAction}>
+          <input type="hidden" name="approval_id" value={approval.id} />
+          <input
+            type="hidden"
+            name="human_feedback"
+            value={approval.human_feedback ?? ""}
+          />
+          <button
+            type="submit"
+            disabled={!isActionable}
+            className="w-full rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Request Retry
+          </button>
+        </form>
+        <form action={rejectAction}>
+          <input type="hidden" name="approval_id" value={approval.id} />
+          <input
+            type="hidden"
+            name="human_feedback"
+            value={approval.human_feedback ?? ""}
+          />
+          <button
+            type="submit"
+            disabled={!isActionable}
+            className="w-full rounded-md border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Reject Workflow
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -290,41 +292,51 @@ function WorkflowLineage({
 
   return (
     <section className="mt-4 rounded-lg border border-border bg-card p-4">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <h2 className="text-sm font-semibold">Workflow Lineage</h2>
-        <p className="text-xs text-muted-foreground">
-          Waiting for reviewer-approved human decision
-        </p>
-      </div>
-      <ol className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold">Workflow Lineage</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Waiting for reviewer-approved human decision
+          </p>
+        </div>
+      <ol className="flex flex-wrap items-center gap-2">
         {steps.map((step, index) => {
           const isCurrent = index === steps.length - 1;
           return (
-            <li
-              key={step}
-              className={`rounded-md border px-3 py-2 text-sm ${
-                isCurrent
-                  ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{step}</span>
-                <span className="text-xs">{isCurrent ? currentStatus : "Complete"}</span>
-              </div>
+            <li key={step} className="flex items-center gap-2">
+              <span
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+                  isCurrent
+                    ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200"
+                }`}
+              >
+                {step} <span className="text-xs">{isCurrent ? currentStatus : "Complete"}</span>
+              </span>
+              {index < steps.length - 1 && (
+                <span className="hidden text-muted-foreground sm:inline">{"->"}</span>
+              )}
             </li>
           );
         })}
       </ol>
+      </div>
     </section>
   );
 }
 
-function EvidenceList({ examples }: { examples: unknown }) {
-  const items = asObjectArray(examples)
+function EvidenceList({
+  examples,
+  maxItems = 3,
+}: {
+  examples: unknown;
+  maxItems?: number;
+}) {
+  const allItems = asObjectArray(examples)
     .map((example) => getStringValue(example, "text"))
-    .filter((text): text is string => text !== null)
-    .slice(0, 3);
+    .filter((text): text is string => text !== null);
+  const items = allItems.slice(0, maxItems);
+  const remainingCount = Math.max(allItems.length - items.length, 0);
 
   if (items.length === 0) return null;
 
@@ -335,6 +347,11 @@ function EvidenceList({ examples }: { examples: unknown }) {
           {item}
         </li>
       ))}
+      {remainingCount > 0 && (
+        <li className="px-3 text-xs font-medium text-muted-foreground">
+          +{remainingCount} more evidence example{remainingCount === 1 ? "" : "s"}
+        </li>
+      )}
     </ul>
   );
 }
@@ -469,7 +486,10 @@ function CustomerFeedbackBriefing({
                       {rationale}
                     </p>
                   )}
-                  <EvidenceList examples={recommendation.supporting_examples} />
+                  <EvidenceList
+                    examples={recommendation.supporting_examples}
+                    maxItems={1}
+                  />
                 </article>
               );
             })}
@@ -683,6 +703,62 @@ function DeveloperDetails({
             </pre>
           </div>
         </div>
+      </details>
+    </section>
+  );
+}
+
+function ApprovalMetadata({
+  approval,
+  run,
+}: {
+  approval: HumanApproval;
+  run: { status: string; workflow_type: string };
+}) {
+  const items = [
+    ["Workflow", formatWorkflowType(run.workflow_type)],
+    ["Status", formatWorkflowStatus(run.status)],
+    ["Reviewer score", approval.reviewer_score ?? "-"],
+    ["Recommended action", getRecommendedAction(approval)],
+  ];
+
+  return (
+    <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-border pt-4 text-sm lg:grid-cols-4">
+      {items.map(([label, value]) => (
+        <div key={String(label)}>
+          <dt className="text-xs text-muted-foreground">{label}</dt>
+          <dd className="mt-1 font-medium">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function OriginalInputSection({
+  fileName,
+  rawText,
+  title,
+}: {
+  fileName: string | null;
+  rawText: string;
+  title: string;
+}) {
+  return (
+    <section className="mt-6">
+      <InputHygieneWarning rawText={rawText} />
+      <details className="mt-3 rounded-lg border border-border bg-card p-4">
+        <summary className="cursor-pointer text-lg font-semibold">
+          View original input
+        </summary>
+        <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+          <p className="font-medium">{title}</p>
+          {fileName && (
+            <p className="text-xs text-muted-foreground">{fileName}</p>
+          )}
+        </div>
+        <pre className="mt-4 max-h-80 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
+          {rawText}
+        </pre>
       </details>
     </section>
   );
@@ -942,25 +1018,6 @@ export default async function HumanApprovalDetailPage({
         </section>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Workflow Type</p>
-          <p className="mt-1 font-medium">{formatWorkflowType(run.workflow_type)}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Workflow Status</p>
-          <p className="mt-1 font-medium">{formatWorkflowStatus(run.status)}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Reviewer Score</p>
-          <p className="mt-1 font-medium">{approval.reviewer_score ?? "-"}</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Recommended Action</p>
-          <p className="mt-1 font-medium">{getRecommendedAction(approval)}</p>
-        </div>
-      </div>
-
       <section className="mt-6 rounded-lg border border-border bg-card p-4">
         <p className="text-xs font-medium uppercase text-muted-foreground">
           Approval review
@@ -969,41 +1026,30 @@ export default async function HumanApprovalDetailPage({
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
           {getApprovalSummary(approval, reviewerStep)}
         </p>
+        <ApprovalMetadata approval={approval} run={run} />
         <ApprovalActionControls approval={approval} isActionable={isActionable} />
       </section>
 
       <WorkflowLineage status={run.status} workflowType={run.workflow_type} />
-
-      {uploadedInput && (
-        <section className="mt-6">
-          <h2 className="text-lg font-semibold">Original Input</h2>
-          <div className="mt-2 rounded-lg border border-border bg-card p-4">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-              <p className="font-medium">{uploadedInput.title}</p>
-              {uploadedInput.file_name && (
-                <p className="text-xs text-muted-foreground">
-                  {uploadedInput.file_name}
-                </p>
-              )}
-            </div>
-            <InputHygieneWarning rawText={uploadedInput.raw_text} />
-            <pre className="mt-4 max-h-80 overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap">
-              {uploadedInput.raw_text}
-            </pre>
-          </div>
-        </section>
-      )}
-
-      <GenericAnalysisBriefing
-        analysis={editableAnalysis}
-        workflowType={run.workflow_type}
-      />
 
       <ReviewerCheckSummary
         approval={approval}
         reviewerStep={reviewerStep}
         workflowStatus={run.status}
       />
+
+      <GenericAnalysisBriefing
+        analysis={editableAnalysis}
+        workflowType={run.workflow_type}
+      />
+
+      {uploadedInput && (
+        <OriginalInputSection
+          fileName={uploadedInput.file_name}
+          rawText={uploadedInput.raw_text}
+          title={uploadedInput.title}
+        />
+      )}
 
       <DeveloperDetails
         analysis={editableStep?.output_json}
