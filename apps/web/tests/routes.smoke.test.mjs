@@ -188,6 +188,12 @@ test("workflow dashboard pages stay wired to the API flow", () => {
   assert.match(read("src/lib/agent-display.ts"), /Used before workflow creation/);
   assert.match(read("src/lib/agent-display.ts"), /Shared by Sales, Customer Feedback, and Incident/);
   assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /Activate Prompt/);
+  assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /Operational Impact/);
+  assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /Future agent runs only/);
+  assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /Existing workflow outputs are not changed/);
+  assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /Prompt Template/);
+  assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /No notes provided/);
+  assert.match(read("src/app/prompt-versions/[id]/page.tsx"), /Activating this will replace/);
   assert.match(read("src/app/settings/page.tsx"), /Agent Settings/);
   assert.match(read("src/app/settings/page.tsx"), /listAgentSettings/);
   assert.match(read("src/app/settings/settings-form.tsx"), /useActionState/);

@@ -291,14 +291,16 @@ trustworthiness in exchange for extra cost and latency.
 
 ## Roadmap
 
-The current autonomous build target is Phase 46 through Phase 65. Completed work
-already includes human edit flows, feedback-loop metrics, agent performance,
-workflow comparison, exports, uploads/parsers, deterministic evaluation checks,
-failure exploration, improvement tracking, demo dataset seeding, and demo mode.
+Phase 46 through Phase 65 is complete. Completed work includes human edit flows,
+feedback-loop metrics, agent performance, workflow comparison, exports,
+uploads/parsers, deterministic evaluation checks, failure exploration,
+improvement tracking, demo dataset seeding, demo mode, testing, security/input
+safety, and portfolio UI polish.
 
-Next phases focus on:
+Current user-directed refinement focuses on:
 
-- Architecture and evaluation documentation.
-- Broader workflow integration and evaluation tests.
-- Security and input safety.
-- Portfolio UI polish.
+- Reviewing whether each workflow algorithm and agent handoff still makes sense.
+- Improving prompt/settings clarity and future-run impact messaging.
+- Tightening demo storytelling for recruiter review.
+- Polishing workflow run, approval, comparison, cost, and prompt UI.
+- Improving CSS consistency, responsive behavior, empty states, and visual hierarchy.

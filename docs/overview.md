@@ -100,7 +100,7 @@ Input
 ↓
 Classifier Agent
 ↓
-Insight Analyst Agent
+Insight Agent
 ↓
 Reviewer Agent
 ↓
@@ -123,7 +123,7 @@ Writer Agent
 }
 ```
 
-**Insight Analyst Agent** identifies patterns:
+**Insight Agent** identifies patterns:
 
 ```text
 The most common issue is performance on mobile devices.
@@ -463,13 +463,13 @@ Total workflow: 38.1s
 Single-agent baseline:
 
 ```text
-Input → Single LLM → Final report
+Input -> Single LLM -> Final report
 ```
 
 Multi-agent workflow:
 
 ```text
-Input → Analyst → Reviewer → Retry → Human Approval → Writer → Final report
+Input -> Analyst -> Reviewer -> Retry -> Human Approval -> Writer -> Final report
 ```
 
 | Metric                 | Single-Agent Baseline | Multi-Agent Workflow |
@@ -604,10 +604,14 @@ PostgreSQL
 ## Agent Orchestration
 
 ```text
-LangGraph
+Service-based stateful workflow orchestration
 ```
 
-LangGraph fits because the system needs:
+The current implementation uses FastAPI services and database-backed workflow
+state transitions. It follows a LangGraph-style control model without requiring
+LangGraph as a runtime dependency today.
+
+Stateful orchestration is needed because the system needs:
 
 ```text
 stateful workflows
@@ -735,7 +739,7 @@ created_at
 Start with one workflow:
 
 ```text
-Sales Report → Executive Summary
+Sales Report -> Executive Summary
 ```
 
 Steps:

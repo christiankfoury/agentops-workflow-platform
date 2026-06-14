@@ -1,4 +1,4 @@
-# Enterprise Multi-Agent Workflow Platform — Project Specification
+# Enterprise Multi-Agent Workflow Platform - Project Specification
 
 ## 1. Project Overview
 
@@ -30,7 +30,7 @@ This project is intended to demonstrate practical AI engineering skills that are
 The project should show experience with:
 
 * Multi-agent orchestration
-* LangGraph-style stateful workflows
+* Stateful multi-agent workflow orchestration
 * Human-in-the-loop AI systems
 * Agent evaluation
 * Cost tracking
@@ -166,7 +166,7 @@ Customer Feedback
 ↓
 Classifier Agent
 ↓
-Insight Analyst Agent
+Insight Agent
 ↓
 Reviewer Agent
 ↓
@@ -753,7 +753,7 @@ Shows all workflow runs.
 
 Columns:
 
-* Run ID
+* Workflow title
 * Workflow type
 * Status
 * Quality score
@@ -762,6 +762,10 @@ Columns:
 * Retry count
 * Created date
 * Created by
+
+Run IDs should remain available in URLs, API responses, and debugging traces,
+but the recruiter-facing table should prioritize workflow titles and readable
+business context instead of raw UUIDs.
 
 ## 15.4 Workflow Run Detail Page
 
@@ -867,16 +871,20 @@ Shows:
 * Most expensive workflow runs
 * Cost caused by retries
 
-## 15.10 Prompt Version Dashboard
+## 15.10 Prompt Control Center
 
 Shows:
 
-* Prompt versions
-* Agent type
-* Active version
-* Created date
-* Evaluation performance by prompt version
-* Ability to activate a prompt version
+* Shared Governance prompts for Router, Reviewer, and Writer.
+* Workflow-specific prompts grouped by Sales, Customer Feedback, and Incident.
+* Product-facing agent labels instead of raw enum values.
+* Active prompt name, version, usage, and template preview.
+* Prompt history with active/inactive status.
+* Prompt detail pages that explain operational impact and future-run scope.
+* Ability to create and activate prompt versions.
+
+Prompt pages should make clear that prompt changes affect future agent runs only
+and do not mutate completed workflow outputs.
 
 ## 15.11 Agent Performance Dashboard
 
@@ -1227,10 +1235,15 @@ PostgreSQL
 ## 21.3 Agent Orchestration
 
 ```text
-LangGraph
+Service-based stateful workflow orchestration
 ```
 
-LangGraph is a good fit because the project requires:
+The current implementation uses FastAPI services and database-backed workflow
+state transitions. LangGraph-style orchestration remains a possible future
+extension, but the implementation should be described according to the code that
+exists today.
+
+Stateful orchestration is needed because the project requires:
 
 * Stateful workflows
 * Conditional routing
@@ -1294,7 +1307,7 @@ For a portfolio project, the priority is a stable live demo with seeded data and
 The MVP should focus on one complete workflow first:
 
 ```text
-Sales Report → Executive Summary
+Sales Report -> Executive Summary
 ```
 
 MVP features:
@@ -1375,7 +1388,7 @@ The project is successful if it can demonstrate:
 
 The project should aim to prove claims like:
 
-> Built a full-stack enterprise multi-agent workflow platform using FastAPI, Next.js, PostgreSQL, and LangGraph.
+> Built a full-stack enterprise multi-agent workflow platform using FastAPI, Next.js, PostgreSQL, and stateful service orchestration.
 
 > Implemented stateful AI workflows with specialized Analyst, Reviewer, Writer, Router, and Evaluator agents.
 

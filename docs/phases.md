@@ -6,6 +6,10 @@ The goal is that each phase is small enough to implement in one focused PR, but 
 
 ## Final outcome
 
+This file is the historical PR-sized implementation plan for the project. Phases
+1 through 65 are complete according to `docs/phase-progress.md`; later phases
+should only be implemented when explicitly requested.
+
 You will build a full-stack app where users can run business workflows through a measurable multi-agent pipeline:
 
 ```text
@@ -31,9 +35,9 @@ Evaluation + Cost + Observability Dashboard
 The finished project should support:
 
 ```text
-Sales Report → Executive Summary
-Customer Feedback → Product Insights Report
-Incident Log → Post-Incident Report
+Sales Report -> Executive Summary
+Customer Feedback -> Product Insights Report
+Incident Log -> Post-Incident Report
 ```
 
 And demonstrate:
@@ -178,7 +182,7 @@ The frontend should fetch real data from the backend, even if the data is simple
 The goal is to have a working full-stack loop:
 
 ```text
-Frontend → API → Database → Frontend
+Frontend -> API -> Database -> Frontend
 ```
 
 ---
@@ -284,7 +288,7 @@ optional notes
 For now, only support:
 
 ```text
-Sales Report → Executive Summary
+Sales Report -> Executive Summary
 ```
 
 The goal is to prepare real user input for the first agent pipeline.
@@ -563,7 +567,7 @@ Cost per workflow type
 Tokens by agent
 ```
 
-This helps prove that you are thinking beyond “it works” and into “can this run in production?”
+This helps prove that you are thinking beyond "it works" and into "can this run in production?"
 
 ---
 
@@ -676,7 +680,7 @@ expected_recommendations
 expected_output_notes
 ```
 
-Seed the database with the first 5–10 sales report evaluation cases.
+Seed the database with the first 5-10 sales report evaluation cases.
 
 This gives you a repeatable test set.
 
@@ -754,7 +758,7 @@ This is arguably the most important page in the entire app.
 
 This is what lets you say:
 
-> “My multi-agent workflow improved factual accuracy and reduced hallucinations compared to a single-agent baseline.”
+> "My multi-agent workflow improved factual accuracy and reduced hallucinations compared to a single-agent baseline."
 
 ---
 
@@ -810,7 +814,7 @@ This is optional in many projects, but you said you want all optional features, 
 Add support for the second workflow type:
 
 ```text
-Customer Feedback → Product Insights Report
+Customer Feedback -> Product Insights Report
 ```
 
 Update the system to support multiple workflow types.
@@ -867,7 +871,7 @@ Store all outputs as `agent_steps`.
 
 # Phase 32: Customer Feedback Insight Agent
 
-Implement the Insight Analyst Agent.
+Implement the Insight Agent.
 
 It should turn categorized feedback into product insights:
 
@@ -918,7 +922,7 @@ Now your evaluation dashboard should show metrics by workflow type.
 Add support for the third workflow type:
 
 ```text
-Incident Log → Post-Incident Report
+Incident Log -> Post-Incident Report
 ```
 
 Define structured outputs for:
@@ -1385,7 +1389,7 @@ Human approval rate over time
 
 This directly supports your recruiter story:
 
-> “I improved the workflow through measured iterations.”
+> "I improved the workflow through measured iterations."
 
 ---
 
@@ -1606,7 +1610,7 @@ Future improvements
 
 Your final headline should be something like:
 
-> Built an enterprise-style LangGraph multi-agent workflow platform that reduced unsupported claims by X% and improved factual accuracy by Y% compared to a single-agent baseline across 30 business-document evaluation cases.
+> Built an enterprise-style multi-agent workflow platform that reduced unsupported claims by X% and improved factual accuracy by Y% compared to a single-agent baseline across 30 business-document evaluation cases.
 
 This is the final deliverable that turns the app into a job-search asset.
 
@@ -1619,7 +1623,7 @@ The phases above are complete, but here is the practical order I would follow.
 ## Milestone 1: Full-stack skeleton
 
 ```text
-Phase 1–7
+Phase 1-7
 ```
 
 Goal:
@@ -1631,7 +1635,7 @@ You can create and view workflow runs.
 ## Milestone 2: First real workflow
 
 ```text
-Phase 8–18
+Phase 8-18
 ```
 
 Goal:
@@ -1643,7 +1647,7 @@ Sales Report workflow works end-to-end with Analyst, Reviewer, Human Approval, a
 ## Milestone 3: Measurement
 
 ```text
-Phase 19–29
+Phase 19-29
 ```
 
 Goal:
@@ -1655,7 +1659,7 @@ You can prove multi-agent improvement over baseline.
 ## Milestone 4: More workflows
 
 ```text
-Phase 30–39
+Phase 30-39
 ```
 
 Goal:
@@ -1667,7 +1671,7 @@ Customer Feedback and Incident Report workflows work end-to-end.
 ## Milestone 5: Optional enterprise features
 
 ```text
-Phase 40–59
+Phase 40-59
 ```
 
 Goal:
@@ -1679,7 +1683,7 @@ Router Agent, permissions, audit trail, notifications, prompt management, and ad
 ## Milestone 6: Production readiness
 
 ```text
-Phase 60–80
+Phase 60-80
 ```
 
 Goal:
@@ -1692,7 +1696,7 @@ Background jobs, live updates, evaluation polish, testing, deployment, README, a
 
 # Best stopping points
 
-Because 80 phases is a lot, here are the best points where the project becomes portfolio-usable.
+Because the phase plan is long, here are the best points where the project becomes portfolio-usable.
 
 ## Strong MVP
 

@@ -2,9 +2,14 @@
 
 Current next phase: Phase 66 - Demo Video Script
 
-Autonomous trial target: Phase 46 through Phase 65 complete.
+Completed autonomous target: Phase 46 through Phase 65.
 
 Target range status: Phase 46 through Phase 65 complete.
+
+No active autonomous phase run is currently configured. Phase 66 should not be
+implemented unless explicitly requested by the user. Current work is
+user-directed post-Phase 65 product refinement, including workflow algorithm
+review, demo clarity, prompt/settings UX, and UI styling polish.
 
 ## Completed Phases
 

@@ -9,15 +9,27 @@ This repository is built phase by phase from:
 
 The goal is to let an engineering agent continue implementation autonomously while keeping each change reviewable, tested, and scoped.
 
-## Active Autonomous Run
+## Autonomous Run Status
 
-Target range:
+No autonomous phase run is currently active.
+
+The previous autonomous target range is complete:
 
 ```text
 Phase 46 through Phase 65
 ```
 
-The agent should execute phases continuously in order from the current next phase until Phase 65 is completed, unless a stop condition is reached.
+The current project state is post-Phase 65 product refinement. Do not continue
+into Phase 66 or later unless the user explicitly asks for an autonomous phase
+run or asks to implement a specific phase.
+
+Current user-directed focus areas include:
+
+- Revising workflow algorithms and agent handoffs.
+- Improving prompt/settings clarity.
+- Polishing workflow run, approval, comparison, cost, and demo UI.
+- Tightening recruiter-facing product storytelling.
+- Improving CSS, responsive behavior, empty states, and visual hierarchy.
 
 ## Operating Loop
 
