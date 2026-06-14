@@ -33,6 +33,7 @@ const DEFAULT_FETCH_TIMEOUT_MS = 2500;
 const AGENT_ACTION_FETCH_TIMEOUT_MS = 120000;
 const EVALUATION_RESULTS_FETCH_TIMEOUT_MS = 10000;
 const EVALUATION_COMPARISON_FETCH_TIMEOUT_MS = 300000;
+const PROMPT_CONFIGURATION_FETCH_TIMEOUT_MS = 10000;
 
 function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(apiUrl(path), {
@@ -184,13 +185,19 @@ export async function getAgentPerformanceSummary(): Promise<AgentPerformanceSumm
 }
 
 export async function listPromptVersions(): Promise<PromptVersion[]> {
-  const res = await apiFetch("/prompt-versions", { cache: "no-store" });
+  const res = await apiFetch("/prompt-versions", {
+    cache: "no-store",
+    signal: AbortSignal.timeout(PROMPT_CONFIGURATION_FETCH_TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`Failed to fetch prompt versions: ${res.status}`);
   return res.json() as Promise<PromptVersion[]>;
 }
 
 export async function getPromptVersion(id: string): Promise<PromptVersion | null> {
-  const res = await apiFetch(`/prompt-versions/${id}`, { cache: "no-store" });
+  const res = await apiFetch(`/prompt-versions/${id}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(PROMPT_CONFIGURATION_FETCH_TIMEOUT_MS),
+  });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to fetch prompt version: ${res.status}`);
   return res.json() as Promise<PromptVersion>;
@@ -223,7 +230,10 @@ export async function activatePromptVersion(id: string): Promise<PromptVersion> 
 }
 
 export async function listAgentSettings(): Promise<AgentSetting[]> {
-  const res = await apiFetch("/agent-settings", { cache: "no-store" });
+  const res = await apiFetch("/agent-settings", {
+    cache: "no-store",
+    signal: AbortSignal.timeout(PROMPT_CONFIGURATION_FETCH_TIMEOUT_MS),
+  });
   if (!res.ok) throw new Error(`Failed to fetch agent settings: ${res.status}`);
   return res.json() as Promise<AgentSetting[]>;
 }

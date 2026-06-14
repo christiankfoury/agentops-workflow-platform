@@ -1,19 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { agentDisplayConfigs } from "@/lib/agent-display";
 import { createPromptVersionAction } from "./actions";
 
 const initialState = { error: null };
-const agentTypes = [
-  "analyst",
-  "reviewer",
-  "writer",
-  "router",
-  "timeline",
-  "root_cause",
-  "classifier",
-  "insight",
-];
 
 export function PromptVersionForm() {
   const [state, formAction, pending] = useActionState(
@@ -26,11 +17,13 @@ export function PromptVersionForm() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label htmlFor="agent_type" className="block text-sm font-medium">
-            Agent Type
+            Agent
           </label>
           <select id="agent_type" name="agent_type" className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-            {agentTypes.map((agentType) => (
-              <option key={agentType} value={agentType}>{agentType}</option>
+            {agentDisplayConfigs.map((config) => (
+              <option key={config.agentType} value={config.agentType}>
+                {config.displayName} - {config.workflowLabel}
+              </option>
             ))}
           </select>
         </div>
