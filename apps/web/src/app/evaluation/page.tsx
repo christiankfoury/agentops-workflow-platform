@@ -202,7 +202,7 @@ export default async function EvaluationDashboardPage() {
                   {multiAgent && <SummaryCard summary={multiAgent} />}
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-lg border border-border">
+                <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-card">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-muted text-xs uppercase text-muted-foreground">
                       <tr>

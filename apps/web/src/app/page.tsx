@@ -108,10 +108,10 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className="group rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent"
+      className="group rounded-lg border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/70 hover:shadow-md"
     >
       <div className="flex items-start gap-3">
-        <span className="rounded-md border border-border bg-background p-2">
+        <span className="rounded-md border border-border bg-background p-2 text-primary shadow-sm">
           <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
         <span>
@@ -150,10 +150,10 @@ export default async function Home() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-lg border border-border bg-card p-6">
+      <section className="overflow-hidden rounded-lg border border-border bg-card p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
+            <p className="text-xs font-semibold uppercase text-primary">
               Portfolio demo console
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">

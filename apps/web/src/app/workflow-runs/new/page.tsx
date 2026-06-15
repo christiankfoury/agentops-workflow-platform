@@ -18,7 +18,7 @@ const workflowExamples = [
 export default function NewWorkflowPage() {
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="flex flex-col gap-3 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="rounded-lg border border-border bg-card p-5 lg:flex lg:items-end lg:justify-between lg:gap-6">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
             Workflow intake
@@ -31,17 +31,17 @@ export default function NewWorkflowPage() {
             multi-agent run or a single-agent baseline for comparison.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-sm sm:flex">
-          <span className="rounded-md border border-border bg-muted px-3 py-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:flex lg:mt-0">
+          <span className="rounded-full border border-border bg-muted px-3 py-1.5">
             Analyst
           </span>
-          <span className="rounded-md border border-border bg-muted px-3 py-2">
+          <span className="rounded-full border border-border bg-muted px-3 py-1.5">
             Reviewer
           </span>
-          <span className="rounded-md border border-border bg-muted px-3 py-2">
+          <span className="rounded-full border border-border bg-muted px-3 py-1.5">
             Approval
           </span>
-          <span className="rounded-md border border-border bg-muted px-3 py-2">
+          <span className="rounded-full border border-border bg-muted px-3 py-1.5">
             Writer
           </span>
         </div>

@@ -6,6 +6,30 @@ import {
   type HumanApprovalTableRow,
 } from "./human-approvals-table";
 
+const runFetchConcurrency = 6;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
+  );
+  return results;
+}
+
 function approvalDisplayStatus(
   approval: HumanApproval,
   run: WorkflowRun | undefined,
@@ -30,11 +54,14 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 }
 
 async function loadRunsById(approvals: HumanApproval[]): Promise<Map<string, WorkflowRun>> {
-  const entries = await Promise.all(
-    approvals.map(async (approval) => {
-      const run = await getWorkflowRun(approval.workflow_run_id).catch(() => null);
-      return [approval.workflow_run_id, run] as const;
-    }),
+  const runIds = Array.from(new Set(approvals.map((approval) => approval.workflow_run_id)));
+  const entries = await mapWithConcurrency(
+    runIds,
+    runFetchConcurrency,
+    async (workflowRunId) => {
+      const run = await getWorkflowRun(workflowRunId).catch(() => null);
+      return [workflowRunId, run] as const;
+    },
   );
   return new Map(
     entries.filter((entry): entry is readonly [string, WorkflowRun] => entry[1] !== null),

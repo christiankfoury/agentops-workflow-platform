@@ -8,6 +8,30 @@ type RunWithSteps = {
   steps: AgentStep[];
 };
 
+const stepFetchConcurrency = 6;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
+  );
+  return results;
+}
+
 function formatPercent(value: number | null): string {
   if (value === null) return "n/a";
   return `${Math.round(value * 100)}%`;
@@ -15,12 +39,10 @@ function formatPercent(value: number | null): string {
 
 async function getRunWithSteps(): Promise<RunWithSteps[]> {
   const runs = await listWorkflowRuns();
-  return Promise.all(
-    runs.map(async (run) => ({
-      run,
-      steps: await listAgentSteps(run.id).catch(() => []),
-    })),
-  );
+  return mapWithConcurrency(runs, stepFetchConcurrency, async (run) => ({
+    run,
+    steps: await listAgentSteps(run.id).catch(() => []),
+  }));
 }
 
 function getFailureLabel(step: AgentStep): string {
@@ -61,7 +83,7 @@ function LowScoreRuns({ runs }: { runs: WorkflowRun[] }) {
   return (
     <section>
       <h2 className="text-lg font-semibold">Lowest Scoring Runs</h2>
-      <div className="mt-3 overflow-hidden rounded-lg border border-border">
+      <div className="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>

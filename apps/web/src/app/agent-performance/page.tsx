@@ -40,7 +40,7 @@ function AgentPerformanceTable({ rows }: { rows: AgentPerformanceSummary[] }) {
   return (
     <section className="mt-8">
       <h2 className="text-lg font-semibold">Agent Metrics</h2>
-      <div className="mt-3 overflow-hidden rounded-lg border border-border">
+      <div className="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>

@@ -26,11 +26,11 @@ export function AgentSettingsForm({
   );
 
   return (
-    <form action={formAction} className="border-t border-border px-4 py-4">
+    <form action={formAction} className="border-t border-border px-4 py-5 first:border-t-0">
       <input type="hidden" name="agent_type" value={setting.agent_type} />
       <div className="grid gap-3 lg:grid-cols-[1fr_1.2fr_repeat(5,minmax(0,0.8fr))_auto]">
         <div>
-          <p className="text-sm font-medium capitalize">{formatAgent(setting.agent_type)}</p>
+          <p className="text-sm font-semibold capitalize">{formatAgent(setting.agent_type)}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {setting.active_prompt_name ?? "No active prompt"}
           </p>
@@ -40,7 +40,7 @@ export function AgentSettingsForm({
           <input
             name="model"
             defaultValue={setting.model}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <label className="text-xs font-medium text-muted-foreground">
@@ -52,7 +52,7 @@ export function AgentSettingsForm({
             min="0"
             max="2"
             defaultValue={setting.temperature ?? ""}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <label className="text-xs font-medium text-muted-foreground">
@@ -62,7 +62,7 @@ export function AgentSettingsForm({
             type="number"
             min="1"
             defaultValue={setting.max_tokens}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <label className="text-xs font-medium text-muted-foreground">
@@ -72,7 +72,7 @@ export function AgentSettingsForm({
             type="number"
             min="1"
             defaultValue={setting.timeout_seconds ?? ""}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <label className="text-xs font-medium text-muted-foreground">
@@ -82,7 +82,7 @@ export function AgentSettingsForm({
             type="number"
             min="0"
             defaultValue={setting.max_retries}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <label className="text-xs font-medium text-muted-foreground">
@@ -94,7 +94,7 @@ export function AgentSettingsForm({
             min="0"
             max="1"
             defaultValue={setting.reviewer_approval_threshold ?? ""}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <label className="text-xs font-medium text-muted-foreground">
@@ -106,7 +106,7 @@ export function AgentSettingsForm({
             min="0"
             max="1"
             defaultValue={setting.human_approval_threshold ?? ""}
-            className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
           />
         </label>
         <div className="lg:col-span-7">
@@ -115,7 +115,7 @@ export function AgentSettingsForm({
             <select
               name="active_prompt_version_id"
               defaultValue={setting.active_prompt_version_id ?? ""}
-              className="mt-1 w-full rounded-md border border-input bg-background px-2 py-2 text-sm text-foreground"
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
             >
               <option value="">Use active prompt fallback</option>
               {promptOptions.map((prompt) => (
@@ -131,7 +131,7 @@ export function AgentSettingsForm({
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            className="h-10 w-full rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? "Saving..." : "Save"}
           </button>

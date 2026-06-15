@@ -7,11 +7,11 @@ import type { AgentType, PromptVersion } from "@/lib/types";
 import { CreatePromptVersionModal } from "./create-prompt-version-modal";
 
 const workflowAccentClasses: Record<string, string> = {
-  Sales: "border-sky-200 bg-sky-50/70 text-sky-950",
-  "Customer Feedback": "border-violet-200 bg-violet-50/70 text-violet-950",
-  Incident: "border-amber-200 bg-amber-50/70 text-amber-950",
-  Intake: "border-cyan-200 bg-cyan-50/70 text-cyan-950",
-  "Shared Governance": "border-emerald-200 bg-emerald-50/70 text-emerald-950",
+  Sales: "border-blue-200 bg-blue-50/70 text-blue-950",
+  "Customer Feedback": "border-blue-200 bg-blue-50/70 text-blue-950",
+  Incident: "border-blue-200 bg-blue-50/70 text-blue-950",
+  Intake: "border-blue-200 bg-blue-50/70 text-blue-950",
+  "Shared Governance": "border-blue-200 bg-blue-50/70 text-blue-950",
   Shared: "border-border bg-muted text-foreground",
 };
 
@@ -20,20 +20,7 @@ function getWorkflowAccent(workflowLabel: string): string {
 }
 
 function getAgentAccentBar(workflowLabel: string): string {
-  switch (workflowLabel) {
-    case "Sales":
-      return "bg-sky-500";
-    case "Customer Feedback":
-      return "bg-violet-500";
-    case "Incident":
-      return "bg-amber-500";
-    case "Intake":
-      return "bg-cyan-500";
-    case "Shared Governance":
-      return "bg-emerald-500";
-    default:
-      return "bg-muted-foreground";
-  }
+  return workflowLabel === "Shared" ? "bg-muted-foreground" : "bg-blue-600";
 }
 
 function getLatestPrompt(prompts: PromptVersion[]): PromptVersion | null {
@@ -47,6 +34,10 @@ function getLatestPrompt(prompts: PromptVersion[]): PromptVersion | null {
 function getPromptPreview(prompt: PromptVersion | null): string {
   if (!prompt) return "No prompt is active for this agent yet.";
   return prompt.template.replace(/\s+/g, " ").trim();
+}
+
+function getHistoryScopeLabel(agent: ReturnType<typeof getAgentDisplay>): string {
+  return agent.group === "shared" ? "Shared" : agent.workflowLabel;
 }
 
 function promptNameLooksMismatched(prompt: PromptVersion | null, agentType: AgentType): boolean {
@@ -94,7 +85,7 @@ function ActivePromptRow({
   const accentClass = getWorkflowAccent(config.workflowLabel);
   return (
     <article className="relative border-t border-border px-4 py-4 transition-colors first:border-t-0 hover:bg-muted/30">
-      <div className={`absolute bottom-4 left-0 top-4 w-1 rounded-r-full ${accentBar}`} />
+      <div className={`absolute bottom-0 left-0 top-0 w-1 ${accentBar}`} />
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -166,9 +157,9 @@ function SharedPromptGroup({ prompts }: { prompts: ReturnType<typeof getPromptRo
   );
   return (
     <section className="mt-8">
-      <div className="flex flex-col gap-1 rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
-        <p className="text-xs font-semibold uppercase text-emerald-700">Shared controls</p>
-        <h2 className="text-xl font-semibold text-emerald-950">Shared Governance Prompts</h2>
+      <div className="flex flex-col gap-1 rounded-lg border border-blue-200 bg-blue-50/70 p-4">
+        <p className="text-xs font-semibold uppercase text-blue-700">Shared controls</p>
+        <h2 className="text-xl font-semibold text-blue-950">Shared Governance Prompts</h2>
         <p className="text-sm text-muted-foreground">
           These prompts are shared across workflows for routing, factual review, and final report generation.
         </p>
@@ -211,7 +202,7 @@ function WorkflowPromptGroup({ prompts }: { prompts: ReturnType<typeof getPrompt
         <p className="text-xs font-semibold uppercase text-muted-foreground">Workflow paths</p>
         <h2 className="text-xl font-semibold">Workflow-Specific Prompts</h2>
         <p className="text-sm text-muted-foreground">
-          These prompts belong to one workflow path and should match that workflow's business output.
+          These prompts belong to one workflow path and should match that workflow&apos;s business output.
         </p>
       </div>
       <WorkflowPromptSection
@@ -249,60 +240,60 @@ export default async function PromptVersionsPage() {
 
   return (
     <div>
-      <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-5">
+      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase text-sky-700">Prompt Versions</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-sky-950">
+            <p className="text-sm font-semibold uppercase text-blue-700">Prompt Versions</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-blue-950">
               Prompt Control Center
             </h1>
-            <p className="mt-2 text-sky-950/75">
+            <p className="mt-2 text-blue-950/75">
               Review the active prompt system by workflow path, shared governance role, and version
               history. Prompt changes affect future agent runs only; completed workflow outputs are
               not mutated.
             </p>
           </div>
           <div className="grid gap-2 text-sm sm:grid-cols-3 lg:min-w-[420px]">
-            <div className="rounded-lg border border-sky-200 bg-background/80 p-3">
-              <p className="font-medium text-sky-950">Workflow prompts</p>
-              <p className="mt-1 text-sky-950/70">Sales, feedback, and incident agents</p>
+            <div className="rounded-lg border border-blue-200 bg-background/80 p-3">
+              <p className="font-medium text-blue-950">Workflow prompts</p>
+              <p className="mt-1 text-blue-950/70">Sales, feedback, and incident agents</p>
             </div>
-            <div className="rounded-lg border border-emerald-200 bg-background/80 p-3">
-              <p className="font-medium text-emerald-950">Governance</p>
-              <p className="mt-1 text-emerald-950/70">Router, reviewer, and writer</p>
+            <div className="rounded-lg border border-blue-200 bg-background/80 p-3">
+              <p className="font-medium text-blue-950">Governance</p>
+              <p className="mt-1 text-blue-950/70">Router, reviewer, and writer</p>
             </div>
-            <div className="rounded-lg border border-violet-200 bg-background/80 p-3">
-              <p className="font-medium text-violet-950">Versioning</p>
-              <p className="mt-1 text-violet-950/70">Audit history and safe activation</p>
+            <div className="rounded-lg border border-blue-200 bg-background/80 p-3">
+              <p className="font-medium text-blue-950">Versioning</p>
+              <p className="mt-1 text-blue-950/70">Audit history and safe activation</p>
             </div>
           </div>
         </div>
       </div>
 
       <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-sky-200 bg-sky-50/60 p-4">
-          <div className="flex items-center gap-2 text-sky-800">
+        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+          <div className="flex items-center gap-2 text-blue-800">
             <CheckCircle2 className="h-4 w-4" />
             <p className="text-sm font-medium">Active Prompts</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-sky-950">{activePromptCount}</p>
-          <p className="mt-1 text-sm text-sky-950/70">of {promptRows.length} agent slots</p>
+          <p className="mt-2 text-2xl font-semibold text-blue-950">{activePromptCount}</p>
+          <p className="mt-1 text-sm text-blue-950/70">of {promptRows.length} agent slots</p>
         </div>
-        <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-4">
-          <div className="flex items-center gap-2 text-violet-800">
+        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+          <div className="flex items-center gap-2 text-blue-800">
             <GitBranch className="h-4 w-4" />
             <p className="text-sm font-medium">Workflow-Specific</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-violet-950">{workflowSpecificCount}</p>
-          <p className="mt-1 text-sm text-violet-950/70">Sales, Feedback, and Incident agents</p>
+          <p className="mt-2 text-2xl font-semibold text-blue-950">{workflowSpecificCount}</p>
+          <p className="mt-1 text-sm text-blue-950/70">Sales, Feedback, and Incident agents</p>
         </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
-          <div className="flex items-center gap-2 text-emerald-800">
+        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+          <div className="flex items-center gap-2 text-blue-800">
             <ShieldCheck className="h-4 w-4" />
             <p className="text-sm font-medium">Shared Governance</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-emerald-950">{sharedPromptCount}</p>
-          <p className="mt-1 text-sm text-emerald-950/70">Router, Reviewer, and Writer prompts</p>
+          <p className="mt-2 text-2xl font-semibold text-blue-950">{sharedPromptCount}</p>
+          <p className="mt-1 text-sm text-blue-950/70">Router, Reviewer, and Writer prompts</p>
         </div>
       </section>
 
@@ -313,7 +304,7 @@ export default async function PromptVersionsPage() {
         <div className="flex flex-col gap-4 border-b border-border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-violet-700" />
+              <Sparkles className="h-4 w-4 text-blue-700" />
               <h2 className="text-lg font-semibold">Prompt History</h2>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -322,24 +313,26 @@ export default async function PromptVersionsPage() {
           </div>
           <CreatePromptVersionModal />
         </div>
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto">
+        <table className="min-w-[1120px] w-full text-left text-sm">
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">Prompt</th>
-              <th className="px-4 py-3">Agent</th>
-              <th className="px-4 py-3">Used By</th>
-              <th className="px-4 py-3">Version</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Created</th>
+              <th className="w-[44%] px-4 py-3">Prompt</th>
+              <th className="w-[20%] px-4 py-3">Agent</th>
+              <th className="w-[12%] px-4 py-3">Used By</th>
+              <th className="w-[7%] px-4 py-3">Version</th>
+              <th className="w-[8%] px-4 py-3">Status</th>
+              <th className="w-[14%] px-4 py-3">Created</th>
             </tr>
           </thead>
           <tbody>
             {prompts.map((prompt) => {
               const agent = getAgentDisplay(prompt.agent_type);
               const agentAccent = getWorkflowAccent(agent.workflowLabel);
+              const historyScopeLabel = getHistoryScopeLabel(agent);
               return (
                 <tr key={prompt.id} className="border-t border-border hover:bg-muted/30">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4 align-top">
                     <Link href={`/prompt-versions/${prompt.id}`} className="font-medium hover:underline">
                       {prompt.name}
                     </Link>
@@ -347,28 +340,31 @@ export default async function PromptVersionsPage() {
                       {prompt.template}
                     </p>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4 align-top">
                     <p className="font-medium">{agent.displayName}</p>
                     <p className="text-xs text-muted-foreground">{agent.description}</p>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full border px-3 py-1 text-xs ${agentAccent}`}>
-                      {agent.usedBy}
+                  <td className="px-4 py-4 align-top">
+                    <span
+                      title={agent.usedBy}
+                      className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs ${agentAccent}`}
+                    >
+                      {historyScopeLabel}
                     </span>
                   </td>
-                  <td className="px-4 py-3">v{prompt.version}</td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-4 align-top">v{prompt.version}</td>
+                  <td className="px-4 py-4 align-top">
                     <span
                       className={
                         prompt.is_active
-                          ? "rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800"
-                          : "rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground"
+                          ? "inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800"
+                          : "inline-flex whitespace-nowrap rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground"
                       }
                     >
                       {prompt.is_active ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-4 py-4 align-top text-xs">
                     <LocalDateTime value={prompt.created_at} />
                   </td>
                 </tr>
@@ -376,6 +372,7 @@ export default async function PromptVersionsPage() {
             })}
           </tbody>
         </table>
+        </div>
       </section>
     </div>
   );

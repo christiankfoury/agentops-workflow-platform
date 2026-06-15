@@ -29,15 +29,22 @@ import type {
   WorkflowRun,
 } from "./types";
 
-const DEFAULT_FETCH_TIMEOUT_MS = 2500;
+const DEFAULT_FETCH_TIMEOUT_MS = 10000;
 const AGENT_ACTION_FETCH_TIMEOUT_MS = 120000;
 const EVALUATION_RESULTS_FETCH_TIMEOUT_MS = 10000;
 const EVALUATION_COMPARISON_FETCH_TIMEOUT_MS = 300000;
 const PROMPT_CONFIGURATION_FETCH_TIMEOUT_MS = 10000;
 
 function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (process.env.API_KEY && !headers.has("x-agentops-api-key")) {
+    headers.set("x-agentops-api-key", process.env.API_KEY);
+    headers.set("x-agentops-role", process.env.API_ROLE ?? "admin");
+  }
+
   return fetch(apiUrl(path), {
     ...init,
+    headers,
     signal: init.signal ?? AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
   });
 }

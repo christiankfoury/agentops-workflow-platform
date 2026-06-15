@@ -170,7 +170,10 @@ function groupCostByDate(runs: WorkflowRun[]): NamedTotal[] {
   }
   return [...totals.values()]
     .sort((left, right) => left.timestamp - right.timestamp)
-    .map(({ timestamp: _timestamp, ...row }) => row);
+    .map(({ timestamp, ...row }) => {
+      void timestamp;
+      return row;
+    });
 }
 
 function getAverageRetryCost(items: RunWithSteps[]): number {
@@ -347,7 +350,7 @@ function MostExpensiveRuns({ runs }: { runs: WorkflowRun[] }) {
       <p className="mt-1 text-sm text-muted-foreground">
         Highest-cost workflow records by stored token-based estimate.
       </p>
-      <div className="mt-3 overflow-hidden rounded-lg border border-border">
+      <div className="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted text-muted-foreground">
             <tr>

@@ -182,7 +182,7 @@ export default async function FinalOutputPage({
             {run.workflow_type}
           </span>
         </div>
-        <pre className="mt-4 whitespace-pre-wrap text-sm leading-6">
+        <pre className="mt-4 whitespace-pre-wrap rounded-lg bg-muted/60 p-5 text-sm leading-7">
           {run.final_output ?? "No final output has been stored for this run."}
         </pre>
       </section>

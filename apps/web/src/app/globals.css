@@ -31,26 +31,26 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --background: oklch(0.985 0.006 248);
+  --foreground: oklch(0.18 0.018 252);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.18 0.018 252);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
+  --popover-foreground: oklch(0.18 0.018 252);
+  --primary: oklch(0.47 0.18 258);
+  --primary-foreground: oklch(0.99 0.004 250);
+  --secondary: oklch(0.95 0.012 240);
+  --secondary-foreground: oklch(0.25 0.026 246);
+  --muted: oklch(0.955 0.01 248);
+  --muted-foreground: oklch(0.48 0.026 252);
+  --accent: oklch(0.94 0.035 258);
+  --accent-foreground: oklch(0.24 0.085 258);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.21 0.006 285.885);
-  --radius: 0.625rem;
+  --border: oklch(0.9 0.012 248);
+  --input: oklch(0.88 0.014 248);
+  --ring: oklch(0.54 0.18 258);
+  --radius: 0.5rem;
 }
 
 .dark {
@@ -78,5 +78,110 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--foreground);
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  summary {
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      color 160ms ease,
+      opacity 160ms ease;
+  }
+
+  input,
+  select,
+  textarea {
+    box-shadow: 0 1px 2px oklch(0 0 0 / 4%);
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible,
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  pre {
+    border: 1px solid color-mix(in oklch, var(--border) 82%, transparent);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 45%);
+  }
+
+  table {
+    min-width: 100%;
+  }
+}
+
+@layer components {
+  .rounded-lg.border.bg-card,
+  .rounded-xl.border.bg-card,
+  details.rounded-lg.border,
+  form.rounded-lg.border.bg-card {
+    box-shadow:
+      0 1px 2px oklch(0 0 0 / 4%),
+      0 10px 30px oklch(0 0 0 / 3%);
+  }
+
+  .rounded-lg.border-dashed,
+  .rounded-md.border-dashed {
+    background: color-mix(in oklch, var(--card) 78%, var(--muted));
+  }
+
+  a.rounded-md.border,
+  button.rounded-md.border {
+    box-shadow: 0 1px 2px oklch(0 0 0 / 3%);
+  }
+
+  a.rounded-md.border:hover,
+  button.rounded-md.border:hover {
+    border-color: color-mix(in oklch, var(--primary) 32%, var(--border));
+  }
+
+  table thead {
+    border-bottom: 1px solid var(--border);
+  }
+
+  table tbody tr {
+    background: color-mix(in oklch, var(--card) 96%, transparent);
+  }
+
+  table tbody tr:hover {
+    background: color-mix(in oklch, var(--accent) 42%, var(--card));
+  }
+
+  .bg-primary {
+    background-color: var(--primary);
+    box-shadow:
+      0 1px 2px oklch(0 0 0 / 10%),
+      0 8px 18px color-mix(in oklch, var(--primary) 18%, transparent);
+  }
+
+  .text-primary {
+    color: var(--primary);
+  }
+
+  .border-primary {
+    border-color: var(--primary);
+  }
 }

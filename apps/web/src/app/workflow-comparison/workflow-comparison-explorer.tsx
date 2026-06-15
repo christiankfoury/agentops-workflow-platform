@@ -11,7 +11,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { LocalDateTime } from "@/components/local-date-time";
 import { cn } from "@/lib/utils";
 import type {
@@ -454,7 +454,7 @@ function DemoShortcuts({ onSelect }: { onSelect: (search: string) => void }) {
             key={shortcut.search}
             type="button"
             onClick={() => onSelect(shortcut.search)}
-            className="rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-muted"
+            className="rounded-md border border-border bg-background p-3 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:bg-muted"
           >
             <span className="text-sm font-medium">{shortcut.label}</span>
             <span className="mt-1 block text-xs leading-5 text-muted-foreground">
@@ -878,7 +878,7 @@ function ComparisonCard({
   const mixed = isMixedOutcome(comparison);
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
+    <section className="rounded-lg border border-border bg-card p-4 transition hover:border-primary/25 hover:shadow-md">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -1034,10 +1034,10 @@ export function WorkflowComparisonExplorer({
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
+  function resetResultView() {
     setVisibleCount(pageSize);
     setExpandedId(null);
-  }, [query, filter, sort]);
+  }
 
   const filteredComparisons = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -1083,6 +1083,7 @@ export function WorkflowComparisonExplorer({
           setQuery(search);
           setFilter("all");
           setSort("title");
+          resetResultView();
         }}
       />
 
@@ -1097,7 +1098,10 @@ export function WorkflowComparisonExplorer({
               />
               <input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  resetResultView();
+                }}
                 placeholder="Search title or input"
                 className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary"
               />
@@ -1107,7 +1111,10 @@ export function WorkflowComparisonExplorer({
             <span className="text-xs text-muted-foreground">Sort by</span>
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value as SortKey)}
+              onChange={(event) => {
+                setSort(event.target.value as SortKey);
+                resetResultView();
+              }}
               className="h-10 rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
             >
               {sortOptions.map((option) => (
@@ -1124,7 +1131,10 @@ export function WorkflowComparisonExplorer({
             <button
               key={option.key}
               type="button"
-              onClick={() => setFilter(option.key)}
+              onClick={() => {
+                setFilter(option.key);
+                resetResultView();
+              }}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                 filter === option.key
@@ -1153,6 +1163,7 @@ export function WorkflowComparisonExplorer({
               setQuery("");
               setFilter("all");
               setSort("accuracy");
+              resetResultView();
             }}
             className="mt-3 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           >

@@ -11,6 +11,9 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     database_url: str = "postgresql://postgres:postgres@localhost:5432/agentops"
+    db_pool_size: int = Field(default=10, ge=1)
+    db_max_overflow: int = Field(default=20, ge=0)
+    db_pool_timeout_seconds: int = Field(default=5, ge=1)
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = "gpt-4.1-mini"
     api_auth_enabled: bool = False
