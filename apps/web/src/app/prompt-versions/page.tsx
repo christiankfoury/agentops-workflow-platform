@@ -7,13 +7,26 @@ import type { AgentType, PromptVersion } from "@/lib/types";
 import { CreatePromptVersionModal } from "./create-prompt-version-modal";
 
 const workflowAccentClasses: Record<string, string> = {
-  Sales: "border-blue-200 bg-blue-50/70 text-blue-950",
-  "Customer Feedback": "border-blue-200 bg-blue-50/70 text-blue-950",
-  Incident: "border-blue-200 bg-blue-50/70 text-blue-950",
-  Intake: "border-blue-200 bg-blue-50/70 text-blue-950",
-  "Shared Governance": "border-blue-200 bg-blue-50/70 text-blue-950",
+  Sales:
+    "border-blue-200 bg-blue-50/70 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/35 dark:text-blue-200",
+  "Customer Feedback":
+    "border-blue-200 bg-blue-50/70 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/35 dark:text-blue-200",
+  Incident:
+    "border-blue-200 bg-blue-50/70 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/35 dark:text-blue-200",
+  Intake:
+    "border-blue-200 bg-blue-50/70 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/35 dark:text-blue-200",
+  "Shared Governance":
+    "border-blue-200 bg-blue-50/70 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/35 dark:text-blue-200",
   Shared: "border-border bg-muted text-foreground",
 };
+
+const bluePanelClass =
+  "border-blue-200 bg-blue-50/70 dark:border-blue-900/60 dark:bg-blue-950/25";
+const blueKickerClass = "text-blue-700 dark:text-blue-300";
+const blueTitleClass = "text-blue-950 dark:text-blue-50";
+const blueBodyClass = "text-blue-950/75 dark:text-blue-100/75";
+const blueNestedPanelClass =
+  "border-blue-200 bg-background/80 dark:border-blue-900/60 dark:bg-card/80";
 
 function getWorkflowAccent(workflowLabel: string): string {
   return workflowAccentClasses[workflowLabel] ?? workflowAccentClasses.Shared;
@@ -120,7 +133,7 @@ function ActivePromptRow({
             {getPromptPreview(activePrompt)}
           </p>
           {hasNamingMismatch ? (
-            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
               Review naming: this prompt is assigned to {config.displayName}, but its name appears to
               reference another agent role.
             </p>
@@ -157,10 +170,10 @@ function SharedPromptGroup({ prompts }: { prompts: ReturnType<typeof getPromptRo
   );
   return (
     <section className="mt-8">
-      <div className="flex flex-col gap-1 rounded-lg border border-blue-200 bg-blue-50/70 p-4">
-        <p className="text-xs font-semibold uppercase text-blue-700">Shared controls</p>
-        <h2 className="text-xl font-semibold text-blue-950">Shared Governance Prompts</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className={`flex flex-col gap-1 rounded-lg border p-4 ${bluePanelClass}`}>
+        <p className={`text-xs font-semibold uppercase ${blueKickerClass}`}>Shared controls</p>
+        <h2 className={`text-xl font-semibold ${blueTitleClass}`}>Shared Governance Prompts</h2>
+        <p className={`text-sm ${blueBodyClass}`}>
           These prompts are shared across workflows for routing, factual review, and final report generation.
         </p>
       </div>
@@ -240,60 +253,60 @@ export default async function PromptVersionsPage() {
 
   return (
     <div>
-      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5">
+      <div className={`rounded-xl border p-5 ${bluePanelClass}`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase text-blue-700">Prompt Versions</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-blue-950">
+            <p className={`text-sm font-semibold uppercase ${blueKickerClass}`}>Prompt Versions</p>
+            <h1 className={`mt-2 text-2xl font-bold tracking-tight ${blueTitleClass}`}>
               Prompt Control Center
             </h1>
-            <p className="mt-2 text-blue-950/75">
+            <p className={`mt-2 ${blueBodyClass}`}>
               Review the active prompt system by workflow path, shared governance role, and version
               history. Prompt changes affect future agent runs only; completed workflow outputs are
               not mutated.
             </p>
           </div>
           <div className="grid gap-2 text-sm sm:grid-cols-3 lg:min-w-[420px]">
-            <div className="rounded-lg border border-blue-200 bg-background/80 p-3">
-              <p className="font-medium text-blue-950">Workflow prompts</p>
-              <p className="mt-1 text-blue-950/70">Sales, feedback, and incident agents</p>
+            <div className={`rounded-lg border p-3 ${blueNestedPanelClass}`}>
+              <p className={`font-medium ${blueTitleClass}`}>Workflow prompts</p>
+              <p className={`mt-1 ${blueBodyClass}`}>Sales, feedback, and incident agents</p>
             </div>
-            <div className="rounded-lg border border-blue-200 bg-background/80 p-3">
-              <p className="font-medium text-blue-950">Governance</p>
-              <p className="mt-1 text-blue-950/70">Router, reviewer, and writer</p>
+            <div className={`rounded-lg border p-3 ${blueNestedPanelClass}`}>
+              <p className={`font-medium ${blueTitleClass}`}>Governance</p>
+              <p className={`mt-1 ${blueBodyClass}`}>Router, reviewer, and writer</p>
             </div>
-            <div className="rounded-lg border border-blue-200 bg-background/80 p-3">
-              <p className="font-medium text-blue-950">Versioning</p>
-              <p className="mt-1 text-blue-950/70">Audit history and safe activation</p>
+            <div className={`rounded-lg border p-3 ${blueNestedPanelClass}`}>
+              <p className={`font-medium ${blueTitleClass}`}>Versioning</p>
+              <p className={`mt-1 ${blueBodyClass}`}>Audit history and safe activation</p>
             </div>
           </div>
         </div>
       </div>
 
       <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
-          <div className="flex items-center gap-2 text-blue-800">
+        <div className={`rounded-lg border p-4 ${bluePanelClass}`}>
+          <div className={`flex items-center gap-2 ${blueKickerClass}`}>
             <CheckCircle2 className="h-4 w-4" />
             <p className="text-sm font-medium">Active Prompts</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-blue-950">{activePromptCount}</p>
-          <p className="mt-1 text-sm text-blue-950/70">of {promptRows.length} agent slots</p>
+          <p className={`mt-2 text-2xl font-semibold ${blueTitleClass}`}>{activePromptCount}</p>
+          <p className={`mt-1 text-sm ${blueBodyClass}`}>of {promptRows.length} agent slots</p>
         </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
-          <div className="flex items-center gap-2 text-blue-800">
+        <div className={`rounded-lg border p-4 ${bluePanelClass}`}>
+          <div className={`flex items-center gap-2 ${blueKickerClass}`}>
             <GitBranch className="h-4 w-4" />
             <p className="text-sm font-medium">Workflow-Specific</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-blue-950">{workflowSpecificCount}</p>
-          <p className="mt-1 text-sm text-blue-950/70">Sales, Feedback, and Incident agents</p>
+          <p className={`mt-2 text-2xl font-semibold ${blueTitleClass}`}>{workflowSpecificCount}</p>
+          <p className={`mt-1 text-sm ${blueBodyClass}`}>Sales, Feedback, and Incident agents</p>
         </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4">
-          <div className="flex items-center gap-2 text-blue-800">
+        <div className={`rounded-lg border p-4 ${bluePanelClass}`}>
+          <div className={`flex items-center gap-2 ${blueKickerClass}`}>
             <ShieldCheck className="h-4 w-4" />
             <p className="text-sm font-medium">Shared Governance</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-blue-950">{sharedPromptCount}</p>
-          <p className="mt-1 text-sm text-blue-950/70">Router, Reviewer, and Writer prompts</p>
+          <p className={`mt-2 text-2xl font-semibold ${blueTitleClass}`}>{sharedPromptCount}</p>
+          <p className={`mt-1 text-sm ${blueBodyClass}`}>Router, Reviewer, and Writer prompts</p>
         </div>
       </section>
 
@@ -357,7 +370,7 @@ export default async function PromptVersionsPage() {
                     <span
                       className={
                         prompt.is_active
-                          ? "inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800"
+                          ? "inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300"
                           : "inline-flex whitespace-nowrap rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground"
                       }
                     >

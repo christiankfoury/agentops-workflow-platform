@@ -31,6 +31,8 @@
 }
 
 :root {
+  color-scheme: light;
+  --sidebar-width: 16rem;
   --background: oklch(0.985 0.006 248);
   --foreground: oklch(0.18 0.018 252);
   --card: oklch(1 0 0);
@@ -53,26 +55,31 @@
   --radius: 0.5rem;
 }
 
+:root[data-sidebar="collapsed"] {
+  --sidebar-width: 4.25rem;
+}
+
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
+  color-scheme: dark;
+  --background: oklch(0.16 0.018 252);
+  --foreground: oklch(0.96 0.006 250);
+  --card: oklch(0.205 0.02 252);
+  --card-foreground: oklch(0.96 0.006 250);
+  --popover: oklch(0.205 0.02 252);
+  --popover-foreground: oklch(0.96 0.006 250);
+  --primary: oklch(0.62 0.18 258);
+  --primary-foreground: oklch(0.99 0.004 250);
+  --secondary: oklch(0.27 0.025 250);
+  --secondary-foreground: oklch(0.96 0.006 250);
+  --muted: oklch(0.27 0.025 250);
+  --muted-foreground: oklch(0.73 0.025 252);
+  --accent: oklch(0.31 0.045 258);
+  --accent-foreground: oklch(0.96 0.006 250);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.64 0.17 258);
 }
 
 body {
@@ -163,11 +170,11 @@ body {
   }
 
   table tbody tr {
-    background: color-mix(in oklch, var(--card) 96%, transparent);
+    background: var(--card);
   }
 
   table tbody tr:hover {
-    background: color-mix(in oklch, var(--accent) 42%, var(--card));
+    background: var(--accent);
   }
 
   .bg-primary {
