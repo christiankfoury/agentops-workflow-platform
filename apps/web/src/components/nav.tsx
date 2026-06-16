@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type NavItem = {
@@ -59,10 +59,12 @@ function isActive(pathname: string, item: NavItem): boolean {
 
 function NavLink({
   collapsed,
+  iconOnly,
   item,
   pathname,
 }: {
   collapsed: boolean;
+  iconOnly: boolean;
   item: NavItem;
   pathname: string;
 }) {
@@ -75,13 +77,13 @@ function NavLink({
       className={
         active
           ? `relative flex h-10 items-center overflow-hidden rounded-xl bg-blue-50 text-sm font-semibold text-blue-700 dark:bg-blue-950/45 dark:text-blue-200 ${
-              collapsed ? "justify-center px-0" : "gap-3 px-3.5"
+              iconOnly ? "justify-center px-0" : "gap-3 px-3.5"
             }`
           : `flex h-10 items-center overflow-hidden rounded-xl text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground ${
-              collapsed ? "justify-center px-0" : "gap-3 px-3.5"
+              iconOnly ? "justify-center px-0" : "gap-3 px-3.5"
             }`
       }
-      title={collapsed ? item.label : undefined}
+      title={iconOnly ? item.label : undefined}
     >
       {active ? (
         <span className="absolute -left-3 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-blue-600" />
@@ -104,11 +106,13 @@ function NavLink({
 
 function NavSection({
   collapsed,
+  iconOnly,
   items,
   pathname,
   title,
 }: {
   collapsed: boolean;
+  iconOnly: boolean;
   items: NavItem[];
   pathname: string;
   title: string;
@@ -129,6 +133,7 @@ function NavSection({
           <NavLink
             key={item.href}
             collapsed={collapsed}
+            iconOnly={iconOnly}
             item={item}
             pathname={pathname}
           />
@@ -153,15 +158,29 @@ function NewWorkflowButton() {
 export function Nav() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [iconOnly, setIconOnly] = useState(false);
+  const iconOnlyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const storedSidebar = window.localStorage.getItem("agentops-sidebar");
     const nextCollapsed = storedSidebar === "collapsed";
     setCollapsed(nextCollapsed);
+    setIconOnly(nextCollapsed);
     document.documentElement.dataset.sidebar = nextCollapsed ? "collapsed" : "expanded";
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (iconOnlyTimer.current) clearTimeout(iconOnlyTimer.current);
+    };
+  }, []);
+
   function toggleSidebar() {
+    if (iconOnlyTimer.current) {
+      clearTimeout(iconOnlyTimer.current);
+      iconOnlyTimer.current = null;
+    }
+
     const nextCollapsed = !collapsed;
     setCollapsed(nextCollapsed);
     document.documentElement.dataset.sidebar = nextCollapsed ? "collapsed" : "expanded";
@@ -169,6 +188,15 @@ export function Nav() {
       "agentops-sidebar",
       nextCollapsed ? "collapsed" : "expanded",
     );
+
+    if (nextCollapsed) {
+      iconOnlyTimer.current = setTimeout(() => {
+        setIconOnly(true);
+        iconOnlyTimer.current = null;
+      }, 200);
+    } else {
+      setIconOnly(false);
+    }
   }
   return (
     <>
@@ -178,7 +206,7 @@ export function Nav() {
             href="/"
             aria-label="AgentOps dashboard"
             className={
-              collapsed
+              iconOnly
                 ? "relative flex h-10 w-full min-w-0 items-center justify-center font-semibold tracking-tight"
                 : "relative flex h-10 min-w-0 items-center font-semibold tracking-tight"
             }
@@ -195,7 +223,7 @@ export function Nav() {
             <span
               aria-hidden="true"
               className={
-                collapsed
+                iconOnly
                   ? "absolute left-1/2 -translate-x-1/2 text-xl opacity-100 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
                   : "absolute left-0 translate-x-0 text-xl opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
               }
@@ -232,18 +260,21 @@ export function Nav() {
         <nav className="flex-1 space-y-6 px-3.5 py-4">
           <NavSection
             collapsed={collapsed}
+            iconOnly={iconOnly}
             title="Workflow"
             items={primaryItems}
             pathname={pathname}
           />
           <NavSection
             collapsed={collapsed}
+            iconOnly={iconOnly}
             title="Insights"
             items={insightItems}
             pathname={pathname}
           />
           <NavSection
             collapsed={collapsed}
+            iconOnly={iconOnly}
             title="Admin"
             items={adminItems}
             pathname={pathname}
