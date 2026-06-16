@@ -4,7 +4,6 @@ import {
   BarChart3,
   Bot,
   CheckCircle2,
-  ChevronDown,
   CircleDollarSign,
   FileText,
   GitCompare,
@@ -75,8 +74,12 @@ function NavLink({
       href={item.href}
       className={
         active
-          ? "relative flex h-10 items-center gap-3 overflow-hidden rounded-xl bg-blue-50 px-3.5 text-sm font-semibold text-blue-700 dark:bg-blue-950/45 dark:text-blue-200"
-          : "flex h-10 items-center gap-3 overflow-hidden rounded-xl px-3.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? `relative flex h-10 items-center overflow-hidden rounded-xl bg-blue-50 text-sm font-semibold text-blue-700 dark:bg-blue-950/45 dark:text-blue-200 ${
+              collapsed ? "justify-center px-0" : "gap-3 px-3.5"
+            }`
+          : `flex h-10 items-center overflow-hidden rounded-xl text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground ${
+              collapsed ? "justify-center px-0" : "gap-3 px-3.5"
+            }`
       }
       title={collapsed ? item.label : undefined}
     >
@@ -137,22 +140,13 @@ function NavSection({
 
 function NewWorkflowButton() {
   return (
-    <div className="inline-flex overflow-hidden rounded-lg shadow-sm">
-      <Link
-        href="/workflow-runs/new"
-        className="inline-flex h-10 items-center gap-2 bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-95"
-      >
-        <Plus className="h-4 w-4" aria-hidden="true" />
-        New Workflow
-      </Link>
-      <Link
-        href="/workflow-runs/new"
-        aria-label="New workflow options"
-        className="inline-flex h-10 w-10 items-center justify-center border-l border-primary-foreground/20 bg-primary text-primary-foreground hover:opacity-95"
-      >
-        <ChevronDown className="h-4 w-4" aria-hidden="true" />
-      </Link>
-    </div>
+    <Link
+      href="/workflow-runs/new"
+      className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95"
+    >
+      <Plus className="h-4 w-4" aria-hidden="true" />
+      New Workflow
+    </Link>
   );
 }
 
@@ -183,7 +177,11 @@ export function Nav() {
           <Link
             href="/"
             aria-label="AgentOps dashboard"
-            className="relative flex h-10 min-w-0 items-center font-semibold tracking-tight"
+            className={
+              collapsed
+                ? "relative flex h-10 w-full min-w-0 items-center justify-center font-semibold tracking-tight"
+                : "relative flex h-10 min-w-0 items-center font-semibold tracking-tight"
+            }
           >
             <span
               className={
@@ -198,8 +196,8 @@ export function Nav() {
               aria-hidden="true"
               className={
                 collapsed
-                  ? "absolute left-0 text-xl opacity-100 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
-                  : "absolute left-0 text-xl opacity-0 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
+                  ? "absolute left-1/2 -translate-x-1/2 text-xl opacity-100 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
+                  : "absolute left-0 translate-x-0 text-xl opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
               }
             >
               AO
