@@ -22,8 +22,8 @@ function Field({
   label: string;
 }) {
   return (
-    <label className="text-xs font-medium uppercase text-muted-foreground">
-      {label}
+    <label className="block text-xs font-medium uppercase text-muted-foreground">
+      <span>{label}</span>
       {children}
     </label>
   );

@@ -227,35 +227,36 @@ export function Nav() {
                   ? "absolute left-1/2 -translate-x-1/2 text-xl opacity-100 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
                   : "absolute left-0 translate-x-0 text-xl opacity-0 transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
               }
-            >
-              AO
-            </span>
-          </Link>
-          <button
-            type="button"
-            aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
-            title={collapsed ? "Open sidebar" : "Close sidebar"}
-            onClick={toggleSidebar}
-            className="absolute right-0 top-1/2 inline-flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:border-primary/30 hover:bg-accent hover:text-foreground"
           >
-            <PanelLeftClose
-              className={
-                collapsed
-                  ? "absolute h-3.5 w-3.5 opacity-0 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
-                  : "absolute h-3.5 w-3.5 opacity-100 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
-              }
-              aria-hidden="true"
-            />
-            <PanelLeftOpen
-              className={
-                collapsed
-                  ? "absolute h-3.5 w-3.5 opacity-100 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
-                  : "absolute h-3.5 w-3.5 opacity-0 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
-              }
-              aria-hidden="true"
-            />
-          </button>
+            AO
+          </span>
+        </Link>
         </div>
+
+        <button
+          type="button"
+          aria-label={collapsed ? "Open sidebar" : "Close sidebar"}
+          title={collapsed ? "Open sidebar" : "Close sidebar"}
+          onClick={toggleSidebar}
+          className="absolute right-0 top-1/2 z-10 inline-flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:border-primary/30 hover:bg-accent hover:text-foreground"
+        >
+          <PanelLeftClose
+            className={
+              collapsed
+                ? "absolute h-3.5 w-3.5 opacity-0 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
+                : "absolute h-3.5 w-3.5 opacity-100 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
+            }
+            aria-hidden="true"
+          />
+          <PanelLeftOpen
+            className={
+              collapsed
+                ? "absolute h-3.5 w-3.5 opacity-100 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
+                : "absolute h-3.5 w-3.5 opacity-0 transition-opacity duration-200 ease-[cubic-bezier(0.29,0.7,1,1)]"
+            }
+            aria-hidden="true"
+          />
+        </button>
 
         <nav className="flex-1 space-y-6 px-3.5 py-4">
           <NavSection
