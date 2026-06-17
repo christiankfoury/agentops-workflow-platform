@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { updateAgentSetting } from "@/lib/api";
+import { isAllowedAgentModel } from "@/lib/agent-models";
 
 export type SettingsActionState = { error: string | null; updatedAgent: string | null };
 
@@ -21,6 +22,9 @@ export async function updateAgentSettingAction(
   const maxRetries = Number(formData.get("max_retries"));
   if (!agentType || !model || !Number.isFinite(maxTokens) || !Number.isFinite(maxRetries)) {
     return { error: "Model, max tokens, and max retries are required.", updatedAgent: null };
+  }
+  if (!isAllowedAgentModel(model)) {
+    return { error: "Choose a supported model from the list.", updatedAgent: null };
   }
 
   try {

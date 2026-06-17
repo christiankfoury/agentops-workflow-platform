@@ -1,8 +1,10 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.models.agent_type import AgentType
+
+ALLOWED_AGENT_MODELS = ("gpt-4.1-mini", "gpt-4.1", "gpt-4.1-nano")
 
 
 class AgentSettingRead(BaseModel):
@@ -30,3 +32,11 @@ class AgentSettingUpdate(BaseModel):
     active_prompt_version_id: uuid.UUID | None = None
     reviewer_approval_threshold: float | None = Field(default=None, ge=0, le=1)
     human_approval_threshold: float | None = Field(default=None, ge=0, le=1)
+
+    @field_validator("model")
+    @classmethod
+    def validate_supported_model(cls, value: str) -> str:
+        if value not in ALLOWED_AGENT_MODELS:
+            allowed = ", ".join(ALLOWED_AGENT_MODELS)
+            raise ValueError(f"Model must be one of: {allowed}")
+        return value

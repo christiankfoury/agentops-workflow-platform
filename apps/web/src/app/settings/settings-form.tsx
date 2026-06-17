@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { getAgentDisplay } from "@/lib/agent-display";
+import { AGENT_MODEL_OPTIONS, isAllowedAgentModel } from "@/lib/agent-models";
 import type { AgentSetting, PromptVersion } from "@/lib/types";
 import { updateAgentSettingAction, type SettingsActionState } from "./actions";
 
@@ -45,6 +46,7 @@ export function AgentSettingsForm({
     (prompt) => prompt.agent_type === setting.agent_type,
   );
   const showApprovalThresholds = setting.agent_type === reviewerAgentType;
+  const hasUnsupportedModel = !isAllowedAgentModel(setting.model);
 
   return (
     <form action={formAction} className="rounded-lg border border-border bg-card shadow-sm">
@@ -128,11 +130,22 @@ export function AgentSettingsForm({
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <Field label="Model">
-              <input
+              <select
                 name="model"
                 defaultValue={setting.model}
                 className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/35"
-              />
+              >
+                {hasUnsupportedModel ? (
+                  <option value={setting.model} disabled>
+                    Unsupported: {setting.model}
+                  </option>
+                ) : null}
+                {AGENT_MODEL_OPTIONS.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Temperature">
               <input

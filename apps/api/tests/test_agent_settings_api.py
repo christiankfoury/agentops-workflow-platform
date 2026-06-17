@@ -60,7 +60,7 @@ def test_update_agent_setting_persists_model_and_thresholds():
     response = client.put(
         "/agent-settings/reviewer",
         json={
-            "model": "gpt-reviewer",
+            "model": "gpt-4.1",
             "temperature": 0.2,
             "max_tokens": 900,
             "timeout_seconds": 45,
@@ -74,7 +74,7 @@ def test_update_agent_setting_persists_model_and_thresholds():
     assert response.status_code == 200
     body = response.json()
     assert body["agent_type"] == "reviewer"
-    assert body["model"] == "gpt-reviewer"
+    assert body["model"] == "gpt-4.1"
     assert body["active_prompt_version_id"] == str(prompt.id)
     assert body["reviewer_approval_threshold"] == 0.9
     assert body["human_approval_threshold"] == 0.65
@@ -93,7 +93,7 @@ def test_update_agent_setting_rejects_prompt_for_different_agent():
     response = client.put(
         "/agent-settings/reviewer",
         json={
-            "model": "gpt-reviewer",
+            "model": "gpt-4.1",
             "max_tokens": 900,
             "max_retries": 3,
             "active_prompt_version_id": str(prompt.id),
@@ -104,4 +104,24 @@ def test_update_agent_setting_rejects_prompt_for_different_agent():
     assert response.json()["detail"] == (
         "Prompt version agent type does not match setting agent type"
     )
+    clear_overrides()
+
+
+def test_update_agent_setting_rejects_unsupported_model():
+    db = FakeSession()
+    override_db(db)
+    client = TestClient(app)
+
+    response = client.put(
+        "/agent-settings/reviewer",
+        json={
+            "model": "gpt-reviewer",
+            "max_tokens": 900,
+            "max_retries": 3,
+        },
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert "Model must be one of" in detail[0]["msg"]
     clear_overrides()
