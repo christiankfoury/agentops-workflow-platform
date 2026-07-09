@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     max_upload_bytes: int = Field(default=DEFAULT_MAX_UPLOAD_BYTES, ge=1)
     max_input_chars: int = Field(default=DEFAULT_MAX_INPUT_CHARS, ge=1)
     max_notes_chars: int = Field(default=DEFAULT_MAX_NOTES_CHARS, ge=1)
+    agentops_telemetry_enabled: bool = False
+    agentops_telemetry_endpoint: str = "http://localhost:8000/v1/usage/llm-events"
+    agentops_telemetry_api_key: SecretStr = SecretStr("agentops-local-placeholder-key-not-a-secret")
+    agentops_telemetry_timeout_seconds: float = Field(default=2.0, ge=0.1)
+    agentops_telemetry_max_metadata_bytes: int = Field(default=2048, ge=0)
+    agentops_telemetry_redact_content: bool = True
 
     @property
     def openai_api_key_value(self) -> str:
@@ -30,6 +36,10 @@ class Settings(BaseSettings):
     @property
     def api_key_value(self) -> str:
         return self.api_key.get_secret_value()
+
+    @property
+    def agentops_telemetry_api_key_value(self) -> str:
+        return self.agentops_telemetry_api_key.get_secret_value()
 
 
 settings = Settings()

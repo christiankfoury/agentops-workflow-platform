@@ -222,6 +222,42 @@ If the web app runs outside Docker, set the API URL when needed:
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 pnpm --dir apps/web dev
 ```
 
+## Production AI Platform Telemetry
+
+AgentOps can optionally send safe, best-effort LLM usage telemetry to the
+Production AI Platform. Telemetry is disabled by default, and AgentOps workflows
+continue normally if the platform is unavailable.
+
+Local placeholder configuration:
+
+```env
+AGENTOPS_TELEMETRY_ENABLED=false
+AGENTOPS_TELEMETRY_ENDPOINT=http://localhost:8000/v1/usage/llm-events
+AGENTOPS_TELEMETRY_API_KEY=agentops-local-placeholder-key-not-a-secret
+AGENTOPS_TELEMETRY_TIMEOUT_SECONDS=2
+AGENTOPS_TELEMETRY_MAX_METADATA_BYTES=2048
+AGENTOPS_TELEMETRY_REDACT_CONTENT=true
+```
+
+When AgentOps runs in Docker and Production AI Platform runs on the host, use:
+
+```env
+AGENTOPS_TELEMETRY_ENDPOINT=http://host.docker.internal:8000/v1/usage/llm-events
+```
+
+The telemetry client only sends operational metadata such as workflow IDs, agent
+step IDs, agent name/type, token counts, latency, cost estimate, status, retry
+count, and safe error categories. It does not send prompts, generated outputs,
+workflow input/output JSON, tool arguments, tool results, provider payloads, API
+keys, or OpenAI credentials.
+
+Send one local smoke event after the Production AI Platform API is running and
+seeded with the AgentOps placeholder key:
+
+```powershell
+S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe scripts\send_platform_telemetry_smoke.py
+```
+
 ## Demo Mode
 
 Seed polished demo data from the UI:

@@ -7,12 +7,17 @@ from src.security import reset_rate_limit_state
 
 
 def test_settings_repr_masks_secret_values():
-    configured = Settings(openai_api_key="sk-test-secret", api_key="local-api-secret")
+    configured = Settings(
+        openai_api_key="sk-test-secret",
+        api_key="local-api-secret",
+        agentops_telemetry_api_key="platform-telemetry-secret",
+    )
 
     rendered = repr(configured)
 
     assert "sk-test-secret" not in rendered
     assert "local-api-secret" not in rendered
+    assert "platform-telemetry-secret" not in rendered
     assert "SecretStr" in rendered
 
 
