@@ -264,6 +264,21 @@ seeded with the AgentOps placeholder key:
 S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe scripts\send_platform_telemetry_smoke.py
 ```
 
+For a browser proof in Production AI Platform, keep the platform dashboard on
+`http://localhost:3000` and run AgentOps on non-conflicting ports such as
+`API_PORT=8001` and `WEB_PORT=3001`. The safest repeatable demo path is the
+platform-owned synthetic sender:
+
+```powershell
+cd S:\github-repos\production-ai-platform
+.\.venv\Scripts\python scripts\send_agentops_browser_demo_event.py
+```
+
+Then open `http://localhost:3000`, filter **Source App** to `agentops`, and
+inspect the resulting `Agent Step` telemetry row. Use a real local AgentOps
+workflow only when provider credentials and any OpenAI quota usage are
+intentional.
+
 ## Demo Mode
 
 Seed polished demo data from the UI:
