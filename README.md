@@ -293,6 +293,18 @@ Backend tests:
 S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m pytest
 ```
 
+Production AI Platform telemetry mocked receiver check:
+
+```bash
+S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe scripts\test_phase45_mocked_platform_receiver.py
+```
+
+Docker Compose config check with placeholder env values:
+
+```bash
+docker compose --env-file .env.example config
+```
+
 Backend lint:
 
 ```bash
