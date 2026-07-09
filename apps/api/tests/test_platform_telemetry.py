@@ -1,8 +1,12 @@
 import io
 import logging
 from types import SimpleNamespace
+from uuid import uuid4
 
+from src.models.agent_step import AgentStep, AgentStepStatus
+from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.observability.platform_telemetry import (
+    build_agent_step_event,
     sanitize_telemetry_event,
     submit_platform_telemetry,
 )
@@ -166,3 +170,44 @@ def test_sanitization_enforces_metadata_size() -> None:
     )
 
     assert payload["metadata"] == {"workflow_external_id": "workflow_test"}
+
+
+def test_build_agent_step_event_omits_raw_workflow_content() -> None:
+    run = WorkflowRun(
+        id=uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        run_mode=RunMode.multi_agent,
+        status=WorkflowStatus.reviewer_running,
+    )
+    step = AgentStep(
+        id=uuid4(),
+        workflow_run_id=run.id,
+        agent_name="Sales Analyst Agent",
+        agent_type="analyst",
+        step_order=1,
+        status=AgentStepStatus.completed,
+        input_json={"raw": "workflow input"},
+        output_json={"generated": "agent output"},
+        model="gpt-4.1-mini",
+        tokens_input=100,
+        tokens_output=50,
+        total_tokens=150,
+        latency_ms=250,
+        cost=0.00012,
+        retry_count=0,
+    )
+
+    event = build_agent_step_event(step, run=run)
+
+    assert event["source_app"] == "agentops"
+    assert event["operation_type"] == "agent_step"
+    assert event["status"] == "succeeded"
+    assert event["model"] == "gpt-4.1-mini"
+    assert event["input_tokens"] == 100
+    assert event["output_tokens"] == 50
+    assert event["estimated_cost_usd"] == "0.000120"
+    assert event["metadata"]["workflow_external_id"] == str(run.id)
+    assert event["metadata"]["agent_step_external_id"] == str(step.id)
+    assert event["metadata"]["workflow_status"] == "reviewer_running"
+    assert "input_json" not in event
+    assert "output_json" not in event

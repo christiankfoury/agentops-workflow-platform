@@ -55,3 +55,26 @@ def test_record_agent_cost_persists_one_event_per_step():
     assert db.cost_events[0].tokens_output == 50
     assert db.cost_events[0].total_tokens == 150
     assert db.cost_events[0].total_cost == pytest.approx(0.00012)
+
+
+def test_record_agent_cost_emits_completed_step_telemetry(monkeypatch):
+    db = FakeSession()
+    run = make_run()
+    step = make_completed_step(run.id)
+    db.runs.append(run)
+    db.steps.append(step)
+    captured = {}
+
+    def fake_emit(agent_step, *, run=None, estimated_cost_usd=None):
+        captured["step"] = agent_step
+        captured["run"] = run
+        captured["estimated_cost_usd"] = estimated_cost_usd
+        return True
+
+    monkeypatch.setattr("src.services.cost_tracking.emit_agent_step_telemetry", fake_emit)
+
+    record_agent_cost(db, step)
+
+    assert captured["step"] is step
+    assert captured["run"] is run
+    assert captured["estimated_cost_usd"] == pytest.approx(0.00012)

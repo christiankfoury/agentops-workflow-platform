@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.cost_event import CostEvent
 from src.models.workflow_run import WorkflowRun
+from src.observability.platform_telemetry import emit_agent_step_telemetry
 
 TOKENS_PER_MILLION = 1_000_000
 
@@ -68,6 +69,8 @@ def record_agent_cost(db: Session, step: AgentStep) -> CostEvent | None:
     db.add(event)
     db.commit()
     db.refresh(step)
+    run = db.query(WorkflowRun).filter(WorkflowRun.id == step.workflow_run_id).first()
+    emit_agent_step_telemetry(step, run=run, estimated_cost_usd=total_cost)
     return event
 
 

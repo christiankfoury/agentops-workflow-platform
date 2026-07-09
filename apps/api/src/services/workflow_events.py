@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import WorkflowRun
+from src.observability.platform_telemetry import emit_agent_step_telemetry
 
 
 def log_workflow_event(
@@ -73,6 +74,11 @@ def log_agent_failed(
     step: AgentStep,
     error_message: str,
 ) -> WorkflowEvent:
+    emit_agent_step_telemetry(
+        step,
+        run=run,
+        error_category=_error_category(error_message),
+    )
     return log_workflow_event(
         db,
         run,
@@ -88,6 +94,19 @@ def log_agent_failed(
         },
         error_message=error_message,
     )
+
+
+def _error_category(error_message: str) -> str:
+    lowered = error_message.lower()
+    if "timeout" in lowered or "timed out" in lowered:
+        return "provider_timeout"
+    if "rate limit" in lowered or "429" in lowered:
+        return "rate_limited"
+    if "validation" in lowered or "schema" in lowered:
+        return "validation_error"
+    if "llm" in lowered or "provider" in lowered or "openai" in lowered:
+        return "provider_error"
+    return "unknown"
 
 
 def _json_safe(metadata: dict[str, Any] | None) -> dict[str, Any] | None:

@@ -5,9 +5,10 @@ from fastapi.testclient import TestClient
 
 from src.database import get_db
 from src.main import app
+from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
-from src.services.workflow_events import log_workflow_event
+from src.services.workflow_events import log_agent_failed, log_workflow_event
 from tests.test_sales_analyst_api import FakeSession, make_input
 
 
@@ -133,4 +134,42 @@ def test_log_workflow_event_persists_metadata_and_error_message():
     assert event.metadata_json == {
         "retry_count": 2,
         "input_id": "00000000-0000-0000-0000-000000000001",
+    }
+
+
+def test_log_agent_failed_emits_safe_failure_telemetry(monkeypatch):
+    db = FakeSession()
+    run = make_run(status=WorkflowStatus.analyst_running)
+    step = AgentStep(
+        id=uuid.uuid4(),
+        workflow_run_id=run.id,
+        agent_name="Sales Analyst Agent",
+        agent_type="analyst",
+        step_order=1,
+        status=AgentStepStatus.failed,
+        latency_ms=100,
+        retry_count=0,
+        created_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+    db.runs.append(run)
+    db.steps.append(step)
+    captured = {}
+
+    def fake_emit(agent_step, *, run=None, error_category=None):
+        captured["step"] = agent_step
+        captured["run"] = run
+        captured["error_category"] = error_category
+        return True
+
+    monkeypatch.setattr("src.services.workflow_events.emit_agent_step_telemetry", fake_emit)
+
+    event = log_agent_failed(db, run, step, "LLM unavailable: raw prompt not included")
+
+    assert event in db.workflow_events
+    assert event.event_type == WorkflowEventType.agent_failed
+    assert captured == {
+        "step": step,
+        "run": run,
+        "error_category": "provider_error",
     }

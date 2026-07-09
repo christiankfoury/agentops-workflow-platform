@@ -3,11 +3,15 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable, Mapping
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 from urllib import request
 from urllib.error import HTTPError, URLError
 
 from src.config import Settings, settings
+from src.models.agent_step import AgentStep, AgentStepStatus
+from src.models.workflow_run import WorkflowRun
 
 logger = logging.getLogger("agentops.platform_telemetry")
 
@@ -114,6 +118,74 @@ def submit_platform_telemetry(
     return True
 
 
+def emit_agent_step_telemetry(
+    step: AgentStep,
+    *,
+    run: WorkflowRun | None = None,
+    estimated_cost_usd: float | Decimal | None = None,
+    error_category: str | None = None,
+    sender: TelemetrySender | None = None,
+) -> bool:
+    if step.status not in {AgentStepStatus.completed, AgentStepStatus.failed}:
+        return False
+
+    event = build_agent_step_event(
+        step,
+        run=run,
+        estimated_cost_usd=estimated_cost_usd,
+        error_category=error_category,
+    )
+    return submit_platform_telemetry(event, sender=sender)
+
+
+def build_agent_step_event(
+    step: AgentStep,
+    *,
+    run: WorkflowRun | None = None,
+    estimated_cost_usd: float | Decimal | None = None,
+    error_category: str | None = None,
+) -> dict[str, Any]:
+    status = "succeeded" if step.status == AgentStepStatus.completed else "failed"
+    cost = estimated_cost_usd if estimated_cost_usd is not None else step.cost
+    occurred_at = step.completed_at or datetime.now(UTC)
+    prompt_version = str(step.prompt_version_id) if step.prompt_version_id is not None else None
+
+    event: dict[str, Any] = {
+        "event_id": f"evt_agentops_step_{step.id}_{status}",
+        "external_request_id": str(step.workflow_run_id),
+        "source_app": "agentops",
+        "operation_type": "agent_step",
+        "environment": settings.environment,
+        "occurred_at": occurred_at.isoformat(),
+        "status": status,
+        "provider": "openai" if step.model else "unknown",
+        "model": step.model or "unknown",
+        "prompt_name": step.agent_name,
+        "prompt_version": prompt_version,
+        "input_tokens": step.tokens_input,
+        "output_tokens": step.tokens_output,
+        "total_tokens": step.total_tokens,
+        "estimated_cost_usd": _format_cost(cost),
+        "currency": "USD",
+        "pricing_status": "estimated" if cost is not None else "unknown",
+        "latency_ms": step.latency_ms,
+        "error_category": error_category if status == "failed" else None,
+        "project_external_id": str(run.organization_id) if run and run.organization_id else None,
+        "metadata": {
+            "workflow_external_id": str(step.workflow_run_id),
+            "agent_step_external_id": str(step.id),
+            "agent_name": step.agent_name,
+            "agent_type": step.agent_type,
+            "step_order": step.step_order,
+            "retry_count": step.retry_count,
+            "workflow_status": run.status.value if run is not None else None,
+            "step_status": step.status.value,
+            "response_type": "structured_json",
+        },
+    }
+    return {key: value for key, value in event.items() if value is not None}
+
+
 def sanitize_telemetry_event(
     event: Mapping[str, Any],
     *,
@@ -179,6 +251,12 @@ def _sanitize_value(value: Any) -> Any:
     if isinstance(value, int | float | bool) or value is None:
         return value
     return str(value)[:240]
+
+
+def _format_cost(value: float | Decimal | None) -> str | None:
+    if value is None:
+        return None
+    return f"{Decimal(str(value)):.6f}"
 
 
 def _is_sensitive_key(key: str) -> bool:
