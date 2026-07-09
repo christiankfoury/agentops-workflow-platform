@@ -33,6 +33,21 @@ def test_terminal_transition_sets_completed_at():
     assert run.completed_at.tzinfo == UTC
 
 
+def test_terminal_transition_emits_workflow_summary(monkeypatch):
+    run = WorkflowRun(status=WorkflowStatus.writer_running)
+    emitted = []
+
+    def fake_emit(workflow_run):
+        emitted.append(workflow_run)
+        return True
+
+    monkeypatch.setattr("src.services.workflow_state.emit_workflow_summary_telemetry", fake_emit)
+
+    transition(run, WorkflowStatus.completed, FakeSession())
+
+    assert emitted == [run]
+
+
 def test_running_can_complete_for_baseline_workflow():
     run = WorkflowRun(status=WorkflowStatus.running)
 

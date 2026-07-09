@@ -138,6 +138,15 @@ def emit_agent_step_telemetry(
     return submit_platform_telemetry(event, sender=sender)
 
 
+def emit_workflow_summary_telemetry(
+    run: WorkflowRun,
+    *,
+    sender: TelemetrySender | None = None,
+) -> bool:
+    event = build_workflow_summary_event(run)
+    return submit_platform_telemetry(event, sender=sender)
+
+
 def build_agent_step_event(
     step: AgentStep,
     *,
@@ -180,7 +189,36 @@ def build_agent_step_event(
             "retry_count": step.retry_count,
             "workflow_status": run.status.value if run is not None else None,
             "step_status": step.status.value,
-            "response_type": "structured_json",
+            "response_type": _step_response_type(step),
+        },
+    }
+    return {key: value for key, value in event.items() if value is not None}
+
+
+def build_workflow_summary_event(run: WorkflowRun) -> dict[str, Any]:
+    status = "succeeded" if run.status == "completed" else "failed"
+    if hasattr(run.status, "value"):
+        status = "succeeded" if run.status.value == "completed" else "failed"
+
+    event: dict[str, Any] = {
+        "event_id": f"evt_agentops_workflow_{run.id}_{_status_value(run.status)}",
+        "external_request_id": str(run.id),
+        "source_app": "agentops",
+        "operation_type": "workflow_summary",
+        "environment": settings.environment,
+        "occurred_at": (run.completed_at or datetime.now(UTC)).isoformat(),
+        "status": status,
+        "provider": "unknown",
+        "model": "unknown",
+        "pricing_status": "unknown",
+        "latency_ms": run.latency_ms,
+        "error_category": "unknown" if status == "failed" else None,
+        "project_external_id": str(run.organization_id) if run.organization_id else None,
+        "metadata": {
+            "workflow_external_id": str(run.id),
+            "workflow_status": _status_value(run.status),
+            "retry_count": run.retry_count,
+            "response_type": "aggregate_summary",
         },
     }
     return {key: value for key, value in event.items() if value is not None}
@@ -257,6 +295,16 @@ def _format_cost(value: float | Decimal | None) -> str | None:
     if value is None:
         return None
     return f"{Decimal(str(value)):.6f}"
+
+
+def _step_response_type(step: AgentStep) -> str:
+    if isinstance(step.output_json, dict) and "final_output" in step.output_json:
+        return "text"
+    return "structured_json"
+
+
+def _status_value(status: Any) -> str:
+    return status.value if hasattr(status, "value") else str(status)
 
 
 def _is_sensitive_key(key: str) -> bool:

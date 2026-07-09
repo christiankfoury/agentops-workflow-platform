@@ -251,6 +251,12 @@ count, and safe error categories. It does not send prompts, generated outputs,
 workflow input/output JSON, tool arguments, tool results, provider payloads, API
 keys, or OpenAI credentials.
 
+Structured JSON model calls are represented as `agent_step` events with
+`response_type=structured_json`; writer and baseline text calls use
+`response_type=text`. Workflow summary events are aggregate-only terminal status
+events. They intentionally omit token and cost fields so Production AI Platform
+does not double-count spend already reported by per-step events.
+
 Send one local smoke event after the Production AI Platform API is running and
 seeded with the AgentOps placeholder key:
 

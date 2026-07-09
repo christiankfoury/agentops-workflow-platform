@@ -7,6 +7,7 @@ from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.observability.platform_telemetry import (
     build_agent_step_event,
+    build_workflow_summary_event,
     sanitize_telemetry_event,
     submit_platform_telemetry,
 )
@@ -209,5 +210,63 @@ def test_build_agent_step_event_omits_raw_workflow_content() -> None:
     assert event["metadata"]["workflow_external_id"] == str(run.id)
     assert event["metadata"]["agent_step_external_id"] == str(step.id)
     assert event["metadata"]["workflow_status"] == "reviewer_running"
+    assert event["metadata"]["response_type"] == "structured_json"
     assert "input_json" not in event
     assert "output_json" not in event
+
+
+def test_build_agent_step_event_labels_text_outputs_without_extra_cost_event() -> None:
+    run = WorkflowRun(
+        id=uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        run_mode=RunMode.baseline,
+        status=WorkflowStatus.completed,
+    )
+    step = AgentStep(
+        id=uuid4(),
+        workflow_run_id=run.id,
+        agent_name="Baseline Agent",
+        agent_type="baseline",
+        step_order=1,
+        status=AgentStepStatus.completed,
+        output_json={"final_output": "Executive summary"},
+        model="gpt-4.1-mini",
+        tokens_input=50,
+        tokens_output=20,
+        total_tokens=70,
+        latency_ms=100,
+        cost=0.000052,
+        retry_count=0,
+    )
+
+    event = build_agent_step_event(step, run=run)
+
+    assert event["operation_type"] == "agent_step"
+    assert event["estimated_cost_usd"] == "0.000052"
+    assert event["metadata"]["response_type"] == "text"
+
+
+def test_build_workflow_summary_event_is_non_billable_aggregate() -> None:
+    run = WorkflowRun(
+        id=uuid4(),
+        workflow_type=WorkflowType.sales_report,
+        run_mode=RunMode.multi_agent,
+        status=WorkflowStatus.completed,
+        total_cost=0.25,
+        total_tokens=1200,
+        latency_ms=5000,
+        retry_count=2,
+    )
+
+    event = build_workflow_summary_event(run)
+
+    assert event["operation_type"] == "workflow_summary"
+    assert event["status"] == "succeeded"
+    assert event["pricing_status"] == "unknown"
+    assert event["latency_ms"] == 5000
+    assert event["metadata"]["response_type"] == "aggregate_summary"
+    assert event["metadata"]["retry_count"] == 2
+    assert "estimated_cost_usd" not in event
+    assert "input_tokens" not in event
+    assert "output_tokens" not in event
+    assert "total_tokens" not in event

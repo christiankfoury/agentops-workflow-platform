@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
+from src.observability.platform_telemetry import emit_workflow_summary_telemetry
 
 VALID_TRANSITIONS: dict[WorkflowStatus, set[WorkflowStatus]] = {
     WorkflowStatus.created: {
@@ -78,4 +79,6 @@ def transition(run: WorkflowRun, new_status: WorkflowStatus, db: Session) -> Wor
         run.completed_at = datetime.now(UTC)
     db.commit()
     db.refresh(run)
+    if new_status in _TERMINAL:
+        emit_workflow_summary_telemetry(run)
     return run
