@@ -32,6 +32,8 @@ def _event() -> dict:
         "status": "succeeded",
         "provider": "openai",
         "model": "gpt-4.1-mini",
+        "prompt_name": "agent_step",
+        "prompt_version": "workflow-prompt-v1",
         "input_tokens": 10,
         "output_tokens": 5,
         "total_tokens": 15,
@@ -83,6 +85,9 @@ def test_success_posts_sanitized_payload() -> None:
     assert captured["timeout"] == 2.0
     assert captured["payload"]["source_app"] == "agentops"
     assert captured["payload"]["operation_type"] == "agent_step"
+    assert captured["payload"]["prompt_name"] == "agent_step"
+    assert captured["payload"]["prompt_version"] == "workflow-prompt-v1"
+    assert captured["payload"]["output_tokens"] == 5
     assert captured["payload"]["metadata"]["agent_name"] == "analyst"
 
 
