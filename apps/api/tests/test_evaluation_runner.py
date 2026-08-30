@@ -74,13 +74,31 @@ class EvaluationLLMClient:
                 usage=LLMUsage(input_tokens=70, output_tokens=20),
             )
         if "approved" in schema["required"]:
+            review_data: dict[str, Any] = {
+                "approved": True,
+                "quality_score": 0.91,
+                "issues": [],
+                "retry_recommended": False,
+            }
+            if "approval_rationale" in schema["required"]:
+                review_data.update(
+                    {
+                        "approval_rationale": (
+                            "The insights and recommendations are supported by source feedback."
+                        ),
+                        "passed_checks": [
+                            {
+                                "name": "Evidence support",
+                                "status": "passed",
+                                "rationale": (
+                                    "Every displayed claim is supported by source feedback."
+                                ),
+                            }
+                        ],
+                    }
+                )
             return StructuredResponse(
-                data={
-                    "approved": True,
-                    "quality_score": 0.91,
-                    "issues": [],
-                    "retry_recommended": False,
-                },
+                data=review_data,
                 model="gpt-eval-reviewer",
                 usage=LLMUsage(input_tokens=80, output_tokens=20),
             )

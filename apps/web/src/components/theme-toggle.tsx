@@ -22,8 +22,11 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
+    // Hydrate browser-only theme preferences after mount to avoid a server/client mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(initialTheme);
     applyTheme(initialTheme);
+    // The mounted flag deliberately changes only after client-side theme hydration.
     setMounted(true);
   }, []);
 

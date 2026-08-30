@@ -153,6 +153,8 @@ export function Nav() {
   useEffect(() => {
     const storedSidebar = window.localStorage.getItem("agentops-sidebar");
     const nextCollapsed = storedSidebar === "collapsed";
+    // Hydrate the browser-only preference after mount to keep server markup deterministic.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(nextCollapsed);
     document.documentElement.dataset.sidebar = nextCollapsed ? "collapsed" : "expanded";
   }, []);

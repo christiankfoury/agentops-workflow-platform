@@ -31,6 +31,7 @@ import type {
 
 const DEFAULT_FETCH_TIMEOUT_MS = 10000;
 const AGENT_ACTION_FETCH_TIMEOUT_MS = 120000;
+const HUMAN_APPROVAL_ACTION_FETCH_TIMEOUT_MS = 30000;
 const EVALUATION_RESULTS_FETCH_TIMEOUT_MS = 10000;
 const EVALUATION_COMPARISON_FETCH_TIMEOUT_MS = 300000;
 const PROMPT_CONFIGURATION_FETCH_TIMEOUT_MS = 10000;
@@ -463,6 +464,7 @@ export async function editHumanApproval(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(HUMAN_APPROVAL_ACTION_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     const detail = await getErrorDetail(res);
@@ -480,6 +482,7 @@ async function postHumanApprovalAction(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(HUMAN_APPROVAL_ACTION_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) {
     const detail = await getErrorDetail(res);

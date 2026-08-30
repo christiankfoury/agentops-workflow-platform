@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   approveHumanApproval,
   editHumanApproval,
+  getHumanApproval,
   rejectHumanApproval,
   requestHumanApprovalRetry,
 } from "@/lib/api";
@@ -29,10 +30,14 @@ function getString(formData: FormData, name: string): string {
 }
 
 function getLines(formData: FormData, name: string): string[] {
-  return getString(formData, name)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  return [
+    ...new Set(
+      getString(formData, name)
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function getJsonArray(formData: FormData, name: string): unknown[] {
@@ -94,12 +99,26 @@ function redirectWithActionError(approvalId: string, error: unknown): never {
   );
 }
 
+async function approvalReachedStatus(
+  approvalId: string,
+  expectedStatus: "approved" | "retry_requested" | "rejected",
+): Promise<boolean> {
+  try {
+    const approval = await getHumanApproval(approvalId);
+    return approval?.status === expectedStatus;
+  } catch {
+    return false;
+  }
+}
+
 export async function approveAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
   try {
     await approveHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
   } catch (error) {
-    redirectWithActionError(approvalId, error);
+    if (!(await approvalReachedStatus(approvalId, "approved"))) {
+      redirectWithActionError(approvalId, error);
+    }
   }
   redirect(`/human-approvals/${approvalId}`);
 }
@@ -111,7 +130,9 @@ export async function requestRetryAction(formData: FormData) {
       human_feedback: getFeedback(formData),
     });
   } catch (error) {
-    redirectWithActionError(approvalId, error);
+    if (!(await approvalReachedStatus(approvalId, "retry_requested"))) {
+      redirectWithActionError(approvalId, error);
+    }
   }
   redirect(`/human-approvals/${approvalId}`);
 }
@@ -121,7 +142,9 @@ export async function rejectAction(formData: FormData) {
   try {
     await rejectHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
   } catch (error) {
-    redirectWithActionError(approvalId, error);
+    if (!(await approvalReachedStatus(approvalId, "rejected"))) {
+      redirectWithActionError(approvalId, error);
+    }
   }
   redirect(`/human-approvals/${approvalId}`);
 }

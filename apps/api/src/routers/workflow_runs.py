@@ -273,7 +273,10 @@ def create_evaluation_comparison_from_run(
 
 
 @router.post("", response_model=WorkflowRunRead, status_code=201)
-def create_workflow_run(body: WorkflowRunCreate, db: Session = Depends(get_db)) -> dict[str, object]:
+def create_workflow_run(
+    body: WorkflowRunCreate,
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
     uploaded_input: UploadedInput | None = None
     if body.input_id is not None:
         uploaded_input = db.query(UploadedInput).filter(UploadedInput.id == body.input_id).first()

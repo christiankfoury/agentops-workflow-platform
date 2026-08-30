@@ -347,8 +347,8 @@ function EvidenceList({
 
   return (
     <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-      {items.map((item) => (
-        <li key={item} className="rounded-md bg-muted px-3 py-1.5">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="rounded-md bg-muted px-3 py-1.5">
           {item}
         </li>
       ))}
@@ -374,8 +374,8 @@ function InsightList({
 
   return (
     <ul className="space-y-1.5 text-sm">
-      {items.map((item) => (
-        <li key={item} className="rounded-md bg-muted px-3 py-1.5">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="rounded-md bg-muted px-3 py-1.5">
           {item}
         </li>
       ))}
@@ -1011,9 +1011,17 @@ export default async function HumanApprovalDetailPage({
         </span>
       </div>
 
-      {actionError && (
+      {actionError && isActionable && (
         <section className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {actionError}
+        </section>
+      )}
+
+      {actionError && !isActionable && (
+        <section className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
+          The request reported an error, but the current saved decision is
+          {` ${formatApprovalStatus(approval.status).toLowerCase()}`}. No further
+          approval action is required.
         </section>
       )}
 
@@ -1035,7 +1043,17 @@ export default async function HumanApprovalDetailPage({
           {getApprovalSummary(approval, reviewerStep)}
         </p>
         <ApprovalMetadata approval={approval} run={run} />
-        <ApprovalActionControls approval={approval} isActionable={isActionable} />
+        {isActionable && (
+          <ApprovalActionControls approval={approval} isActionable={isActionable} />
+        )}
+        {approval.status === "approved" && run.status === "writer_running" && (
+          <Link
+            href={`/workflow-runs/${run.id}`}
+            className="mt-4 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            Continue to Writer
+          </Link>
+        )}
       </section>
 
       <WorkflowLineage status={run.status} workflowType={run.workflow_type} />
