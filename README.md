@@ -16,7 +16,7 @@ The portfolio claim this repo is built to prove:
 
 - [What It Does](#what-it-does)
 - [Why This Project Matters](#why-this-project-matters)
-- [Current Demo Results](#current-demo-results)
+- [Evaluation Framework](#evaluation-framework)
 - [Architecture](#architecture)
 - [Key Features](#key-features)
 - [Product Tour](#product-tour)
@@ -49,23 +49,19 @@ workflow that can be inspected, retried, approved, measured, and compared agains
 a baseline. That is the practical engineering story: better control and higher
 trustworthiness in exchange for extra cost and latency.
 
-## Current Demo Results
+## Evaluation Framework
 
-The seeded demo dataset contains 32 evaluation cases: 10 sales reports, 10 customer
+The project includes 32 synthetic evaluation cases: 10 sales reports, 10 customer
 feedback datasets, 10 incident logs, and 2 sales remediation showcase cases. Each
-case includes expected facts, risks, recommendations, and workflow-specific
-expectations such as feedback themes or incident timeline events.
+case defines expected facts, risks, recommendations, and workflow-specific checks
+such as feedback themes or incident timeline events.
 
-| Metric | Single-Agent Baseline | Multi-Agent Workflow |
-| --- | ---: | ---: |
-| Factual accuracy | 70% | 92% |
-| Unsupported claim rate | 22% | 5% |
-| Completeness | 64% | 88% |
-| Average cost | $0.035 | $0.128 |
-| Average latency | 4.2s | 18.4s |
-
-These are deterministic seeded demo values intended to make the portfolio demo
-immediately explorable. Live LLM-backed runs can produce different results.
+The evaluation engine compares single-agent and multi-agent outputs across factual
+coverage, unsupported claims, completeness, cost, latency, retries, routing, and
+human approval. Demo Mode loads deterministic illustrative records so the
+dashboards are immediately explorable; those records are not presented as measured
+production performance. Live evaluation runs calculate scores from their generated
+outputs and the expectations stored with each case.
 
 ## Architecture
 
@@ -322,15 +318,20 @@ numbers.
 
 ## Tech Stack
 
-| Layer | Technology |
+| Layer | Technologies |
 | --- | --- |
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| Backend | FastAPI, Python 3.12, Pydantic, SQLAlchemy, Alembic |
-| Database | PostgreSQL 16 |
-| LLM integration | OpenAI client behind a local abstraction |
-| JavaScript package manager | pnpm workspaces |
-| Python package manager | uv |
-| Validation | pytest, Ruff, TypeScript, Node smoke tests |
+| Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, Lucide React |
+| Backend | Python 3.12, FastAPI, Pydantic Settings, Uvicorn |
+| AI integration | OpenAI Python SDK with custom stateful agent orchestration |
+| Database | PostgreSQL 16, SQLAlchemy 2, Alembic, psycopg2 |
+| Infrastructure | Docker, Docker Compose |
+| JavaScript tooling | Node.js 20, pnpm workspaces, ESLint |
+| Python tooling | uv, Ruff |
+| Testing and audits | pytest, pytest-asyncio, HTTPX, Node.js test runner, pip-audit, pnpm audit |
+| Continuous integration | GitHub Actions |
+
+Agent handoffs and workflow state transitions are implemented directly in the
+application. LangChain and LangGraph are not runtime dependencies.
 
 ## Project Structure
 
