@@ -12,6 +12,22 @@ The portfolio claim this repo is built to prove:
 > Multi-agent workflows cost more and take longer than a single prompt, but they
 > produce safer, more complete, and more trustworthy business outputs.
 
+## Table of Contents
+
+- [What It Does](#what-it-does)
+- [Why This Project Matters](#why-this-project-matters)
+- [Current Demo Results](#current-demo-results)
+- [Architecture](#architecture)
+- [Key Features](#key-features)
+- [Product Tour](#product-tour)
+- [Evaluation Methodology](#evaluation-methodology)
+- [Tech Stack](#tech-stack)
+- [Quick Start With Docker](#quick-start-with-docker)
+- [Demo Mode](#demo-mode)
+- [Validation](#validation)
+- [Security](#security)
+- [Lessons Learned](#lessons-learned)
+
 ## What It Does
 
 AgentOps supports three business workflows:
@@ -25,6 +41,13 @@ AgentOps supports three business workflows:
 For each workflow, the app stores the input, every agent step, reviewer findings,
 human approval decisions, final output, evaluation scores, costs, latency, retries,
 and workflow events.
+
+## Why This Project Matters
+
+The app is intentionally not a chatbot. It treats AI output as a stateful business
+workflow that can be inspected, retried, approved, measured, and compared against
+a baseline. That is the practical engineering story: better control and higher
+trustworthiness in exchange for extra cost and latency.
 
 ## Current Demo Results
 
@@ -505,13 +528,6 @@ uv run pip-audit
 Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 Never commit provider keys or production credentials. The included environment
 examples contain local placeholders only.
-
-## Why This Project Matters
-
-The app is intentionally not a chatbot. It treats AI output as a stateful business
-workflow that can be inspected, retried, approved, measured, and compared against
-a baseline. That is the practical engineering story: better control and higher
-trustworthiness in exchange for extra cost and latency.
 
 ## Lessons Learned
 
