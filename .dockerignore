@@ -1,0 +1,15 @@
+.git
+.github
+**/.env*
+**/node_modules
+**/.next
+**/.turbo
+**/.pnpm-store
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/*.log
+apps/api
+docs
+scripts

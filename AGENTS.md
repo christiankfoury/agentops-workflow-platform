@@ -68,10 +68,10 @@ Run the narrowest meaningful checks first, then broaden when shared code changes
 Common commands:
 
 ```powershell
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m pytest
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m ruff check S:\github-repos\agentops-workflow-platform\apps\api\src S:\github-repos\agentops-workflow-platform\apps\api\tests
-pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
-pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
+uv run --directory apps/api pytest
+uv run --directory apps/api ruff check src tests
+pnpm --dir apps/web typecheck
+pnpm --dir apps/web test:smoke
 ```
 
 If the bare full API test command hangs, run explicit API test files and report that clearly.

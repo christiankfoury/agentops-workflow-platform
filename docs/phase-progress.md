@@ -97,10 +97,10 @@ Do not implement Phase 66 unless a future autonomous run includes it.
 Recent phases used:
 
 ```powershell
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m pytest <focused API test files>
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m ruff check S:\github-repos\agentops-workflow-platform\apps\api\src S:\github-repos\agentops-workflow-platform\apps\api\tests
-pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
-pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
+uv run --directory apps/api pytest <focused API test files>
+uv run --directory apps/api ruff check src tests
+pnpm --dir apps/web typecheck
+pnpm --dir apps/web test:smoke
 ```
 
 Note: the full API test suite passed quickly in Phase 42.

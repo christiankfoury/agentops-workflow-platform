@@ -1,5 +1,7 @@
 # AgentOps Workflow Platform
 
+[![CI](https://github.com/christiankfoury/agentops-workflow-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/christiankfoury/agentops-workflow-platform/actions/workflows/ci.yml)
+
 An enterprise-style multi-agent workflow platform for turning business documents
 into reviewed, measurable outputs. The project compares a single-agent baseline
 against a multi-agent workflow with specialized agents, reviewer checks, retry
@@ -110,20 +112,19 @@ flowchart TD
 - Failure case explorer and improvement tracking dashboards.
 - Demo mode that seeds polished data for portfolio walkthroughs.
 
-## Screenshots To Capture
+## Product Tour
 
-Capture these screens after running Demo Mode:
+### Operations Dashboard
 
-| Screen | Route | What To Show |
-| --- | --- | --- |
-| Demo Mode | `/demo` | One-click sales, feedback, incident, and full evaluation demo controls |
-| Evaluation Dashboard | `/evaluation` | Baseline vs multi-agent metric tradeoffs |
-| Workflow Comparison | `/workflow-comparison` | Side-by-side baseline and multi-agent outputs |
-| Workflow Detail | `/workflow-runs/:id` | Agent timeline, events, cost, retry, and final output links |
-| Human Approval | `/human-approvals` | Reviewer issues, human edits, approvals, retries, rejects |
-| Agent Performance | `/agent-performance` | Latency, cost, retry, failure, and schema validation metrics |
-| Failure Explorer | `/failures` | Low-quality runs and common failure categories |
-| Improvement Tracking | `/improvements` | Evaluation trends over time |
+![AgentOps operations dashboard](docs/screenshots/dashboard.png)
+
+### Baseline Comparison
+
+![Baseline and multi-agent workflow comparison](docs/screenshots/workflow-comparison.png)
+
+### Agent Configuration
+
+![Workflow-grouped agent settings](docs/screenshots/agent-settings.png)
 
 ## Evaluation Methodology
 
@@ -179,8 +180,13 @@ scripts/        Utility scripts
 
 ## Quick Start With Docker
 
+> [!IMPORTANT]
+> Docker Compose is configured for local development only. It binds services to
+> loopback and uses local credentials. Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+> before exposing any service to the internet.
+
 ```bash
-git clone <repo-url>
+git clone https://github.com/christiankfoury/agentops-workflow-platform.git
 cd agentops-workflow-platform
 cp .env.example .env
 make up
@@ -261,7 +267,8 @@ Send one local smoke event after the Production AI Platform API is running and
 seeded with the AgentOps placeholder key:
 
 ```powershell
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe scripts\send_platform_telemetry_smoke.py
+cd apps/api
+uv run python ../../scripts/send_platform_telemetry_smoke.py
 ```
 
 For a browser proof in Production AI Platform, keep the platform dashboard on
@@ -270,8 +277,8 @@ For a browser proof in Production AI Platform, keep the platform dashboard on
 platform-owned synthetic sender:
 
 ```powershell
-cd S:\github-repos\production-ai-platform
-.\.venv\Scripts\python scripts\send_agentops_browser_demo_event.py
+cd /path/to/production-ai-platform
+uv run python scripts/send_agentops_browser_demo_event.py
 ```
 
 Then open `http://localhost:3000`, filter **Source App** to `agentops`, and
@@ -305,13 +312,15 @@ duplicating demo runs and results.
 Backend tests:
 
 ```bash
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m pytest
+cd apps/api
+uv run pytest
 ```
 
 Production AI Platform telemetry mocked receiver check:
 
 ```bash
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe scripts\test_phase45_mocked_platform_receiver.py
+cd apps/api
+uv run python ../../scripts/test_phase45_mocked_platform_receiver.py
 ```
 
 Docker Compose config check with placeholder env values:
@@ -323,20 +332,35 @@ docker compose --env-file .env.example config
 Backend lint:
 
 ```bash
-S:\github-repos\agentops-workflow-platform\apps\api\.venv\Scripts\python.exe -m ruff check S:\github-repos\agentops-workflow-platform\apps\api\src S:\github-repos\agentops-workflow-platform\apps\api\tests
+cd apps/api
+uv run ruff check src tests
 ```
 
 Frontend typecheck:
 
 ```bash
-pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web typecheck
+pnpm --dir apps/web typecheck
 ```
 
 Frontend smoke tests:
 
 ```bash
-pnpm --dir S:\github-repos\agentops-workflow-platform\apps\web test:smoke
+pnpm --dir apps/web test:smoke
 ```
+
+Dependency audits:
+
+```bash
+pnpm audit --audit-level moderate
+cd apps/api
+uv run pip-audit
+```
+
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+Never commit provider keys or production credentials. The included environment
+examples contain local placeholders only.
 
 ## Why This Project Matters
 

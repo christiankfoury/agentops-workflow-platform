@@ -1,12 +1,13 @@
+# Local development only. Do not deploy this Compose file to a public host.
 services:
   db:
     image: postgres:16
     environment:
       POSTGRES_DB: agentops
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentops-local-only}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,11 +21,14 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/agentops
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-agentops-local-only}@db:5432/agentops
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ENVIRONMENT: development
+      API_AUTH_ENABLED: ${API_AUTH_ENABLED:-false}
+      API_KEY: ${API_KEY:-}
+      API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-0}
     volumes:
       - ./apps/api:/app
       - /app/.venv
@@ -39,19 +43,23 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       API_INTERNAL_URL: http://api:8000
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_KEY: ${API_KEY:-}
+      API_ROLE: admin
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
     volumes:
-      - ./apps/web:/app
-      - /app/node_modules
-      - /app/.next
+      - ./apps/web:/workspace/apps/web
+      - ./packages/shared:/workspace/packages/shared
+      - /workspace/node_modules
+      - /workspace/apps/web/node_modules
+      - /workspace/apps/web/.next
     depends_on:
       - api
     healthcheck:
