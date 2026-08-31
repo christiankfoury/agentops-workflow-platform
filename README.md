@@ -123,7 +123,7 @@ flowchart TD
 Each workflow follows the same controlled pattern: structured intake, specialized
 analysis, reviewer validation, human approval, and final report generation.
 
-<details>
+<details open>
 <summary><strong>Sales report workflow</strong></summary>
 
 #### 1. Create the workflow
@@ -154,7 +154,7 @@ The Writer converts the approved analysis into the final executive report.
 
 </details>
 
-<details>
+<details open>
 <summary><strong>Customer feedback workflow</strong></summary>
 
 #### 1. Create the workflow
@@ -184,7 +184,7 @@ The Writer turns the approved findings into a product insights report.
 
 </details>
 
-<details>
+<details open>
 <summary><strong>Incident log workflow</strong></summary>
 
 #### 1. Create the workflow
@@ -221,7 +221,7 @@ agent to use a selected prompt, model, token budget, timeout, retry policy, and
 review threshold. The interface also flags prompt names that appear inconsistent
 with the assigned agent role so configuration drift is visible before future runs.
 
-<details>
+<details open>
 <summary><strong>View prompt and agent configuration</strong></summary>
 
 #### Prompt version library
@@ -243,7 +243,7 @@ with the assigned agent role so configuration drift is visible before future run
 The same source input can be processed as a single-agent baseline and compared
 with the reviewed multi-agent workflow.
 
-<details>
+<details open>
 <summary><strong>Run and compare a sales baseline</strong></summary>
 
 #### 1. Create the baseline run
