@@ -6,6 +6,7 @@ This repository is built phase by phase from:
 - `docs/PROJECT_SPEC.md`
 - `docs/phases.md`
 - `docs/phase-progress.md`
+- `WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md`
 
 The goal is to let an engineering agent continue implementation autonomously while keeping each change reviewable, tested, and scoped.
 
@@ -19,9 +20,12 @@ The previous autonomous target range is complete:
 Phase 46 through Phase 65
 ```
 
-The current project state is post-Phase 65 product refinement. Do not continue
-into Phase 66 or later unless the user explicitly asks for an autonomous phase
-run or asks to implement a specific phase.
+The current implementation is post-Phase 65. A documentation-only platform
+expansion plan defines Phases 66–105; all remain planned, not started. The former
+Phase 66 demo script and Phase 67 case study are now Phases 104 and 105.
+Do not implement Phase 66 or later unless the user explicitly asks for an
+autonomous phase run or asks to implement a specific phase. Editing the plan
+does not authorize implementation, commits, pushes, or deployment of those phases.
 
 Current user-directed focus areas include:
 
@@ -35,20 +39,23 @@ Current user-directed focus areas include:
 
 For each phase:
 
-1. Read the project context docs.
-2. Read the current phase in `docs/phases.md`.
-3. Inspect the existing implementation before making assumptions.
-4. Implement only the current phase scope.
-5. Add or update focused backend/frontend tests.
-6. Run relevant validation commands.
-7. Review the implementation for correctness, reliability, maintainability, edge cases, and next-phase compatibility.
-8. Fix actionable review findings in a separate change when applicable.
-9. Update `docs/phase-progress.md`.
-10. Commit the phase implementation to `main` with a detailed commit message.
-11. Push the implementation commit to `main`.
-12. If review finds issues, fix them in a separate commit.
-13. Push the fix commit to `main`.
-14. Continue to the next phase only after the phase is implemented, validated, committed, pushed, and reviewed.
+1. Read the context docs, consolidated feature plan, current phase, and dependencies.
+2. Inspect the existing implementation before making assumptions.
+3. Record the implementation plan, acceptance cases, and migration/rollout impact in `docs/phase-progress.md`.
+4. Implement only the current phase scope and add focused tests where needed.
+5. Run relevant validation and inspect the local diff before committing.
+6. Update phase progress with changes and validation; stage only phase-owned files.
+7. Commit the phase implementation to `main` with a detailed commit message.
+8. Push the implementation commit to `main` during the authorized implementation run.
+9. Review the pushed change for correctness, reliability, maintainability, edge cases, and compatibility; check relevant CI results.
+10. Fix actionable review findings in a separate fix commit, run affected checks, and push.
+11. Review the fix and repeat as needed until no blocking findings remain.
+12. Record implementation/fix commit IDs, push/CI status, validation, review outcome, and limitations in phase progress; commit/push any final documentation record.
+13. Continue only after the phase is implemented, validated, committed, pushed, and reviewed with no unresolved blocking findings.
+
+For Phases 66–105, also apply the shared delivery gate in `docs/phases.md`.
+Documentation-only planning work uses link, numbering, coverage, and consistency
+checks; it does not activate this implementation loop.
 
 ## Scope Rules
 

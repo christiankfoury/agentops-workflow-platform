@@ -1,5 +1,13 @@
 # Enterprise Multi-Agent Workflow Platform - Project Specification
 
+> **Scope update:** Sections 1–28 preserve the original business-workflow
+> specification, including historical aspirations that are not all implemented.
+> Current completion is tracked in [phase progress](phase-progress.md).
+> The [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
+> extends this specification with requirements R01–R14 and planned Phases 66–105.
+> Its scope and architecture defaults govern future platform work where this
+> historical specification differs. No implementation run is active.
+
 ## 1. Project Overview
 
 The Enterprise Multi-Agent Workflow Platform is a full-stack AI application that transforms business inputs into high-quality business outputs using measurable, stateful, multi-agent workflows.
@@ -1264,43 +1272,26 @@ The backend should use an LLM abstraction so the system is not tightly coupled t
 
 ## 21.5 Background Jobs
 
-Recommended later:
-
-```text
-Celery
-Redis
-```
-
-Simpler early option:
-
-```text
-FastAPI background tasks
-```
+Background execution is planned in Phases 75–78. The platform plan uses a
+PostgreSQL-backed durable queue, transactional enqueue, workers, leases,
+heartbeats, recovery, backoff, and cancellation. In-process background tasks
+do not meet this durability requirement; a separate broker is not required.
 
 ## 21.6 Authentication
 
-Recommended options:
-
-```text
-Clerk
-Auth.js
-Supabase Auth
-```
-
-For the first version, authentication can be added after the core workflow works.
+The current application has opt-in API-key authentication and prototype role
+checks. Phases 67–69 add verified identity, users/organizations/memberships,
+tenant isolation, server-authoritative roles, and approval audit. The planned
+identity boundary is OIDC-compatible; live provider configuration is recorded
+before deployment validation. Prototype role headers do not provide real RBAC.
 
 ## 21.7 Deployment
 
-Recommended deployment options:
-
-```text
-Azure
-Render
-Railway
-Fly.io
-```
-
-For a portfolio project, the priority is a stable live demo with seeded data and a clean README.
+The current Compose configuration is for local development. Phases 100–102
+add production images, Kubernetes manifests, persistent or managed Postgres,
+health/readiness, worker metrics, and deployment/recovery verification. A local
+cluster provides reproducible acceptance evidence; hosted deployment requires
+an authorized target and access. See the platform plan for exact scope.
 
 ## 22. MVP Scope
 
@@ -1368,7 +1359,9 @@ The project will not try to be:
 * A production SaaS billing system
 * A massive enterprise platform with every possible integration
 
-The project is focused on measurable multi-agent workflow quality.
+Measurable multi-agent quality remains part of the product. The planned platform
+also supports user-defined automations using generic workflow primitives; the
+non-goals above do not exclude that builder or execution engine.
 
 ## 25. Success Criteria
 

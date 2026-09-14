@@ -1,5 +1,11 @@
 # Deployment
 
+> **Planned expansion:** Phases 100–102 add production web/API/worker packaging,
+> Kubernetes, worker metrics, and deployment/recovery evidence. The
+> [platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md#r13--kubernetes-and-operation)
+> describes that future scope. The instructions below describe the existing
+> deployment foundation; they do not claim those phases are implemented.
+
 This project is designed to run locally with Docker Compose and can be deployed
 as separate web, API, and PostgreSQL services. The included Compose file and
 Dockerfiles are development tooling, not a production deployment template.

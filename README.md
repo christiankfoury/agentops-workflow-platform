@@ -545,6 +545,15 @@ examples contain local placeholders only.
 
 ## Roadmap
 
+The [Workflow Platform Implementation Plan](WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
+consolidates the two feature lists into 14 capabilities and
+[40 planned phases (66–105)](docs/phases.md#platform-expansion-planned-phases-66105).
+They cover generic versioned workflows, durable execution, tools/actions,
+triggers, real organizations/RBAC, a builder/debugger, reliability benchmarks,
+and Kubernetes, followed by updated platform documentation and case-study work.
+These features are planned; this documentation revision starts no implementation
+run. [Phase progress](docs/phase-progress.md) records the actual completion state.
+
 Phase 46 through Phase 65 is complete. Completed work includes human edit flows,
 feedback-loop metrics, agent performance, workflow comparison, exports,
 uploads/parsers, deterministic evaluation checks, failure exploration,

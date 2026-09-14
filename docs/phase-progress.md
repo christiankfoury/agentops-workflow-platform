@@ -1,15 +1,20 @@
 # Phase Progress
 
-Current next phase: Phase 66 - Demo Video Script
+Current next implementation phase: **Phase 66 — State Transition Invariants**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
 Target range status: Phase 46 through Phase 65 complete.
 
-No active autonomous phase run is currently configured. Phase 66 should not be
-implemented unless explicitly requested by the user. Current work is
-user-directed post-Phase 65 product refinement, including workflow algorithm
-review, demo clarity, prompt/settings UX, and UI styling polish.
+**No active autonomous phase run is configured.** The documentation-only revision
+of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
+[consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
+All new phases are planned, not implemented. Explicit user authorization is
+required before beginning a phase or autonomous range.
+
+The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
+are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
+history. Existing product refinement can continue when separately requested.
 
 ## Completed Phases
 
@@ -83,16 +88,94 @@ review, demo clarity, prompt/settings UX, and UI styling polish.
 
 ## Next Phase
 
-### Phase 66: Demo Video Script
+### Phase 66: State Transition Invariants
 
-Expected scope:
+Status: Planned — not started; awaiting an implementation request.
 
-- Create a short demo video script.
-- Cover problem, solution, sales workflow demo, reviewer finding, human approval, final output, evaluation dashboard, and improvement numbers.
+Scope: inspect and centralize runtime transitions, preserve existing workflow
+behavior, reject stale/illegal state changes, and cover lifecycle races.
+See [the full phase entry](phases.md#phase-66-state-transition-invariants) for
+dependencies, acceptance checks, and the shared delivery gate.
 
-Do not implement Phase 66 unless a future autonomous run includes it.
+## Planned Platform Phases
+
+This is a status index; implementation details live only in `docs/phases.md`.
+
+| Phase | Status | Scope |
+| --- | --- | --- |
+| 66 | Planned — not started | State Transition Invariants |
+| 67 | Planned — not started | User Identity and Organization Membership |
+| 68 | Planned — not started | Tenant Ownership and Isolation |
+| 69 | Planned — not started | Role Permissions and Approval Audit |
+| 70 | Planned — not started | Typed Workflow Graph Schema |
+| 71 | Planned — not started | Workflow Definitions and Immutable Versions |
+| 72 | Planned — not started | Generic Step Runs and Attempts |
+| 73 | Planned — not started | Idempotent Generic Run Starts |
+| 74 | Planned — not started | Deterministic Graph Interpreter |
+| 75 | Planned — not started | Transactional Durable Job Queue |
+| 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
+| 77 | Planned — not started | Durable Retries Backoff and Deadlines |
+| 78 | Planned — not started | Durable Cancellation |
+| 79 | Planned — not started | Durable Delay Steps |
+| 80 | Planned — not started | Durable Approval Steps and Resume |
+| 81 | Planned — not started | Parallel Branches and Joins |
+| 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
+| 83 | Planned — not started | Sales Workflow Template Migration |
+| 84 | Planned — not started | Customer Feedback Template Migration |
+| 85 | Planned — not started | Incident Template and Evaluation Compatibility |
+| 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
+| 87 | Planned — not started | HTTP REST Tool |
+| 88 | Planned — not started | PostgreSQL Query Tool |
+| 89 | Planned — not started | GitHub SaaS Tool |
+| 90 | Planned — not started | Governed LLM Tool Calling |
+| 91 | Planned — not started | Webhook Triggers |
+| 92 | Planned — not started | Scheduled and Cron Triggers |
+| 93 | Planned — not started | Generic Workflow Builder Editor |
+| 94 | Planned — not started | Builder Validation Publication and Version History |
+| 95 | Planned — not started | Generic Graph Run Debugger |
+| 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
+| 97 | Planned — not started | Worker Observability and Live Updates |
+| 98 | Planned — not started | Deterministic Throughput Benchmark |
+| 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
+| 100 | Planned — not started | Production Container Packaging |
+| 101 | Planned — not started | Kubernetes Deployment Manifests |
+| 102 | Planned — not started | Kubernetes Operations and Recovery Verification |
+| 103 | Planned — not started | Platform README and Architecture Reconciliation |
+| 104 | Planned — not started | Platform Demo Video Script |
+| 105 | Planned — not started | Final Workflow Platform Case Study |
+
+## Per-Phase Execution Record
+
+When a future phase starts, add a record here using these fields:
+
+- Phase and authorized target range.
+- Plan: inspected code, changes, preserved behavior, acceptance cases, and migration/rollout impact.
+- Implementation summary and affected files.
+- Validation: exact commands/results and evidence paths; distinguish local fixtures from live checks.
+- Implementation commit ID and push status; relevant CI result.
+- Review of the pushed change: findings and disposition.
+- Fix commit IDs, validation, push status, and follow-up review, if needed.
+- Completion decision, remaining limitations, and next phase eligibility.
+
+No new implementation commits, pushes, tests, deployment results, or completed
+phases are claimed by this planning update. Documentation validation checks
+feature coverage, numbering, dependencies, links, and consistency with the inspected
+code. The future delivery loop is plan → implement → validate → commit → push →
+review → fix/revalidate/commit/push/review as needed.
 
 ## Last Known Validation Pattern
+
+### Documentation planning revision — 2026-09-14
+
+- All 13 detailed findings and 9 concluding recommendations map to R01–R14.
+- Phase headings are unique and continuous from 1–105; all 40 future phases
+  have dependencies, requirement references, implementation scope, and acceptance checks.
+- All eight requested step primitives are covered; phase dependencies point backward.
+- Completed Phase 1–65 definitions and the completed ledger match their prior content.
+- All 24 new local Markdown links/anchors resolve; code fences are balanced.
+- `git diff --check` passed. Application tests were not run for this documentation-only revision.
+
+### Prior implementation validation
 
 Recent phases used:
 

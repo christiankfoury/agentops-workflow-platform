@@ -108,8 +108,16 @@ failed
 cancelled
 ```
 
-State transitions are centralized through `services/workflow_state.py` and
-workflow cancellation is handled through `services/workflow_recovery.py`.
+`services/workflow_state.py` defines a transition validator, but several legacy
+agent services currently bypass it with direct status setters. Planned Phase 66
+consolidates those paths before claiming a fully enforced transition invariant.
+`services/workflow_recovery.py` currently implements logical cancellation;
+durable worker cancellation is planned in Phase 78.
+
+The current architecture is the business-workflow foundation. The
+[platform implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
+defines the future generic graph, versions, step attempts, workers, tools,
+triggers, tenant permissions, and Kubernetes architecture. These remain planned.
 
 ## Agent Execution Pattern
 

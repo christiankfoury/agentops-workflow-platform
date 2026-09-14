@@ -1,5 +1,13 @@
 # Multi-Agent Workflow Platform
 
+> **Planning status:** This document describes the existing business-workflow
+> foundation. The planned product direction is a durable AI workflow platform
+> with generic definitions, LLM/deterministic/tool/human steps, versioned graphs,
+> workers, triggers, tenant permissions, a builder/debugger, reliability evidence,
+> and Kubernetes. See the [consolidated implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
+> and [Phases 66–105](phases.md#platform-expansion-planned-phases-66105).
+> This documentation update does not start implementation.
+
 A multi-agent workflow platform that takes business documents, routes work through specialized agents, tracks every decision, evaluates output quality, controls cost, and supports human approval before final delivery.
 
 ---
