@@ -317,3 +317,30 @@ def test_quality_policy_rejects_impossible_issue_schema_before_provider_io(datab
     payload["nodes"][3]["input_schema"]["properties"]["review"] = malformed
     with pytest.raises(ValidationError, match="issues require"):
         DEFAULT_REGISTRY.validate(WorkflowGraph.model_validate(payload))
+
+
+def test_quality_approval_cannot_receive_a_route_that_bypasses_its_review(database):
+    from pydantic import ValidationError
+
+    from src.schemas.workflow_graph import WorkflowGraph
+
+    with Session(database) as db:
+        payload = graph(db)
+    payload["entry_node"] = "choose"
+    payload["nodes"].append(
+        {
+            "id": "choose",
+            "type": "condition",
+            "config": {
+                "cases": [{"label": "compute", "when": literal(False)}],
+                "default": "bypass",
+            },
+        }
+    )
+    payload["edges"] += [edge("choose", "prefix", "compute"), edge("choose", "gate", "bypass")]
+    gate = payload["nodes"][3]
+    gate["merge"] = "exclusive"
+    gate["inputs"] = {"payload": literal({"value": 2}), "review": literal(review(retry=False))}
+    typed = WorkflowGraph.model_validate(payload)
+    with pytest.raises(ValidationError, match="unrelated route"):
+        DEFAULT_REGISTRY.validate(typed)

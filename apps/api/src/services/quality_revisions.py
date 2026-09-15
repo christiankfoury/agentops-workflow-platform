@@ -65,6 +65,9 @@ def validate_policy(graph):
             ("quality_revision",),
             "Quality revision review must lead to its approval directly or through one condition",
         )
+    predecessor = policy.review_node if next_node.id == gate.id else next_node.id
+    if any(edge.target == gate.id and edge.source != predecessor for edge in graph.edges):
+        invalid(("quality_revision",), "Quality approval cannot also receive an unrelated route")
     if any(nodes[key].type in {"approval", "delay", "tool"} for key in policy.nodes):
         invalid(
             ("quality_revision",),

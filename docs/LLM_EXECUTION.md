@@ -18,6 +18,8 @@ prompt remains pinned even if the agent's active-prompt pointer changes. The
 effective request timeout cannot exceed the node timeout. Settings outside the
 generic graph's bounds reject acceptance. New settings affect later starts;
 new prompt references require a new workflow publication.
+The settings snapshot also preserves absent settings: a concurrently created
+setting cannot change later nodes in the same acceptance transaction.
 
 Known model pricing rates are copied from the existing estimate table at start.
 Unknown models retain `null` estimated cost rather than borrowing another model's
@@ -61,6 +63,7 @@ subgraph ending in an LLM reviewer. Its computation may include code, transforms
 conditions and parallel regions. Waits, approvals and external effects stay
 outside the repeated region. The reviewer must lead to its human approval
 directly or through one routing condition with an explicit edge to that approval.
+The quality approval cannot also accept an unrelated route that bypasses its review.
 
 Reviewer output includes `approved`, `quality_score`, structured `issues` and
 `retry_recommended`. Acceptance requires approval, the pinned score threshold and

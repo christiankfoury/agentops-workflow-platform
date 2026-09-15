@@ -141,3 +141,45 @@ def test_configuration_migration_retains_old_rows_and_protects_raw_sql_updates()
         with engine.begin() as conn:
             conn.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
         engine.dispose()
+
+
+def test_settings_created_during_acceptance_wait_until_the_next_run(database, monkeypatch):
+    from copy import deepcopy
+
+    from src.services import execution_config
+    from tests.test_workflow_graph import ref
+
+    original, inserted = execution_config.get_agent_runtime_config, False
+
+    def concurrent_publication(db, agent_type, **kwargs):
+        nonlocal inserted
+        resolved = original(db, agent_type, **kwargs)
+        if not inserted:
+            inserted = True
+            with Session(database) as other:
+                other.add(
+                    AgentSetting(
+                        agent_type=AgentType.analyst,
+                        model="fixture-later-model",
+                        max_tokens=40,
+                        timeout_seconds=12,
+                        max_retries=0,
+                    )
+                )
+                other.commit()
+        return resolved
+
+    monkeypatch.setattr(execution_config, "get_agent_runtime_config", concurrent_publication)
+    with Session(database) as db:
+        payload = graph(prompt(db))
+        payload["nodes"][0]["config"]["use_agent_settings"] = True
+        second = deepcopy(payload["nodes"][0])
+        second["id"] = "second"
+        second["inputs"] = {"value": ref("value", "generate")}
+        payload["nodes"].append(second)
+        payload["edges"] = [edge("generate", "second")]
+        first = start(db, payload, {}).runtime_config
+        later = start(db, payload, {}).runtime_config
+    assert first["generate"]["model"] == first["second"]["model"]
+    assert first["generate"]["model"] != "fixture-later-model"
+    assert later["generate"]["model"] == later["second"]["model"] == "fixture-later-model"

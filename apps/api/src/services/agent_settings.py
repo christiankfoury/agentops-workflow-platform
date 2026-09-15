@@ -54,9 +54,12 @@ def get_agent_runtime_config(
     *,
     default_max_tokens: int = DEFAULT_MAX_TOKENS,
     prompt_override: PromptVersion | None = None,
+    settings_snapshot: dict[AgentType, AgentSetting] | None = None,
 ) -> AgentRuntimeConfig:
     setting = (
-        db.query(AgentSetting).filter(AgentSetting.agent_type == agent_type).first()
+        settings_snapshot.get(agent_type)
+        if settings_snapshot is not None
+        else db.query(AgentSetting).filter(AgentSetting.agent_type == agent_type).first()
     )
     prompt = prompt_override or _resolve_prompt(db, agent_type, setting)
     return AgentRuntimeConfig(

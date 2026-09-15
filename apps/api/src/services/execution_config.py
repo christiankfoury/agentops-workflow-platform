@@ -24,6 +24,7 @@ def snapshot_config(db, version, graph):
         else []
     )
     snapshots = {}
+    settings_snapshot = {item.agent_type: item for item in locked_settings}
     for node in graph.nodes:
         if node.type != "llm":
             continue
@@ -40,7 +41,9 @@ def snapshot_config(db, version, graph):
             )
             if pinned is None:
                 raise HTTPException(409, "Referenced prompt is unavailable")
-            resolved = get_agent_runtime_config(db, pinned.agent_type, prompt_override=pinned)
+            resolved = get_agent_runtime_config(
+                db, pinned.agent_type, prompt_override=pinned, settings_snapshot=settings_snapshot
+            )
             model, temperature, max_tokens = (
                 resolved.model,
                 resolved.temperature,
