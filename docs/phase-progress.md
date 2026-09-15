@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 77 — Durable Retries Backoff and Deadlines**.
+Current next implementation phase: **Phase 78 — Durable Cancellation**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–76 are complete; Phase 77 is in progress; Phases 78–105 remain planned.
+Phases 66–77 are complete; Phases 78–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -115,7 +115,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
 | 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
 | 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
-| 77 | In progress | Durable Retries Backoff and Deadlines |
+| 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
 | 78 | Planned — not started | Durable Cancellation |
 | 79 | Planned — not started | Durable Delay Steps |
 | 80 | Planned — not started | Durable Approval Steps and Resume |
@@ -809,7 +809,17 @@ This is a status index; implementation details live only in `docs/phases.md`.
   bound now includes allowed infrastructure attempts. No live provider or deployment
   claimed. Migration, watchdog, retry service and process tests exceed 700 lines
   together and remain one Phase 77 delivery unit.
-- Implementation commit, CI and post-push review: pending.
+- Implementation commit: `362a5f8382b8890f73abc4d04418166e1e40d351`, pushed to main.
+  [CI run 35021319370](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35021319370)
+  passed API, Web and Docker Compose.
+- Post-push review checked atomic retry/job transitions, deadline-versus-completion
+  ordering, recovery budgets, duplicate/no-op rollback, immutable prior errors,
+  watchdog behavior during draining, and bounded physical handler slots. Migration
+  and historical-row compatibility were checked against passing regressions.
+  No actionable blocking findings or separate fix commit.
+- Completion: Phase 77 complete. Supported I/O abort and the actual cancel API
+  remain Phase 78; no live provider or hosted deployment claimed. Final record is
+  pushed separately; finish its CI before Phase 78.
 
 When a future phase starts, add a record here using these fields:
 
