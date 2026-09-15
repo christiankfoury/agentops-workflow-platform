@@ -349,7 +349,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   verified identity/HTTPS endpoints; deployment evidence follows in Phases 100–102.
   Initial provisioning and direct database administration remain privileged access
   outside the HTTP audit boundary. Audit downgrade requires retaining history.
-- Implementation commit, pushed CI and post-push review: pending.
+- Implementation commit: `f391b604b0d7ad4f010824cffaeabac955b36654`, pushed to main.
+  [CI run 34941875787](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34941875787)
+  passed all API, Web and Docker Compose checks.
+- Post-push review finding: a long-lived session could retain an old membership
+  role after another session promoted that user, skipping the last-admin guard.
+  Reproduced with a failing PostgreSQL regression. Membership/user lookups now
+  refresh cached identities under the existing organization/membership locks.
+  Fix validation: `pytest tests/test_permissions_audit.py -q` passed **31 tests**;
+  API lint and `git diff --check` passed. Fix commit/push and follow-up CI/review:
+  pending.
 
 When a future phase starts, add a record here using these fields:
 

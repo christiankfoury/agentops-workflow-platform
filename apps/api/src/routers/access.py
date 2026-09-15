@@ -53,7 +53,7 @@ def update_membership(user_id: uuid.UUID, body: MembershipUpdate, db: Session = 
     # revocations and last-admin races without upgrading shared row locks.
     db.execute(select(Organization.id).where(Organization.id == org).with_for_update())
     principal = authorize(db, "membership.manage", lock=True)
-    target = db.get(User, user_id)
+    target = db.get(User, user_id, populate_existing=True)
     if target is None or target.kind != "user" or not target.active:
         raise HTTPException(404, "Active user not found")
     member = db.scalar(
@@ -63,6 +63,7 @@ def update_membership(user_id: uuid.UUID, body: MembershipUpdate, db: Session = 
             Membership.user_id == user_id,
         )
         .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if (
         member

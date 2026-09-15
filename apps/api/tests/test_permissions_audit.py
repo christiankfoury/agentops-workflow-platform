@@ -230,6 +230,30 @@ def test_reserved_admin_permissions_and_unknown_actions_are_closed():
     assert permits(Principal("admin"), "invented.permission") is False
 
 
+def test_membership_lock_refreshes_cached_role_before_last_admin_check(database, tenants):
+    from fastapi import HTTPException
+
+    from src.routers.access import MembershipUpdate, update_membership
+
+    owner = tenants[0]
+    with Session(database) as db:
+        bind_tenant(db, owner["org"])
+        member = db.scalar(select(Membership).where(Membership.organization_id == owner["org"]))
+        member.role = "viewer"
+        db.commit()
+        actor = member.user_id
+        assert member.role == "viewer"
+        db.info["principal"] = Principal("viewer", actor, owner["org"])
+        # Another administrator promotes this user after this session cached it.
+        with Session(database) as admin:
+            changed = admin.get(Membership, member.id)
+            changed.role = "admin"
+            admin.commit()
+        with pytest.raises(HTTPException) as error:
+            update_membership(actor, MembershipUpdate(role="viewer"), db)
+        assert error.value.status_code == 409
+
+
 def test_generic_status_endpoint_cannot_bypass_approval(tenant_client, tenants, database):
     owner = tenants[0]
     prepare(database, owner, "operator", high=True)
