@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 80 — Durable Approval Steps and Resume**.
+Current next implementation phase: **Phase 81 — Parallel Branches and Joins**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–79 are complete; Phase 80 is in progress; Phases 81–105 remain planned.
+Phases 66–80 are complete; Phases 81–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -118,7 +118,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
 | 78 | Complete | Durable cancellation intent/API, atomic work termination, I/O abort hooks and late-result fencing; CI/review passed. |
 | 79 | Complete | Persisted UTC waits, bounded wake processor, atomic continuation and cancellation/deadline integration; CI/review passed. |
-| 80 | In progress | Durable Approval Steps and Resume |
+| 80 | Complete | Immutable approval snapshots, authorized decisions, superseding edits and bounded durable resume; CI/review passed. |
 | 81 | Planned — not started | Parallel Branches and Joins |
 | 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
 | 83 | Planned — not started | Sales Workflow Template Migration |
@@ -985,7 +985,20 @@ This is a status index; implementation details live only in `docs/phases.md`.
   TestClient/httpx deprecation warning is non-blocking. PostgreSQL migration
   tests exercised empty downgrade/reapply, old-run compatibility, immutable
   snapshot/decision guards, edit/approve transitions and retention refusal.
-- Implementation commit, pushed CI and post-push review: pending.
+- Implementation commit: `e803bb5d888057a1ade96bcbda7ca9105ec5dcac`, pushed to main.
+  [CI run 35029277139](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35029277139)
+  passed API, Web and Docker Compose, including full API tests and dependency audits.
+- Post-push review checked run/step/version/hash binding, refreshed governed inputs
+  under lock, permission/revocation and high-severity enforcement, service-role
+  restrictions, idempotent/conflicting decisions, superseded edits, expiry/cancel
+  ordering, bounded review iterations, queue receipt settlement, rollback and
+  migration/history compatibility. Existing legacy approval endpoints are unchanged.
+  No actionable blocking findings; no separate fix commit required.
+- Completion: Phase 80 complete. Final record is pushed separately; finish its CI
+  before starting Phase 81. This phase changes 1,422 lines including migration,
+  immutable snapshot model, decision runtime and 574 lines of focused acceptance
+  tests; the scope remains approval lifecycle only. No live provider or hosted
+  deployment claimed.
 
 When a future phase starts, add a record here using these fields:
 
