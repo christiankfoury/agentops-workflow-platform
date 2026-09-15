@@ -17,7 +17,7 @@ from src.models.workflow_execution import StepAttempt, WorkflowExecution
 from src.services import durable_queue as queue
 from src.services import execution_starts
 from src.services.execution_registry import ExecutorRegistry
-from src.services.graph_interpreter import execute_work
+from src.services.graph_interpreter import execute_work, run_deterministic_execution
 from src.services.identity import Principal
 from src.services.tenancy import bind_tenant
 from src.worker import run_worker
@@ -216,6 +216,17 @@ def test_failed_handler_completes_job_and_execution_without_downstream_work(data
         assert job.status == "failed" and job.error_code == "handler_failed"
         assert db.get(WorkflowExecution, identity).status == "failed"
         assert db.scalar(select(func.count()).select_from(DurableJob)) == 1
+
+
+def test_queued_job_for_locally_completed_run_has_no_false_error(database):
+    with Session(database) as db:
+        run = start(db, {"entry_node": "start", "nodes": [code("start")]}, {})
+        run_deterministic_execution(db, run.id)
+    assert queue.process_claim(database, queue.claim_jobs(database, "worker")[0])
+    with Session(database) as db:
+        job = db.scalar(select(DurableJob))
+        assert job.status == "completed" and job.error_code is None
+        assert db.scalar(select(func.count()).select_from(StepAttempt)) == 1
 
 
 def test_graceful_stop_drains_current_work_without_more_claims(database, monkeypatch):

@@ -210,7 +210,9 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                         run,
                         claim,
                         "completed" if run.status == "completed" else "failed",
-                        run.error_code or "checkpoint_not_ready",
+                        None
+                        if run.status == "completed"
+                        else (run.error_code or "checkpoint_not_ready"),
                     )
             return True
         try:

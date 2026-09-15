@@ -684,7 +684,15 @@ This is a status index; implementation details live only in `docs/phases.md`.
   computation, and retained interrupted work. No provider/hosted deployment claim.
   This phase exceeds 700 lines because queue persistence, migration, worker,
   API contract and independent-process acceptance tests form one delivery unit.
-- Implementation commit, CI and post-push review: pending.
+- Implementation commit: `1d9719727c27803a25ea203ca9cc5bfad6a8a9ae`, pushed to main.
+  [CI run 35015483000](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35015483000)
+  passed API, Web and Docker Compose.
+- Post-push review reproduced a false `checkpoint_not_ready` error when the local
+  runner had completed an execution before its queued job was consumed. The worker
+  now records completed jobs without a false error and does not repeat the handler.
+  The regression failed before the fix. `pytest tests/test_durable_queue.py -q
+  --tb=short` with PostgreSQL passed **10 tests**; API lint and diff checks passed.
+  Fix commit/CI and follow-up review: pending.
 
 When a future phase starts, add a record here using these fields:
 
