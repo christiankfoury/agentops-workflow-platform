@@ -28,7 +28,8 @@ from src.services.workflow_events import (
     log_agent_started,
     log_workflow_event,
 )
-from src.services.workflow_state import transition
+from src.services.workflow_state import transition, transition_step
+from src.services.workflow_transactions import commit_workflow, workflow_transaction
 from src.services.writer_inputs import SalesWriterInput
 
 SALES_WRITER_AGENT_NAME = "Writer Agent"
@@ -54,47 +55,49 @@ def run_sales_writer(
     run: WorkflowRun,
     llm_client: LLMClientLike,
 ) -> AgentStep:
-    run = _lock_run(db, run)
-    uploaded_input = _validate_run_and_get_input(db, run)
-    analyst_step = _get_completed_analyst_step(db, run.id)
-    approval = _get_latest_approved_human_approval(db, run.id)
-    reviewer_step = _get_latest_completed_reviewer_step(db, run.id)
-    _ensure_writer_allowed(approval, reviewer_step)
-    analyst_output = _get_writer_analysis(analyst_step, approval)
-    _ensure_no_writer_started(db, run.id)
-    runtime_config = _get_writer_runtime_config(db)
-    prompt = runtime_config.prompt
-    step_order = _next_step_order(db, run.id)
-    agent_input = SalesWriterInput(
-        workflow_run_id=str(run.id),
-        input_id=str(uploaded_input.id),
-        source_title=uploaded_input.title,
-        source_text=uploaded_input.raw_text,
-        analyst_step_id=str(analyst_step.id),
-        reviewer_step_id=str(reviewer_step.id) if reviewer_step is not None else None,
-        analysis=analyst_output,
-        analysis_source="human_edited"
-        if approval is not None and approval.edited_analysis_json is not None
-        else "analyst",
-        human_approval_id=str(approval.id) if approval is not None else None,
-        human_feedback=approval.human_feedback if approval is not None else None,
-    ).model_dump(mode="json", exclude_none=True)
+    with workflow_transaction(db, run):
+        run = _lock_run(db, run)
+        uploaded_input = _validate_run_and_get_input(db, run)
+        analyst_step = _get_completed_analyst_step(db, run.id)
+        approval = _get_latest_approved_human_approval(db, run.id)
+        reviewer_step = _get_latest_completed_reviewer_step(db, run.id)
+        _ensure_writer_allowed(approval, reviewer_step)
+        analyst_output = _get_writer_analysis(analyst_step, approval)
+        _ensure_no_writer_started(db, run.id)
+        runtime_config = _get_writer_runtime_config(db)
+        prompt = runtime_config.prompt
+        step_order = _next_step_order(db, run.id)
+        agent_input = SalesWriterInput(
+            workflow_run_id=str(run.id),
+            input_id=str(uploaded_input.id),
+            source_title=uploaded_input.title,
+            source_text=uploaded_input.raw_text,
+            analyst_step_id=str(analyst_step.id),
+            reviewer_step_id=str(reviewer_step.id) if reviewer_step is not None else None,
+            analysis=analyst_output,
+            analysis_source="human_edited"
+            if approval is not None and approval.edited_analysis_json is not None
+            else "analyst",
+            human_approval_id=str(approval.id) if approval is not None else None,
+            human_feedback=approval.human_feedback if approval is not None else None,
+        ).model_dump(mode="json", exclude_none=True)
 
-    step = AgentStep(
-        workflow_run_id=run.id,
-        agent_name=SALES_WRITER_AGENT_NAME,
-        agent_type=AgentType.writer.value,
-        step_order=step_order,
-        status=AgentStepStatus.running,
-        input_json=agent_input,
-        prompt_version_id=prompt.id,
-        retry_count=run.retry_count or 0,
-    )
-    db.add(step)
-    db.commit()
-    db.refresh(step)
-    log_agent_started(db, run, step)
+        step = AgentStep(
+            workflow_run_id=run.id,
+            agent_name=SALES_WRITER_AGENT_NAME,
+            agent_type=AgentType.writer.value,
+            step_order=step_order,
+            status=AgentStepStatus.running,
+            input_json=agent_input,
+            prompt_version_id=prompt.id,
+            retry_count=run.retry_count or 0,
+        )
+        db.add(step)
+        commit_workflow(db)
+        db.refresh(step)
+        log_agent_started(db, run, step)
 
+    execution_revision = run.state_revision
     started = time.perf_counter()
     try:
         response = llm_client.generate_text(
@@ -116,64 +119,66 @@ def run_sales_writer(
             **runtime_config.generation_kwargs(),
         )
     except Exception as e:
-        _mark_step_failed(step, str(e), started, db)
-        log_agent_failed(db, run, step, str(e))
-        transition(run, WorkflowStatus.failed, db)
+        with workflow_transaction(db, run, expected_revision=execution_revision):
+            _mark_step_failed(step, str(e), started, db)
+            log_agent_failed(db, run, step, str(e))
+            transition(run, WorkflowStatus.failed, db)
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.workflow_failed,
+                "Workflow failed during writer execution.",
+                agent_step=step,
+                error_message=str(e),
+            )
+            return step
+    with workflow_transaction(db, run, expected_revision=execution_revision):
+
+        final_output = response.content.strip()
+        if not final_output:
+            _mark_step_failed(step, "Writer returned empty final output", started, db)
+            log_agent_failed(db, run, step, "Writer returned empty final output")
+            transition(run, WorkflowStatus.failed, db)
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.workflow_failed,
+                "Workflow failed during writer execution.",
+                agent_step=step,
+                error_message="Writer returned empty final output",
+            )
+            return step
+
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        transition_step(step, AgentStepStatus.completed)
+        step.output_json = {"final_output": final_output}
+        step.model = response.model
+        step.tokens_input = response.usage.input_tokens
+        step.tokens_output = response.usage.output_tokens
+        step.total_tokens = response.usage.total_tokens
+        step.latency_ms = latency_ms
+        step.completed_at = datetime.now(UTC)
+        run.final_output = final_output
+        commit_workflow(db)
+        db.refresh(step)
+        record_agent_cost(db, step)
+        _update_run_metrics(run, db)
+        log_agent_completed(db, run, step)
+        transition(run, WorkflowStatus.completed, db)
         log_workflow_event(
             db,
             run,
-            WorkflowEventType.workflow_failed,
-            "Workflow failed during writer execution.",
+            WorkflowEventType.workflow_completed,
+            "Workflow completed.",
             agent_step=step,
-            error_message=str(e),
+            metadata={
+                "quality_score": run.quality_score,
+                "total_cost": run.total_cost,
+                "total_tokens": run.total_tokens,
+                "retry_count": run.retry_count,
+            },
         )
         return step
-
-    final_output = response.content.strip()
-    if not final_output:
-        _mark_step_failed(step, "Writer returned empty final output", started, db)
-        log_agent_failed(db, run, step, "Writer returned empty final output")
-        transition(run, WorkflowStatus.failed, db)
-        log_workflow_event(
-            db,
-            run,
-            WorkflowEventType.workflow_failed,
-            "Workflow failed during writer execution.",
-            agent_step=step,
-            error_message="Writer returned empty final output",
-        )
-        return step
-
-    latency_ms = int((time.perf_counter() - started) * 1000)
-    step.status = AgentStepStatus.completed
-    step.output_json = {"final_output": final_output}
-    step.model = response.model
-    step.tokens_input = response.usage.input_tokens
-    step.tokens_output = response.usage.output_tokens
-    step.total_tokens = response.usage.total_tokens
-    step.latency_ms = latency_ms
-    step.completed_at = datetime.now(UTC)
-    run.final_output = final_output
-    db.commit()
-    db.refresh(step)
-    record_agent_cost(db, step)
-    _update_run_metrics(run, db)
-    log_agent_completed(db, run, step)
-    transition(run, WorkflowStatus.completed, db)
-    log_workflow_event(
-        db,
-        run,
-        WorkflowEventType.workflow_completed,
-        "Workflow completed.",
-        agent_step=step,
-        metadata={
-            "quality_score": run.quality_score,
-            "total_cost": run.total_cost,
-            "total_tokens": run.total_tokens,
-            "retry_count": run.retry_count,
-        },
-    )
-    return step
 
 
 def _lock_run(db: Session, run: WorkflowRun) -> WorkflowRun:
@@ -309,11 +314,11 @@ def _mark_step_failed(
     started: float,
     db: Session,
 ) -> None:
-    step.status = AgentStepStatus.failed
+    transition_step(step, AgentStepStatus.failed)
     step.error_message = error_message
     step.latency_ms = int((time.perf_counter() - started) * 1000)
     step.completed_at = datetime.now(UTC)
-    db.commit()
+    commit_workflow(db)
     db.refresh(step)
 
 

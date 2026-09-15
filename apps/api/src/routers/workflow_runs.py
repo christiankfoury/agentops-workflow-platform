@@ -8,7 +8,7 @@ from src.dependencies import get_llm_client
 from src.models.agent_step import AgentStep
 from src.models.uploaded_input import UploadedInput
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
-from src.models.workflow_run import WorkflowRun, WorkflowType
+from src.models.workflow_run import WorkflowRun, WorkflowStatus, WorkflowType
 from src.schemas.agent_step import AgentStepRead
 from src.schemas.workflow_event import WorkflowEventRead
 from src.schemas.workflow_run import (
@@ -319,7 +319,11 @@ def update_workflow_status(
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     try:
-        updated_run = transition(run, body.status, db)
+        updated_run = (
+            cancel_workflow_run(db, run)
+            if body.status == WorkflowStatus.cancelled
+            else transition(run, body.status, db)
+        )
         return _workflow_run_payload(updated_run, _input_title_for_run(db, updated_run))
     except InvalidTransitionError as e:
         raise HTTPException(status_code=422, detail=str(e))

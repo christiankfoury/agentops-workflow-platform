@@ -6,11 +6,12 @@ Completed autonomous target: Phase 46 through Phase 65.
 
 Target range status: Phase 46 through Phase 65 complete.
 
-**No active autonomous phase run is configured.** The documentation-only revision
+**Active autonomous target: Phases 66–105**, authorized on 2026-09-15 with
+phase-scoped commits and pushes to main and completed CI required before advancement.
+The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-All new phases are planned, not implemented. Explicit user authorization is
-required before beginning a phase or autonomous range.
+Phase 66 is in progress; Phases 67–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -90,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 66: State Transition Invariants
 
-Status: Planned — not started; awaiting an implementation request.
+Status: In progress — authorized implementation run.
 
 Scope: inspect and centralize runtime transitions, preserve existing workflow
 behavior, reject stale/illegal state changes, and cover lifecycle races.
@@ -103,7 +104,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 
 | Phase | Status | Scope |
 | --- | --- | --- |
-| 66 | Planned — not started | State Transition Invariants |
+| 66 | In progress | State Transition Invariants |
 | 67 | Planned — not started | User Identity and Organization Membership |
 | 68 | Planned — not started | Tenant Ownership and Isolation |
 | 69 | Planned — not started | Role Permissions and Approval Audit |
@@ -145,6 +146,44 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 105 | Planned — not started | Final Workflow Platform Case Study |
 
 ## Per-Phase Execution Record
+
+### Phase 66 — State Transition Invariants (2026-09-15)
+
+- Authorized range: 66–105. Initial tree clean; local main and remote main both
+  `f671899c84b5b5772755340d892c40c474a8e4dd`; prior CI run `34902055126` succeeded.
+- Inspection: legacy agent setters bypass validation; step output, cost, events,
+  approvals and cancellation use independent commits. Existing tests mostly use
+  fake sessions and cannot establish database race safety.
+- Plan: centralize validated transitions and explicit short workflow transactions;
+  serialize mutations on the run, fence provider results using a persisted revision,
+  atomically commit step/result/event/approval changes, and retain fixture imports
+  through an explicit construction path. No database lock is held during LLM I/O.
+- Acceptance: preserve three workflows and baselines, quality retries and human
+  edits; reject terminal reopen, stale completion and conflicting decisions; verify
+  rollback and cancellation/completion races with disposable PostgreSQL sessions.
+- Rollout: additive run revision migration; existing runs begin at revision zero.
+  No destructive backfill, provider calls, or production deployment required.
+- Scope size: all legacy execution services must adopt the same transaction
+  boundary; mechanical indentation may exceed the preferred 300–700 changed lines.
+- Implementation: centralized run/step transitions, revision-checked transactions
+  across all legacy agents and approval/recovery services, atomic result/cost/event
+  commits, cancellation through status PATCH, and completion telemetry after commit.
+  Added PostgreSQL CI service, migration checks, 17 database/domain tests, and
+  frontend support for the state-transition event type.
+- Validation (local, deterministic providers): `uv run --directory apps/api
+  alembic upgrade head` passed on a fresh disposable PostgreSQL 16 database;
+  `uv run --directory apps/api ruff check src tests` passed;
+  `uv run --directory apps/api pytest -q` with `WORKFLOW_TEST_DATABASE_URL`
+  passed **260 tests**; `pnpm --dir apps/web typecheck` passed;
+  `pnpm --dir apps/web test:smoke` passed **2 tests**. The full API suite completed;
+  no fallback or paid provider call was required. An existing Starlette/httpx
+  deprecation warning remains.
+- Local review: checked lifecycle branches and direct-write search. Only the
+  explicit demo fixture import assigns run/step statuses outside the authority;
+  evaluation-result statuses are separate scoring bookkeeping. Existing approval
+  decisions remain under validated, run-serialized transactions. Historical
+  fixture construction is covered by the existing demo seed/reseed tests.
+- Implementation commit/push/CI and post-push review: pending; phase is not complete.
 
 When a future phase starts, add a record here using these fields:
 

@@ -12,6 +12,7 @@ from src.database import Base
 
 
 class WorkflowEventType(StrEnum):
+    state_transition = "state_transition"
     workflow_started = "workflow_started"
     workflow_completed = "workflow_completed"
     workflow_failed = "workflow_failed"

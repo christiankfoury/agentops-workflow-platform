@@ -12,7 +12,9 @@ The goal is to let an engineering agent continue implementation autonomously whi
 
 ## Autonomous Run Status
 
-No autonomous phase run is currently active.
+An autonomous run for Phases 66–105 was authorized on 2026-09-15, including
+phase-scoped commits and pushes to main. Resume from the first incomplete phase
+in `docs/phase-progress.md`; finish CI and review before advancing.
 
 The previous autonomous target range is complete:
 

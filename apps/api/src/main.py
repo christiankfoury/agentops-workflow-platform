@@ -13,6 +13,7 @@ from src.routers import (
     workflow_runs,
 )
 from src.security import enforce_rate_limit, require_api_key
+from src.services.workflow_transactions import StaleWorkflowError
 
 app = FastAPI(
     title="AgentOps Workflow Platform API",
@@ -20,6 +21,11 @@ app = FastAPI(
 )
 
 authenticated_router_dependencies = [Depends(require_api_key)]
+
+
+@app.exception_handler(StaleWorkflowError)
+async def stale_workflow(_request: Request, exc: StaleWorkflowError):
+    return JSONResponse({"detail": str(exc)}, status_code=409)
 
 
 @app.middleware("http")

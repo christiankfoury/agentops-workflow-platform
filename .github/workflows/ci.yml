@@ -16,6 +16,21 @@ jobs:
   api:
     name: API
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: phase_test
+          POSTGRES_PASSWORD: phase_test_local
+          POSTGRES_DB: phase_validation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U phase_test -d phase_validation"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://phase_test:phase_test_local@localhost:5432/phase_validation
+      WORKFLOW_TEST_DATABASE_URL: postgresql://phase_test:phase_test_local@localhost:5432/phase_validation
     defaults:
       run:
         working-directory: apps/api
@@ -36,6 +51,9 @@ jobs:
 
       - name: Lint
         run: uv run ruff check src tests
+
+      - name: Migrate fresh PostgreSQL database
+        run: uv run alembic upgrade head
 
       - name: Test
         run: uv run pytest

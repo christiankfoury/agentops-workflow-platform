@@ -5,7 +5,8 @@
 This documentation-only plan evolves AgentOps from three specialized multi-agent
 workflows into a durable AI workflow platform. It combines the original detailed
 findings 1–13 and concluding recommendations 1–9 into one feature inventory.
-**No implementation phase or autonomous run is active.**
+**Phases 66–105 are authorized for autonomous implementation as of 2026-09-15.**
+Current implementation and validation evidence are in `docs/phase-progress.md`.
 
 Phases 1–65 remain complete. The future sequence is **Phases 66–105**, defined in
 [docs/phases.md](docs/phases.md). The former Phase 66 demo script and Phase 67 case

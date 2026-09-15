@@ -1580,7 +1580,8 @@ Add empty states, loading states, error states, and better visual hierarchy.
 
 These phases consolidate both source lists in
 [the implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md). They are
-planned only. No autonomous run is active. Phases 1–65 remain complete, while the
+the authorized 66–105 implementation sequence as of 2026-09-15; consult
+`phase-progress.md` for each phase's status. Phases 1–65 remain complete, while the
 former demo-script/case-study Phases 66–67 move to 104–105. Their original scope is
 preserved in those entries. The old references to undefined Phases 68–80 are
 replaced by the concrete sequence below.

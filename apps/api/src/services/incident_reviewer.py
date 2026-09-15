@@ -30,6 +30,8 @@ from src.services.workflow_events import (
     log_agent_started,
     log_workflow_event,
 )
+from src.services.workflow_state import transition, transition_step
+from src.services.workflow_transactions import commit_workflow, workflow_transaction
 
 INCIDENT_REVIEWER_AGENT_NAME = "Reviewer Agent"
 
@@ -55,41 +57,43 @@ def run_incident_reviewer(
     run: WorkflowRun,
     llm_client: LLMClientLike,
 ) -> AgentStep:
-    run = _lock_run(db, run)
-    uploaded_input = _validate_run_and_get_input(db, run)
-    timeline_step = _get_completed_step(db, run.id, AgentType.timeline)
-    root_step = _get_completed_step(db, run.id, AgentType.root_cause)
-    timeline_output = _validate_timeline_output(timeline_step)
-    root_output = _validate_root_output(root_step)
-    _ensure_no_reviewer_for_root_cause(db, run.id, root_step.id)
-    runtime_config = _get_reviewer_runtime_config(db)
-    prompt = runtime_config.prompt
-    step_order = _next_step_order(db, run.id)
-    agent_input = {
-        "workflow_run_id": str(run.id),
-        "input_id": str(uploaded_input.id),
-        "source_title": uploaded_input.title,
-        "source_text": uploaded_input.raw_text,
-        "timeline_step_id": str(timeline_step.id),
-        "root_cause_step_id": str(root_step.id),
-        "timeline": timeline_output.model_dump(),
-        "root_cause": root_output.model_dump(),
-    }
-    step = AgentStep(
-        workflow_run_id=run.id,
-        agent_name=INCIDENT_REVIEWER_AGENT_NAME,
-        agent_type=AgentType.reviewer.value,
-        step_order=step_order,
-        status=AgentStepStatus.running,
-        input_json=agent_input,
-        prompt_version_id=prompt.id,
-        retry_count=run.retry_count or 0,
-    )
-    db.add(step)
-    db.commit()
-    db.refresh(step)
-    log_agent_started(db, run, step)
+    with workflow_transaction(db, run):
+        run = _lock_run(db, run)
+        uploaded_input = _validate_run_and_get_input(db, run)
+        timeline_step = _get_completed_step(db, run.id, AgentType.timeline)
+        root_step = _get_completed_step(db, run.id, AgentType.root_cause)
+        timeline_output = _validate_timeline_output(timeline_step)
+        root_output = _validate_root_output(root_step)
+        _ensure_no_reviewer_for_root_cause(db, run.id, root_step.id)
+        runtime_config = _get_reviewer_runtime_config(db)
+        prompt = runtime_config.prompt
+        step_order = _next_step_order(db, run.id)
+        agent_input = {
+            "workflow_run_id": str(run.id),
+            "input_id": str(uploaded_input.id),
+            "source_title": uploaded_input.title,
+            "source_text": uploaded_input.raw_text,
+            "timeline_step_id": str(timeline_step.id),
+            "root_cause_step_id": str(root_step.id),
+            "timeline": timeline_output.model_dump(),
+            "root_cause": root_output.model_dump(),
+        }
+        step = AgentStep(
+            workflow_run_id=run.id,
+            agent_name=INCIDENT_REVIEWER_AGENT_NAME,
+            agent_type=AgentType.reviewer.value,
+            step_order=step_order,
+            status=AgentStepStatus.running,
+            input_json=agent_input,
+            prompt_version_id=prompt.id,
+            retry_count=run.retry_count or 0,
+        )
+        db.add(step)
+        commit_workflow(db)
+        db.refresh(step)
+        log_agent_started(db, run, step)
 
+    execution_revision = run.state_revision
     started = time.perf_counter()
     try:
         messages = [
@@ -134,50 +138,52 @@ def run_incident_reviewer(
         )
         output = _calibrate_incident_review_score(output, root_output)
     except (Exception, ValidationError) as e:
-        _mark_step_failed(step, str(e), started, db)
-        log_agent_failed(db, run, step, str(e))
-        _set_run_status(run, WorkflowStatus.failed, db)
-        log_workflow_event(
-            db,
-            run,
-            WorkflowEventType.workflow_failed,
-            "Workflow failed during incident reviewer execution.",
-            agent_step=step,
-            error_message=str(e),
-        )
-        return step
+        with workflow_transaction(db, run, expected_revision=execution_revision):
+            _mark_step_failed(step, str(e), started, db)
+            log_agent_failed(db, run, step, str(e))
+            transition(run, WorkflowStatus.failed, db)
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.workflow_failed,
+                "Workflow failed during incident reviewer execution.",
+                agent_step=step,
+                error_message=str(e),
+            )
+            return step
+    with workflow_transaction(db, run, expected_revision=execution_revision):
 
-    latency_ms = int((time.perf_counter() - started) * 1000)
-    step.status = AgentStepStatus.completed
-    step.output_json = output.model_dump()
-    step.model = response.model
-    step.tokens_input = response.usage.input_tokens
-    step.tokens_output = response.usage.output_tokens
-    step.total_tokens = response.usage.total_tokens
-    step.latency_ms = latency_ms
-    step.completed_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(step)
-    record_agent_cost(db, step)
-    _update_run_metrics(run, db)
-    log_agent_completed(db, run, step)
-    if not output.approved or output.issues or output.retry_recommended:
-        log_workflow_event(
-            db,
-            run,
-            WorkflowEventType.reviewer_rejected_output,
-            "Reviewer flagged the incident analysis.",
-            agent_step=step,
-            metadata={
-                "approved": output.approved,
-                "quality_score": output.quality_score,
-                "issues": [issue.model_dump() for issue in output.issues],
-                "retry_recommended": output.retry_recommended,
-            },
-        )
-    _set_run_status(run, WorkflowStatus.waiting_for_human, db)
-    create_pending_human_approval(db, run)
-    return step
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        transition_step(step, AgentStepStatus.completed)
+        step.output_json = output.model_dump()
+        step.model = response.model
+        step.tokens_input = response.usage.input_tokens
+        step.tokens_output = response.usage.output_tokens
+        step.total_tokens = response.usage.total_tokens
+        step.latency_ms = latency_ms
+        step.completed_at = datetime.now(UTC)
+        commit_workflow(db)
+        db.refresh(step)
+        record_agent_cost(db, step)
+        _update_run_metrics(run, db)
+        log_agent_completed(db, run, step)
+        if not output.approved or output.issues or output.retry_recommended:
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.reviewer_rejected_output,
+                "Reviewer flagged the incident analysis.",
+                agent_step=step,
+                metadata={
+                    "approved": output.approved,
+                    "quality_score": output.quality_score,
+                    "issues": [issue.model_dump() for issue in output.issues],
+                    "retry_recommended": output.retry_recommended,
+                },
+            )
+        transition(run, WorkflowStatus.waiting_for_human, db)
+        create_pending_human_approval(db, run)
+        return step
 
 
 def _lock_run(db: Session, run: WorkflowRun) -> WorkflowRun:
@@ -288,11 +294,11 @@ def _next_step_order(db: Session, run_id: uuid.UUID) -> int:
 
 
 def _mark_step_failed(step: AgentStep, error_message: str, started: float, db: Session) -> None:
-    step.status = AgentStepStatus.failed
+    transition_step(step, AgentStepStatus.failed)
     step.error_message = error_message
     step.latency_ms = int((time.perf_counter() - started) * 1000)
     step.completed_at = datetime.now(UTC)
-    db.commit()
+    commit_workflow(db)
     db.refresh(step)
 
 
@@ -311,17 +317,5 @@ def _update_run_metrics(run: WorkflowRun, db: Session) -> None:
         latest_review = max(reviewer_steps, key=lambda step: step.step_order)
         quality_score = (latest_review.output_json or {}).get("quality_score")
         run.quality_score = float(quality_score) if quality_score is not None else None
-    db.commit()
-    db.refresh(run)
-
-
-def _set_run_status(run: WorkflowRun, status: WorkflowStatus, db: Session) -> None:
-    run.status = status
-    if status in {
-        WorkflowStatus.completed,
-        WorkflowStatus.failed,
-        WorkflowStatus.cancelled,
-    }:
-        run.completed_at = datetime.now(UTC)
-    db.commit()
+    commit_workflow(db)
     db.refresh(run)

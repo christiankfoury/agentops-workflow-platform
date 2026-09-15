@@ -108,11 +108,33 @@ failed
 cancelled
 ```
 
-`services/workflow_state.py` defines a transition validator, but several legacy
-agent services currently bypass it with direct status setters. Planned Phase 66
-consolidates those paths before claiming a fully enforced transition invariant.
-`services/workflow_recovery.py` currently implements logical cancellation;
-durable worker cancellation is planned in Phase 78.
+`services/workflow_state.py` owns live run and agent-step transitions. Terminal
+states cannot reopen, and terminal timestamps are set with the transition.
+`services/workflow_transactions.py` owns short transactions: a PostgreSQL row
+lock serializes each run's mutations and a persisted `state_revision` rejects
+stale operations (HTTP 409). Step starts and their events commit together;
+results, costs, totals, decisions, events, and resulting run states commit together.
+Nested helpers flush; only the outer owner commits. Rollback removes all changes
+and suppresses external completion telemetry.
+
+Provider calls happen between transactions without a run lock. Results must
+present the revision captured at start, so cancellation or another control
+operation fences late success and failure. This is logical cancellation; it does
+not interrupt a provider request or recover work after process death. Durable
+worker cancellation remains Phase 78. Revision migration `f066_state_revision`
+adds a zero-initialized counter without modifying historical outputs.
+
+Demo imports are an explicit exception: `services/demo_dataset.py` constructs
+historical completed fixtures in its own transaction without inventing live
+transition events. Its run/step assignments and evaluation-result bookkeeping
+are the documented direct-write exceptions. Live evaluations call the same agent
+services and approval transitions as interactive workflows.
+
+`tests/test_workflow_transactions_postgres.py` uses isolated PostgreSQL schemas
+and independent sessions to verify rollback, stale writes, conflicting decisions,
+cancellation/completion races, and late provider results for all three baselines.
+Set `WORKFLOW_TEST_DATABASE_URL` to a disposable database to run these tests;
+CI supplies PostgreSQL and also runs the complete migration chain.
 
 The current architecture is the business-workflow foundation. The
 [platform implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)

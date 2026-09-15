@@ -89,7 +89,12 @@ class FakeSession:
         raise AssertionError(f"Unexpected item: {item}")
 
 
-def test_seed_demo_dataset_creates_polished_demo_records():
+def test_seed_demo_dataset_creates_polished_demo_records(monkeypatch):
+    def forbid_live_transition(*args, **kwargs):
+        raise AssertionError("Historical demo imports must not invent live transitions")
+
+    monkeypatch.setattr("src.services.workflow_state.transition", forbid_live_transition)
+    monkeypatch.setattr("src.services.workflow_state.transition_step", forbid_live_transition)
     db = FakeSession()
 
     summary = seed_demo_dataset(db)

@@ -2,8 +2,15 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from src.models.agent_step import AgentStep, AgentStepStatus
+from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
 from src.observability.platform_telemetry import emit_workflow_summary_telemetry
+from src.services.workflow_transactions import (
+    after_workflow_commit,
+    commit_workflow,
+    workflow_transaction,
+)
 
 VALID_TRANSITIONS: dict[WorkflowStatus, set[WorkflowStatus]] = {
     WorkflowStatus.created: {
@@ -71,14 +78,37 @@ class InvalidTransitionError(Exception):
 
 
 def transition(run: WorkflowRun, new_status: WorkflowStatus, db: Session) -> WorkflowRun:
-    allowed = VALID_TRANSITIONS[run.status]
-    if new_status not in allowed:
-        raise InvalidTransitionError(run.status, new_status)
-    run.status = new_status
-    if new_status in _TERMINAL:
-        run.completed_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(run)
-    if new_status in _TERMINAL:
-        emit_workflow_summary_telemetry(run)
+    with workflow_transaction(db, run):
+        old_status = run.status
+        if new_status not in VALID_TRANSITIONS[old_status]:
+            raise InvalidTransitionError(old_status, new_status)
+        run.status = new_status
+        if new_status in _TERMINAL:
+            run.completed_at = datetime.now(UTC)
+        if hasattr(db, "add"):
+            db.add(WorkflowEvent(
+                workflow_run_id=run.id,
+                event_type=WorkflowEventType.state_transition,
+                message=f"Workflow transitioned from {old_status} to {new_status}.",
+                metadata_json={"from_status": old_status.value, "to_status": new_status.value},
+            ))
+        commit_workflow(db)
+        db.refresh(run)
+        if new_status in _TERMINAL:
+            after_workflow_commit(db, lambda: emit_workflow_summary_telemetry(run))
     return run
+
+
+def transition_step(step: AgentStep, new_status: AgentStepStatus) -> None:
+    """Mutate a step only inside its caller-owned workflow transaction."""
+    allowed = {
+        AgentStepStatus.pending: {AgentStepStatus.running, AgentStepStatus.failed},
+        AgentStepStatus.running: {AgentStepStatus.completed, AgentStepStatus.failed},
+        AgentStepStatus.completed: set(),
+        AgentStepStatus.failed: set(),
+    }
+    if new_status not in allowed[step.status]:
+        raise ValueError(f"Cannot transition step from {step.status} to {new_status}")
+    step.status = new_status
+    if new_status in {AgentStepStatus.completed, AgentStepStatus.failed}:
+        step.completed_at = datetime.now(UTC)

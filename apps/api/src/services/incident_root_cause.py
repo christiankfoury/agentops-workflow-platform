@@ -28,6 +28,8 @@ from src.services.workflow_events import (
     log_agent_started,
     log_workflow_event,
 )
+from src.services.workflow_state import transition, transition_step
+from src.services.workflow_transactions import commit_workflow, workflow_transaction
 
 INCIDENT_ROOT_CAUSE_AGENT_NAME = "Root Cause Agent"
 
@@ -119,37 +121,39 @@ def run_incident_root_cause(
     run: WorkflowRun,
     llm_client: LLMClientLike,
 ) -> AgentStep:
-    uploaded_input = _validate_run_and_get_input(db, run)
-    timeline_step = _get_completed_timeline_step(db, run.id)
-    timeline_output = _validate_timeline_output(timeline_step)
-    runtime_config = _get_root_cause_runtime_config(db)
-    prompt = runtime_config.prompt
-    step_order = _next_step_order(db, run.id)
-    _set_run_status(run, WorkflowStatus.analyst_running, db)
-    agent_input = {
-        "workflow_run_id": str(run.id),
-        "input_id": str(uploaded_input.id),
-        "title": uploaded_input.title,
-        "raw_text": uploaded_input.raw_text,
-        "notes": uploaded_input.notes,
-        "timeline_step_id": str(timeline_step.id),
-        "timeline": timeline_output.model_dump(),
-    }
-    step = AgentStep(
-        workflow_run_id=run.id,
-        agent_name=INCIDENT_ROOT_CAUSE_AGENT_NAME,
-        agent_type=AgentType.root_cause.value,
-        step_order=step_order,
-        status=AgentStepStatus.running,
-        input_json=agent_input,
-        prompt_version_id=prompt.id,
-        retry_count=run.retry_count or 0,
-    )
-    db.add(step)
-    db.commit()
-    db.refresh(step)
-    log_agent_started(db, run, step)
+    with workflow_transaction(db, run):
+        uploaded_input = _validate_run_and_get_input(db, run)
+        timeline_step = _get_completed_timeline_step(db, run.id)
+        timeline_output = _validate_timeline_output(timeline_step)
+        runtime_config = _get_root_cause_runtime_config(db)
+        prompt = runtime_config.prompt
+        step_order = _next_step_order(db, run.id)
+        transition(run, WorkflowStatus.analyst_running, db)
+        agent_input = {
+            "workflow_run_id": str(run.id),
+            "input_id": str(uploaded_input.id),
+            "title": uploaded_input.title,
+            "raw_text": uploaded_input.raw_text,
+            "notes": uploaded_input.notes,
+            "timeline_step_id": str(timeline_step.id),
+            "timeline": timeline_output.model_dump(),
+        }
+        step = AgentStep(
+            workflow_run_id=run.id,
+            agent_name=INCIDENT_ROOT_CAUSE_AGENT_NAME,
+            agent_type=AgentType.root_cause.value,
+            step_order=step_order,
+            status=AgentStepStatus.running,
+            input_json=agent_input,
+            prompt_version_id=prompt.id,
+            retry_count=run.retry_count or 0,
+        )
+        db.add(step)
+        commit_workflow(db)
+        db.refresh(step)
+        log_agent_started(db, run, step)
 
+    execution_revision = run.state_revision
     started = time.perf_counter()
     try:
         messages = [
@@ -189,35 +193,37 @@ def run_incident_root_cause(
         )
         output = _calibrate_business_critical_impact(output, uploaded_input.raw_text)
     except (Exception, ValidationError) as e:
-        _mark_step_failed(step, str(e), started, db)
-        log_agent_failed(db, run, step, str(e))
-        _set_run_status(run, WorkflowStatus.failed, db)
-        log_workflow_event(
-            db,
-            run,
-            WorkflowEventType.workflow_failed,
-            "Workflow failed during incident root cause execution.",
-            agent_step=step,
-            error_message=str(e),
-        )
-        return step
+        with workflow_transaction(db, run, expected_revision=execution_revision):
+            _mark_step_failed(step, str(e), started, db)
+            log_agent_failed(db, run, step, str(e))
+            transition(run, WorkflowStatus.failed, db)
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.workflow_failed,
+                "Workflow failed during incident root cause execution.",
+                agent_step=step,
+                error_message=str(e),
+            )
+            return step
+    with workflow_transaction(db, run, expected_revision=execution_revision):
 
-    latency_ms = int((time.perf_counter() - started) * 1000)
-    step.status = AgentStepStatus.completed
-    step.output_json = output.model_dump()
-    step.model = response.model
-    step.tokens_input = response.usage.input_tokens
-    step.tokens_output = response.usage.output_tokens
-    step.total_tokens = response.usage.total_tokens
-    step.latency_ms = latency_ms
-    step.completed_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(step)
-    record_agent_cost(db, step)
-    update_workflow_cost_totals(db, run)
-    log_agent_completed(db, run, step)
-    _set_run_status(run, WorkflowStatus.reviewer_running, db)
-    return step
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        transition_step(step, AgentStepStatus.completed)
+        step.output_json = output.model_dump()
+        step.model = response.model
+        step.tokens_input = response.usage.input_tokens
+        step.tokens_output = response.usage.output_tokens
+        step.total_tokens = response.usage.total_tokens
+        step.latency_ms = latency_ms
+        step.completed_at = datetime.now(UTC)
+        commit_workflow(db)
+        db.refresh(step)
+        record_agent_cost(db, step)
+        update_workflow_cost_totals(db, run)
+        log_agent_completed(db, run, step)
+        transition(run, WorkflowStatus.reviewer_running, db)
+        return step
 
 
 def _mark_step_failed(
@@ -226,24 +232,13 @@ def _mark_step_failed(
     started: float,
     db: Session,
 ) -> None:
-    step.status = AgentStepStatus.failed
+    transition_step(step, AgentStepStatus.failed)
     step.error_message = error_message
     step.latency_ms = int((time.perf_counter() - started) * 1000)
     step.completed_at = datetime.now(UTC)
-    db.commit()
+    commit_workflow(db)
     db.refresh(step)
 
-
-def _set_run_status(run: WorkflowRun, status: WorkflowStatus, db: Session) -> None:
-    run.status = status
-    if status in {
-        WorkflowStatus.completed,
-        WorkflowStatus.failed,
-        WorkflowStatus.cancelled,
-    }:
-        run.completed_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(run)
 
 
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:

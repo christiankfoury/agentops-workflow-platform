@@ -34,6 +34,7 @@ export type ApprovalStatus =
   | "rejected"
   | "retry_requested";
 export type WorkflowEventType =
+  | "state_transition"
   | "workflow_started"
   | "workflow_completed"
   | "workflow_failed"

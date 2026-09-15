@@ -8,6 +8,7 @@ from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.cost_event import CostEvent
 from src.models.workflow_run import WorkflowRun
 from src.observability.platform_telemetry import emit_agent_step_telemetry
+from src.services.workflow_transactions import after_workflow_commit, commit_workflow
 
 TOKENS_PER_MILLION = 1_000_000
 
@@ -67,10 +68,12 @@ def record_agent_cost(db: Session, step: AgentStep) -> CostEvent | None:
         total_cost=total_cost,
     )
     db.add(event)
-    db.commit()
+    commit_workflow(db)
     db.refresh(step)
     run = db.query(WorkflowRun).filter(WorkflowRun.id == step.workflow_run_id).first()
-    emit_agent_step_telemetry(step, run=run, estimated_cost_usd=total_cost)
+    after_workflow_commit(
+        db, lambda: emit_agent_step_telemetry(step, run=run, estimated_cost_usd=total_cost)
+    )
     return event
 
 
@@ -84,7 +87,7 @@ def update_workflow_cost_totals(db: Session, run: WorkflowRun) -> WorkflowRun:
     run.total_tokens = total_tokens or None
     run.latency_ms = total_latency or None
     run.total_cost = total_cost or None
-    db.commit()
+    commit_workflow(db)
     db.refresh(run)
     return run
 

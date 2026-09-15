@@ -18,7 +18,8 @@ from src.services.workflow_events import (
     log_agent_started,
     log_workflow_event,
 )
-from src.services.workflow_state import transition
+from src.services.workflow_state import transition, transition_step
+from src.services.workflow_transactions import commit_workflow, workflow_transaction
 
 SALES_BASELINE_AGENT_NAME = "Baseline Agent"
 SALES_BASELINE_AGENT_TYPE = "baseline"
@@ -61,30 +62,32 @@ def run_sales_baseline(
     run: WorkflowRun,
     llm_client: LLMClientLike,
 ) -> AgentStep:
-    uploaded_input = _validate_run_and_get_input(db, run)
-    _ensure_no_baseline_started(db, run.id)
-    transition(run, WorkflowStatus.running, db)
-    step = AgentStep(
-        workflow_run_id=run.id,
-        agent_name=SALES_BASELINE_AGENT_NAME,
-        agent_type=SALES_BASELINE_AGENT_TYPE,
-        step_order=_next_step_order(db, run.id),
-        status=AgentStepStatus.running,
-        input_json={
-            "workflow_run_id": str(run.id),
-            "input_id": str(uploaded_input.id),
-            "title": uploaded_input.title,
-            "raw_text": uploaded_input.raw_text,
-            "notes": uploaded_input.notes,
-            "run_mode": RunMode.baseline.value,
-        },
-        retry_count=0,
-    )
-    db.add(step)
-    db.commit()
-    db.refresh(step)
-    log_agent_started(db, run, step)
+    with workflow_transaction(db, run):
+        uploaded_input = _validate_run_and_get_input(db, run)
+        _ensure_no_baseline_started(db, run.id)
+        transition(run, WorkflowStatus.running, db)
+        step = AgentStep(
+            workflow_run_id=run.id,
+            agent_name=SALES_BASELINE_AGENT_NAME,
+            agent_type=SALES_BASELINE_AGENT_TYPE,
+            step_order=_next_step_order(db, run.id),
+            status=AgentStepStatus.running,
+            input_json={
+                "workflow_run_id": str(run.id),
+                "input_id": str(uploaded_input.id),
+                "title": uploaded_input.title,
+                "raw_text": uploaded_input.raw_text,
+                "notes": uploaded_input.notes,
+                "run_mode": RunMode.baseline.value,
+            },
+            retry_count=0,
+        )
+        db.add(step)
+        commit_workflow(db)
+        db.refresh(step)
+        log_agent_started(db, run, step)
 
+    execution_revision = run.state_revision
     started = time.perf_counter()
     try:
         prompt = _baseline_prompt(uploaded_input)
@@ -98,64 +101,66 @@ def run_sales_baseline(
             system=prompt["system"],
         )
     except Exception as e:
-        _mark_step_failed(step, str(e), started, db)
-        log_agent_failed(db, run, step, str(e))
-        transition(run, WorkflowStatus.failed, db)
+        with workflow_transaction(db, run, expected_revision=execution_revision):
+            _mark_step_failed(step, str(e), started, db)
+            log_agent_failed(db, run, step, str(e))
+            transition(run, WorkflowStatus.failed, db)
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.workflow_failed,
+                "Baseline workflow failed.",
+                agent_step=step,
+                error_message=str(e),
+            )
+            return step
+    with workflow_transaction(db, run, expected_revision=execution_revision):
+
+        final_output = response.content.strip()
+        if not final_output:
+            error_message = "Baseline returned empty final output"
+            _mark_step_failed(step, error_message, started, db)
+            log_agent_failed(db, run, step, error_message)
+            transition(run, WorkflowStatus.failed, db)
+            log_workflow_event(
+                db,
+                run,
+                WorkflowEventType.workflow_failed,
+                "Baseline workflow failed.",
+                agent_step=step,
+                error_message=error_message,
+            )
+            return step
+
+        transition_step(step, AgentStepStatus.completed)
+        step.output_json = {"final_output": final_output}
+        step.model = response.model
+        step.tokens_input = response.usage.input_tokens
+        step.tokens_output = response.usage.output_tokens
+        step.total_tokens = response.usage.total_tokens
+        step.latency_ms = int((time.perf_counter() - started) * 1000)
+        step.completed_at = datetime.now(UTC)
+        run.final_output = final_output
+        commit_workflow(db)
+        db.refresh(step)
+        record_agent_cost(db, step)
+        update_workflow_cost_totals(db, run)
+        log_agent_completed(db, run, step)
+        transition(run, WorkflowStatus.completed, db)
         log_workflow_event(
             db,
             run,
-            WorkflowEventType.workflow_failed,
-            "Baseline workflow failed.",
+            WorkflowEventType.workflow_completed,
+            "Baseline workflow completed.",
             agent_step=step,
-            error_message=str(e),
+            metadata={
+                "run_mode": RunMode.baseline.value,
+                "total_cost": run.total_cost,
+                "total_tokens": run.total_tokens,
+                "latency_ms": run.latency_ms,
+            },
         )
         return step
-
-    final_output = response.content.strip()
-    if not final_output:
-        error_message = "Baseline returned empty final output"
-        _mark_step_failed(step, error_message, started, db)
-        log_agent_failed(db, run, step, error_message)
-        transition(run, WorkflowStatus.failed, db)
-        log_workflow_event(
-            db,
-            run,
-            WorkflowEventType.workflow_failed,
-            "Baseline workflow failed.",
-            agent_step=step,
-            error_message=error_message,
-        )
-        return step
-
-    step.status = AgentStepStatus.completed
-    step.output_json = {"final_output": final_output}
-    step.model = response.model
-    step.tokens_input = response.usage.input_tokens
-    step.tokens_output = response.usage.output_tokens
-    step.total_tokens = response.usage.total_tokens
-    step.latency_ms = int((time.perf_counter() - started) * 1000)
-    step.completed_at = datetime.now(UTC)
-    run.final_output = final_output
-    db.commit()
-    db.refresh(step)
-    record_agent_cost(db, step)
-    update_workflow_cost_totals(db, run)
-    log_agent_completed(db, run, step)
-    transition(run, WorkflowStatus.completed, db)
-    log_workflow_event(
-        db,
-        run,
-        WorkflowEventType.workflow_completed,
-        "Baseline workflow completed.",
-        agent_step=step,
-        metadata={
-            "run_mode": RunMode.baseline.value,
-            "total_cost": run.total_cost,
-            "total_tokens": run.total_tokens,
-            "latency_ms": run.latency_ms,
-        },
-    )
-    return step
 
 
 def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
@@ -241,9 +246,9 @@ def _mark_step_failed(
     started: float,
     db: Session,
 ) -> None:
-    step.status = AgentStepStatus.failed
+    transition_step(step, AgentStepStatus.failed)
     step.error_message = error_message
     step.latency_ms = int((time.perf_counter() - started) * 1000)
     step.completed_at = datetime.now(UTC)
-    db.commit()
+    commit_workflow(db)
     db.refresh(step)

@@ -83,8 +83,10 @@ def test_run_sales_baseline_success_completes_workflow_without_approvals():
     assert len(db.cost_events) == 1
     assert db.cost_events[0].agent_step_id == db.steps[0].id
     assert [event.event_type for event in db.workflow_events] == [
+        WorkflowEventType.state_transition,
         WorkflowEventType.agent_started,
         WorkflowEventType.agent_completed,
+        WorkflowEventType.state_transition,
         WorkflowEventType.workflow_completed,
     ]
     assert "single-agent baseline" in (llm.system or "")
@@ -206,8 +208,10 @@ def test_run_sales_baseline_llm_failure_creates_failed_step_and_fails_run():
     assert body["error_message"] == "LLM unavailable"
     assert run.status == WorkflowStatus.failed
     assert [event.event_type for event in db.workflow_events] == [
+        WorkflowEventType.state_transition,
         WorkflowEventType.agent_started,
         WorkflowEventType.agent_failed,
+        WorkflowEventType.state_transition,
         WorkflowEventType.workflow_failed,
     ]
     clear_overrides()

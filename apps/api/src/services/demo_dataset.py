@@ -591,6 +591,7 @@ def _upsert_workflow_run(
         db.add(run)
 
     run.workflow_type = case.workflow_type
+    # Historical fixture import: deliberately bypass live transition history.
     run.status = WorkflowStatus.completed
     run.final_output = final_output
     run.quality_score = quality_score
@@ -717,6 +718,7 @@ def _upsert_agent_steps(
 
         step.agent_name = agent_name
         step.agent_type = agent_type
+        # Historical fixture import, not a live agent completion.
         step.status = AgentStepStatus.completed
         step.input_json = {
             "workflow_type": case.workflow_type.value,

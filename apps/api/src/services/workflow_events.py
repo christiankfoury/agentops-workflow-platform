@@ -7,6 +7,7 @@ from src.models.agent_step import AgentStep
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import WorkflowRun
 from src.observability.platform_telemetry import emit_agent_step_telemetry
+from src.services.workflow_transactions import after_workflow_commit, commit_workflow
 
 
 def log_workflow_event(
@@ -28,7 +29,7 @@ def log_workflow_event(
         error_message=error_message,
     )
     db.add(event)
-    db.commit()
+    commit_workflow(db)
     db.refresh(event)
     return event
 
@@ -74,10 +75,10 @@ def log_agent_failed(
     step: AgentStep,
     error_message: str,
 ) -> WorkflowEvent:
-    emit_agent_step_telemetry(
-        step,
-        run=run,
-        error_category=_error_category(error_message),
+    after_workflow_commit(
+        db, lambda: emit_agent_step_telemetry(
+            step, run=run, error_category=_error_category(error_message),
+        ),
     )
     return log_workflow_event(
         db,
