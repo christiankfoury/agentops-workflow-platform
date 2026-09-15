@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 76 — Leases Heartbeats and Crash Recovery**.
+Current next implementation phase: **Phase 77 — Durable Retries Backoff and Deadlines**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–75 are complete; Phase 76 is in progress; Phases 77–105 remain planned.
+Phases 66–76 are complete; Phases 77–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -114,7 +114,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 73 | Complete | Idempotent Generic Run Starts; fix, CI and review passed. |
 | 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
 | 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
-| 76 | In progress | Leases Heartbeats and Crash Recovery |
+| 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
 | 77 | Planned — not started | Durable Retries Backoff and Deadlines |
 | 78 | Planned — not started | Durable Cancellation |
 | 79 | Planned — not started | Durable Delay Steps |
@@ -751,7 +751,17 @@ This is a status index; implementation details live only in `docs/phases.md`.
   migration compatibility. Process tests are local deterministic fixtures; no
   provider/hosted deployment is claimed. The migration, recovery service and
   process acceptance coverage make this phase larger than 700 changed lines.
-- Implementation commit, CI and post-push review: pending.
+- Implementation commit: `9d09cecd86129a9cfd200905ea0b1ab3efd3810e`, pushed to main.
+  [CI run 35018468312](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35018468312)
+  passed API, Web and Docker Compose.
+- Post-push review checked claim token/expiry validation before result commits,
+  heartbeat versus reclaimer serialization, revision changes after reassignment,
+  duplicate/no-op rollback, immutable abandoned attempts and budget exhaustion.
+  Migration backfill and same-transaction upgrade paths were reviewed against the
+  passing regressions. No actionable blocking findings or separate fix commit.
+- Completion: Phase 76 complete. At-least-once handler invocation is documented;
+  no remote exactly-once effects, provider or hosted deployment claimed. Final
+  record is pushed separately; finish its CI before Phase 77.
 
 When a future phase starts, add a record here using these fields:
 
