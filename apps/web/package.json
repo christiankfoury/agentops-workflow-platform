@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:smoke": "node --test tests/routes.smoke.test.mjs",
+    "test:smoke": "node --test tests/routes.smoke.test.mjs tests/identity.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

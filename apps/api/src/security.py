@@ -3,12 +3,14 @@ from __future__ import annotations
 import hmac
 from collections import defaultdict, deque
 from collections.abc import Callable
-from dataclasses import dataclass
 from time import monotonic
 
 from fastapi import Depends, Header, HTTPException, Request
+from sqlalchemy.orm import Session
 
 from src.config import settings
+from src.database import get_db
+from src.services.identity import Principal, authenticate, resolve_principal
 
 ROLE_VIEWER = "viewer"
 ROLE_OPERATOR = "operator"
@@ -18,15 +20,15 @@ VALID_ROLES = {ROLE_VIEWER, ROLE_OPERATOR, ROLE_ADMIN}
 _rate_limit_hits: dict[str, deque[float]] = defaultdict(deque)
 
 
-@dataclass(frozen=True)
-class Principal:
-    role: str
-
-
 def require_api_key(
     x_agentops_api_key: str | None = Header(default=None),
     x_agentops_role: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
+    x_organization_id: str | None = Header(default=None),
+    db: Session = Depends(get_db),
 ) -> Principal:
+    if settings.identity_enabled:
+        return resolve_principal(db, authenticate(db, authorization), x_organization_id)
     if not settings.api_auth_enabled:
         return Principal(role=ROLE_ADMIN)
 

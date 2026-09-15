@@ -1279,11 +1279,12 @@ do not meet this durability requirement; a separate broker is not required.
 
 ## 21.6 Authentication
 
-The current application has opt-in API-key authentication and prototype role
-checks. Phases 67–69 add verified identity, users/organizations/memberships,
-tenant isolation, server-authoritative roles, and approval audit. The planned
-identity boundary is OIDC-compatible; live provider configuration is recorded
-before deployment validation. Prototype role headers do not provide real RBAC.
+Phase 67 adds an opt-in verified OIDC identity boundary, persisted users,
+organizations, memberships, scoped service identities and revocable browser
+sessions. Local prototype API-key mode remains available. Phases 68–69 enforce
+tenant isolation and the complete role/audit contract before public deployment.
+See [identity setup](IDENTITY.md); live provider configuration is a separate check.
+Prototype role headers do not provide real RBAC.
 
 ## 21.7 Deployment
 

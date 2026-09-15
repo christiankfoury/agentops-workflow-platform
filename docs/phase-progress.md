@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phase 66 is complete; Phases 67–105 remain planned.
+Phase 66 is complete; Phase 67 is in progress; Phases 68–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 67: User Identity and Organization Membership
 
-Status: Next — authorized implementation run.
+Status: In progress — authorized implementation run.
 
 Scope: verified identity, users, organizations, memberships, scoped service
 principals, and session/organization UI behind the public-deployment gate.
@@ -105,7 +105,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | Phase | Status | Scope |
 | --- | --- | --- |
 | 66 | Complete | State Transition Invariants |
-| 67 | Planned — not started | User Identity and Organization Membership |
+| 67 | In progress | User Identity and Organization Membership |
 | 68 | Planned — not started | Tenant Ownership and Isolation |
 | 69 | Planned — not started | Role Permissions and Approval Audit |
 | 70 | Planned — not started | Typed Workflow Graph Schema |
@@ -207,6 +207,44 @@ This is a status index; implementation details live only in `docs/phases.md`.
   and both CI/review cycles passed. No live provider or deployment claim is made.
   The final documentation record is pushed separately; wait for its CI before
   beginning Phase 67.
+
+### Phase 67 — User Identity and Organization Membership (2026-09-15)
+
+- Dependency gate: Phase 66 final record `4a8211c1c132c89990426bcf6ec610592ea4cc03`
+  pushed; [CI run 34935606696](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34935606696)
+  passed API, Web, and Docker Compose. Tree clean before Phase 67.
+- Inspected security dependency, shared web API client, navigation, models,
+  configuration, migration chain, and existing security tests.
+- Plan: additive users/organizations/memberships/service-principal schema;
+  verify fixed-algorithm OIDC JWT signatures, issuer, audience, expiry and subject;
+  resolve roles and organization access from active database records. Add
+  authorization-code/PKCE sign-in, HttpOnly session and organization selection.
+  Preserve local prototype mode while blocking public identity rollout until
+  tenant isolation and full role enforcement land in Phases 68–69.
+- Acceptance: real signed local token fixtures, wrong signature/issuer/audience,
+  expiry, role-header forgery, disabled identity/membership and service scope;
+  fresh/migrated PostgreSQL schema and session/organization frontend checks.
+- Rollout: no existing data ownership backfill until Phase 68; no live IdP,
+  external account, paid provider or public deployment required for this phase.
+  Live issuer/client registration and callback configuration remain explicit setup.
+- Implementation: additive identity/membership/service/session schema, RS256 OIDC
+  validation and server-derived principals, revocable hashed browser sessions,
+  PKCE/state/nonce sign-in and organization selection, shared web session forwarding,
+  idempotent administrator provisioning CLI and public-startup rollout gate.
+- Local validation: migration upgrade and downgrade/reapply passed on disposable
+  PostgreSQL; `uv run --directory apps/api pytest -q` with PostgreSQL passed
+  **281 tests**; `uv run --directory apps/api ruff check src tests` passed;
+  `uv run --directory apps/api pip-audit` found no known vulnerabilities.
+  `pnpm --dir apps/web lint`, `typecheck`, `test:smoke` (**7 tests**) and `build`
+  passed. Browser tests simulate provider exchanges; no live IdP check is claimed.
+- Scope size: identity schema, cryptographic verification, complete browser sign-in,
+  provisioning, configuration/docs and security regression fixtures exceed the
+  preferred phase size; all changes belong to this identity boundary.
+- Local review: token verification uses configured keys/algorithm; bearer tokens
+  stay outside request bodies to avoid validation-error echo; cookies store opaque
+  sessions; membership/disablement is server-authoritative. Public identity rollout
+  and operation-specific service scopes remain gated on Phases 68–69.
+- Implementation commit/push/CI and post-push review: pending; phase is not complete.
 
 When a future phase starts, add a record here using these fields:
 

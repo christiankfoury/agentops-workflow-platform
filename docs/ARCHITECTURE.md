@@ -40,6 +40,15 @@ Primary routers:
 - `/agent-performance`
 - `/demo`
 
+## Identity boundary (Phase 67)
+
+Verified OIDC tokens and revocable browser sessions resolve users and active
+organization memberships in the shared authentication dependency. Roles and
+service-principal scopes come from the database. See [identity setup](IDENTITY.md)
+for PKCE sign-in, session expiry, provisioning and fixture validation. Public
+API startup is blocked until the tenant isolation/RBAC gate in Phases 68–69;
+identity alone does not isolate historical business data.
+
 ## Frontend Layout
 
 - `apps/web/src/app/` contains Next.js route segments.

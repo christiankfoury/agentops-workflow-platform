@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = "gpt-4.1-mini"
     api_auth_enabled: bool = False
+    identity_enabled: bool = False
+    oidc_issuer: str = ""
+    oidc_audience: str = ""
+    oidc_jwks_url: str = ""
+    identity_session_seconds: int = Field(default=3600, ge=60, le=86400)
     api_key: SecretStr = SecretStr("")
     api_rate_limit_per_minute: int = Field(default=0, ge=0)
     max_upload_bytes: int = Field(default=DEFAULT_MAX_UPLOAD_BYTES, ge=1)

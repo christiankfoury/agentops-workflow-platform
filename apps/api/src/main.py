@@ -1,6 +1,9 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from src.config import settings
 from src.database import check_db
 from src.routers import (
     agent_performance,
@@ -8,6 +11,7 @@ from src.routers import (
     demo,
     evaluation_results,
     human_approvals,
+    identity,
     prompt_versions,
     uploaded_inputs,
     workflow_runs,
@@ -15,12 +19,22 @@ from src.routers import (
 from src.security import enforce_rate_limit, require_api_key
 from src.services.workflow_transactions import StaleWorkflowError
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if settings.environment not in {"development", "test"}:
+        raise RuntimeError("Public deployment requires the Phase 68–69 tenant/RBAC delivery gate")
+    yield
+
+
 app = FastAPI(
     title="AgentOps Workflow Platform API",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 authenticated_router_dependencies = [Depends(require_api_key)]
+app.include_router(identity.router, prefix="/identity", tags=["identity"])
 
 
 @app.exception_handler(StaleWorkflowError)

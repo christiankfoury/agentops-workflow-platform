@@ -46,6 +46,7 @@ const insightItems: NavItem[] = [
 ];
 
 const adminItems: NavItem[] = [
+  { href: "/account", label: "Account", icon: Settings },
   { href: "/prompt-versions", label: "Prompts", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
