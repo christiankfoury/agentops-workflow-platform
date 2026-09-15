@@ -7,7 +7,7 @@ from src.database import get_db
 from src.dependencies import get_llm_client
 from src.models.agent_step import AgentStep
 from src.models.uploaded_input import UploadedInput
-from src.models.workflow_event import WorkflowEvent, WorkflowEventType
+from src.models.workflow_event import WorkflowEvent
 from src.models.workflow_run import WorkflowRun, WorkflowStatus, WorkflowType
 from src.schemas.agent_step import AgentStepRead
 from src.schemas.workflow_event import WorkflowEventRead
@@ -44,9 +44,8 @@ from src.services.sales_analyst import AnalystRunError, run_sales_analyst
 from src.services.sales_baseline import BaselineRunError, run_sales_baseline
 from src.services.sales_reviewer import ReviewerRunError, run_sales_reviewer
 from src.services.sales_writer import WriterRunError, run_sales_writer
-from src.services.workflow_events import log_workflow_event
 from src.services.workflow_recovery import cancel_workflow_run
-from src.services.workflow_state import InvalidTransitionError, transition
+from src.services.workflow_state import InvalidTransitionError, initialize_run, transition
 
 router = APIRouter()
 
@@ -293,21 +292,7 @@ def create_workflow_run(
         run_mode=body.run_mode,
         input_id=body.input_id,
     )
-    db.add(run)
-    db.commit()
-    db.refresh(run)
-    log_workflow_event(
-        db,
-        run,
-        WorkflowEventType.workflow_started,
-        "Workflow run created.",
-        metadata={
-            "workflow_type": run.workflow_type.value,
-            "run_mode": run.run_mode.value,
-            "status": run.status.value,
-            "input_id": run.input_id,
-        },
-    )
+    initialize_run(db, run)
     return _workflow_run_payload(run, uploaded_input.title if uploaded_input else None)
 
 

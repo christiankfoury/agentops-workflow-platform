@@ -60,6 +60,7 @@ def approve_human_approval(
 ) -> HumanApproval:
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
+        db.refresh(approval)
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         approval.status = ApprovalStatus.approved
@@ -91,6 +92,7 @@ def request_human_approval_retry(
 ) -> HumanApproval:
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
+        db.refresh(approval)
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         approval.status = ApprovalStatus.retry_requested
@@ -121,6 +123,7 @@ def reject_human_approval(
 ) -> HumanApproval:
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
+        db.refresh(approval)
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         approval.status = ApprovalStatus.rejected
@@ -151,6 +154,7 @@ def edit_human_approval(
 ) -> HumanApproval:
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
+        db.refresh(approval)
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         if human_feedback is not None:

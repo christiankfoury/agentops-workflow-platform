@@ -16,11 +16,20 @@ from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
-from src.services.human_approvals import approve_human_approval, reject_human_approval
+from src.services.human_approvals import (
+    approve_human_approval,
+    edit_human_approval,
+    reject_human_approval,
+)
 from src.services.llm_client import LLMUsage, TextResponse
 from src.services.sales_baseline import run_sales_baseline
 from src.services.workflow_recovery import cancel_workflow_run
-from src.services.workflow_state import InvalidTransitionError, transition, transition_step
+from src.services.workflow_state import (
+    InvalidTransitionError,
+    initialize_run,
+    transition,
+    transition_step,
+)
 from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
 
 
@@ -60,7 +69,11 @@ def make_run(db, status=WorkflowStatus.created, workflow_type=WorkflowType.sales
     return run
 
 
-def test_atomic_transition_rolls_back_event_timestamp_and_related_result(database):
+def test_atomic_transition_rolls_back_event_timestamp_and_related_result(database, monkeypatch):
+    emitted = []
+    monkeypatch.setattr(
+        "src.services.workflow_state.emit_workflow_summary_telemetry", emitted.append,
+    )
     with Session(database) as db:
         run = make_run(db, WorkflowStatus.running)
         run_id = run.id
@@ -75,6 +88,32 @@ def test_atomic_transition_rolls_back_event_timestamp_and_related_result(databas
         assert run.final_output is None and run.completed_at is None
         assert run.state_revision == 0
         assert db.scalars(select(WorkflowEvent)).all() == []
+        assert emitted == []
+
+
+def test_start_event_failure_rolls_back_the_new_run(database, monkeypatch):
+    def fail_event(*args, **kwargs):
+        raise RuntimeError("event storage failed")
+
+    monkeypatch.setattr("src.services.workflow_state.log_workflow_event", fail_event)
+    with Session(database) as db:
+        run = WorkflowRun(workflow_type=WorkflowType.sales_report, run_mode=RunMode.baseline)
+        with pytest.raises(RuntimeError, match="event storage failed"):
+            initialize_run(db, run)
+    with Session(database) as db:
+        assert db.scalars(select(WorkflowRun)).all() == []
+        assert db.scalars(select(WorkflowEvent)).all() == []
+
+
+def test_start_persists_one_run_and_initial_event(database):
+    with Session(database) as db:
+        run = initialize_run(db, WorkflowRun(
+            workflow_type=WorkflowType.sales_report, run_mode=RunMode.baseline,
+        ))
+        assert run.status == WorkflowStatus.created and run.state_revision == 1
+        event = db.scalars(select(WorkflowEvent)).one()
+        assert event.workflow_run_id == run.id
+        assert event.event_type == WorkflowEventType.workflow_started
 
 
 def test_revision_fences_stale_writes_even_when_status_is_unchanged(database):
@@ -195,3 +234,20 @@ def test_step_terminal_transition_rejected():
     step = AgentStep(status=AgentStepStatus.failed)
     with pytest.raises(ValueError):
         transition_step(step, AgentStepStatus.completed)
+
+
+def test_approval_refreshes_feedback_committed_before_run_lock(database):
+    with Session(database) as first, Session(database) as second:
+        run = make_run(first, WorkflowStatus.waiting_for_human)
+        approval = HumanApproval(workflow_run_id=run.id, status=ApprovalStatus.pending)
+        first.add(approval)
+        first.commit()
+        stale_approval = second.get(HumanApproval, approval.id)
+        assert stale_approval.human_feedback is None
+        edit_human_approval(first, approval, human_feedback="Keep this correction")
+        # The deciding request had loaded the approval before the concurrent edit,
+        # but has not loaded the run yet. Lock then refresh must preserve the edit.
+        approve_human_approval(second, stale_approval)
+        first.expire_all()
+        assert approval.human_feedback == "Keep this correction"
+        assert approval.status == ApprovalStatus.approved

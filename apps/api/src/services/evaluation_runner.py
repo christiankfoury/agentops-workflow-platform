@@ -29,6 +29,7 @@ from src.services.sales_analyst import run_sales_analyst
 from src.services.sales_baseline import run_sales_baseline
 from src.services.sales_reviewer import run_sales_reviewer
 from src.services.sales_writer import run_sales_writer
+from src.services.workflow_state import initialize_run
 
 
 class EvaluationRunnerError(Exception):
@@ -210,9 +211,7 @@ def _create_workflow_run(
         input_id=uploaded_input.id,
         retry_count=0,
     )
-    db.add(run)
-    db.commit()
-    db.refresh(run)
+    initialize_run(db, run)
     return run
 
 

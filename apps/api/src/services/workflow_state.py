@@ -6,6 +6,7 @@ from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
 from src.observability.platform_telemetry import emit_workflow_summary_telemetry
+from src.services.workflow_events import log_workflow_event
 from src.services.workflow_transactions import (
     after_workflow_commit,
     commit_workflow,
@@ -75,6 +76,34 @@ class InvalidTransitionError(Exception):
             f"Cannot transition from '{from_status}' to '{to_status}'. "
             f"Allowed next states: {allowed}"
         )
+
+
+def initialize_run(db: Session, run: WorkflowRun) -> WorkflowRun:
+    """Persist an accepted legacy start and its initial event atomically."""
+    if run.status not in {None, WorkflowStatus.created}:
+        raise ValueError("Live runs must start in created state")
+    try:
+        db.add(run)
+        if isinstance(db, Session):
+            db.flush()
+        else:
+            db.commit()
+        db.refresh(run)
+        with workflow_transaction(db, run):
+            log_workflow_event(
+                db, run, WorkflowEventType.workflow_started, "Workflow run created.",
+                metadata={
+                    "workflow_type": run.workflow_type.value,
+                    "run_mode": run.run_mode.value,
+                    "status": run.status.value,
+                    "input_id": run.input_id,
+                },
+            )
+        return run
+    except BaseException:
+        if isinstance(db, Session):
+            db.rollback()
+        raise
 
 
 def transition(run: WorkflowRun, new_status: WorkflowStatus, db: Session) -> WorkflowRun:

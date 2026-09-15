@@ -183,7 +183,19 @@ This is a status index; implementation details live only in `docs/phases.md`.
   evaluation-result statuses are separate scoring bookkeeping. Existing approval
   decisions remain under validated, run-serialized transactions. Historical
   fixture construction is covered by the existing demo seed/reseed tests.
-- Implementation commit/push/CI and post-push review: pending; phase is not complete.
+- Implementation commit: `74bd87921c9e791bc57bd0843b6bdb53dfb5f0d6`, pushed to
+  main. [CI run 34935129063](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34935129063)
+  completed successfully: API (including PostgreSQL and audit), Web, Docker Compose.
+- Post-push review found two actionable gaps: creation and its first event still
+  had separate commits; a decision could overwrite concurrently edited feedback
+  from a cached approval. Fix: atomic initialization for API/evaluation starts and
+  approval refresh under the run lock. Added rollback, accepted-start, feedback-race,
+  and rollback-telemetry regression assertions; 44 focused tests passed.
+- Migration downgrade to `e7f8a9b0c123` and re-upgrade passed on the disposable
+  database; six demo fixture tests, lint, and diff checks passed.
+- Fix validation: full `uv run --directory apps/api pytest -q` with PostgreSQL
+  passed **263 tests**; `uv run --directory apps/api ruff check src tests` passed.
+- Fix commit/push/CI and follow-up review: pending; phase is not complete.
 
 When a future phase starts, add a record here using these fields:
 
