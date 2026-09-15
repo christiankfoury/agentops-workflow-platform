@@ -13,6 +13,8 @@ from src.database import Base
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.cost_event import CostEvent
 from src.models.human_approval import ApprovalStatus, HumanApproval
+from src.models.identity import Organization
+from src.models.tenant import DEFAULT_ORGANIZATION_ID
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
@@ -45,6 +47,9 @@ def database():
         conn.execute(text(f'CREATE SCHEMA "{schema}"'))
     scoped = engine.execution_options(schema_translate_map={None: schema})
     Base.metadata.create_all(scoped)
+    with Session(scoped) as db:
+        db.add(Organization(id=DEFAULT_ORGANIZATION_ID, name="Legacy local organization"))
+        db.commit()
     try:
         yield scoped
     finally:

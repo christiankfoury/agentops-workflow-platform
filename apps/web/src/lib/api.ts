@@ -166,6 +166,10 @@ export async function listEvaluationResults(): Promise<EvaluationResult[]> {
   return res.json() as Promise<EvaluationResult[]>;
 }
 
+export async function fetchEvaluationExport(format: "csv" | "json" | "markdown"): Promise<Response> {
+  return apiFetch(`/evaluation-results/export/${format}`, { cache: "no-store" });
+}
+
 export async function getEvaluationComparisons(): Promise<EvaluationComparison[]> {
   const res = await apiFetch("/evaluation-results/comparisons", {
     cache: "no-store",

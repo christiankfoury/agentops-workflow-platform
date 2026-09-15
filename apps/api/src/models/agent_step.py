@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.tenant import TenantOwned, tenant_constraints
 
 
 class AgentStepStatus(StrEnum):
@@ -17,8 +18,11 @@ class AgentStepStatus(StrEnum):
     failed = "failed"
 
 
-class AgentStep(Base):
+class AgentStep(TenantOwned, Base):
     __tablename__ = "agent_steps"
+    __table_args__ = tenant_constraints(
+        __tablename__, {"workflow_run_id": "workflow_runs", "prompt_version_id": "prompt_versions"}
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()

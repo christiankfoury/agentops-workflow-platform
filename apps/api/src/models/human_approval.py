@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.tenant import TenantOwned, tenant_constraints
 
 
 class ApprovalStatus(StrEnum):
@@ -17,8 +18,9 @@ class ApprovalStatus(StrEnum):
     retry_requested = "retry_requested"
 
 
-class HumanApproval(Base):
+class HumanApproval(TenantOwned, Base):
     __tablename__ = "human_approvals"
+    __table_args__ = tenant_constraints(__tablename__, {'workflow_run_id': 'workflow_runs'})
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()

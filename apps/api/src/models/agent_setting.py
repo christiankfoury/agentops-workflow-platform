@@ -8,12 +8,14 @@ from sqlalchemy.sql import func
 
 from src.database import Base
 from src.models.agent_type import AgentType
+from src.models.tenant import TenantOwned, tenant_constraints
 
 
-class AgentSetting(Base):
+class AgentSetting(TenantOwned, Base):
     __tablename__ = "agent_settings"
     __table_args__ = (
-        UniqueConstraint("agent_type", name="uq_agent_settings_agent_type"),
+        *tenant_constraints(__tablename__, {"active_prompt_version_id": "prompt_versions"}),
+        UniqueConstraint("organization_id", "agent_type", name="uq_agent_settings_agent_type"),
         CheckConstraint(
             "temperature IS NULL OR (temperature >= 0 AND temperature <= 2)",
             name="ck_agent_settings_temperature_range",
@@ -39,9 +41,7 @@ class AgentSetting(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    agent_type: Mapped[AgentType] = mapped_column(
-        Enum(AgentType, name="agenttype"), nullable=False
-    )
+    agent_type: Mapped[AgentType] = mapped_column(Enum(AgentType, name="agenttype"), nullable=False)
     model: Mapped[str] = mapped_column(String(100), nullable=False)
     temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
     max_tokens: Mapped[int] = mapped_column(Integer, nullable=False)

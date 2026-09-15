@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.tenant import TenantOwned, tenant_constraints
 
 
 class InputType(StrEnum):
@@ -16,13 +17,13 @@ class InputType(StrEnum):
     incident_log = "incident_log"
 
 
-class UploadedInput(Base):
+class UploadedInput(TenantOwned, Base):
     __tablename__ = "uploaded_inputs"
+    __table_args__ = tenant_constraints(__tablename__, {})
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

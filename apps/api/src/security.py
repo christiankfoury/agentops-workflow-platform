@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from src.config import settings
 from src.database import get_db
 from src.services.identity import Principal, authenticate, resolve_principal
+from src.services.tenancy import bind_tenant
 
 ROLE_VIEWER = "viewer"
 ROLE_OPERATOR = "operator"
@@ -28,7 +29,9 @@ def require_api_key(
     db: Session = Depends(get_db),
 ) -> Principal:
     if settings.identity_enabled:
-        return resolve_principal(db, authenticate(db, authorization), x_organization_id)
+        principal = resolve_principal(db, authenticate(db, authorization), x_organization_id)
+        bind_tenant(db, principal.organization_id)
+        return principal
     if not settings.api_auth_enabled:
         return Principal(role=ROLE_ADMIN)
 

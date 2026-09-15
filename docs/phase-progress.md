@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–67 are complete; Phases 68–105 remain planned.
+Phases 66–67 are complete; Phase 68 is in progress; Phases 69–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 68: Tenant Ownership and Isolation
 
-Status: Next — authorized implementation run.
+Status: In progress — authorized implementation run.
 
 Scope: reversible legacy ownership backfill and isolation of business resources,
 nested reads, mutations, exports, aggregates, and scoped demo data.
@@ -106,7 +106,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | --- | --- | --- |
 | 66 | Complete | State Transition Invariants |
 | 67 | Complete | User Identity and Organization Membership |
-| 68 | Planned — not started | Tenant Ownership and Isolation |
+| 68 | In progress | Tenant Ownership and Isolation |
 | 69 | Planned — not started | Role Permissions and Approval Audit |
 | 70 | Planned — not started | Typed Workflow Graph Schema |
 | 71 | Planned — not started | Workflow Definitions and Immutable Versions |
@@ -256,6 +256,44 @@ This is a status index; implementation details live only in `docs/phases.md`.
   Public deployment and operation-specific scope enforcement remain gated for
   Phases 68–69. No live identity provider or hosted authentication is claimed.
   Final documentation record is pushed separately; wait for its CI before Phase 68.
+
+### Phase 68 — Tenant Ownership and Isolation (2026-09-15)
+
+- Dependency gate: Phase 67 final record `77dd80bfc2e889020351b79d86caf4a96cdc5636`
+  pushed; [CI run 34937269071](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34937269071)
+  passed all API, Web and Docker Compose jobs. Clean tree before this phase.
+- Inspected every business model and router, prompt activation/uniqueness, agent
+  settings, demo/evaluation seeding and the centralized workflow transactions.
+- Plan: introduce one tenant-owned model contract; bind authenticated sessions to
+  their verified organization; apply tenant filters to ORM reads (including nested
+  and aggregate queries), enforce ownership and references on writes, and add
+  database ownership constraints. Scope prompt/setting uniqueness and demo copies.
+- Migration/rollout: assign all preexisting business records to an explicit default
+  organization; retain original run/input ownership in a migration ledger for
+  reversal, verify row counts, and preserve IDs/content. Keep public startup blocked
+  until Phase 69. Local prototype/evaluation CLI sessions use the default organization.
+- Acceptance: two-organization list/detail/nested reads, exports/aggregates, writes,
+  prompt activation, demo copies, and foreign-reference attempts; migration
+  upgrade/reversal with real legacy data and PostgreSQL constraint verification.
+- Implementation: shared tenant-owned models and scoped ORM sessions; immutable
+  ownership, application and composite database reference checks; organization-scoped
+  prompt/settings constraints; independent demo copies; authenticated private browser
+  exports. Migration records original owners/counts and refuses unsafe rollback.
+- Validation: `uv run --directory apps/api pytest -q` with disposable PostgreSQL
+  passed **288 tests** before the final two isolation cases; the final focused
+  `pytest tests/test_tenant_isolation.py tests/test_tenant_migration.py -q` passed
+  **9 tests**. API `ruff check src tests` and changed migration lint passed.
+  Web `typecheck`, `test:smoke` (**9 tests**), `lint`, and `build` passed.
+  Migration tests exercise the complete upgrade chain, real legacy contents,
+  downgrade restoration, re-upgrade and refusal to lose new tenant ownership.
+- Local review: all existing business routes share authenticated tenant sessions;
+  aggregate/alias and nested reads are scoped, ownership is immutable, and ORM bulk
+  writes cannot bypass entity checks. Public startup remains gated until Phase 69.
+  No live provider or hosted deployment was attempted.
+- Scope size: the ten-model ownership contract, reversible migration and two-tenant
+  API/database/export regression coverage exceed the preferred phase size; all
+  changes are required by the Phase 68 isolation boundary.
+- Implementation commit, pushed CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

@@ -22,8 +22,8 @@ The previous autonomous target range is complete:
 Phase 46 through Phase 65
 ```
 
-The current implementation is post-Phase 65. A documentation-only platform
-expansion plan defines Phases 66–105; all remain planned, not started. The former
+The platform expansion plan defines Phases 66–105; implementation status and
+completed delivery evidence are maintained in `docs/phase-progress.md`. The former
 Phase 66 demo script and Phase 67 case study are now Phases 104 and 105.
 Do not implement Phase 66 or later unless the user explicitly asks for an
 autonomous phase run or asks to implement a specific phase. Editing the plan

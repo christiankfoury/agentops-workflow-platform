@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.tenant import TenantOwned, tenant_constraints
 from src.models.workflow_run import RunMode, WorkflowType
 
 
@@ -18,8 +19,12 @@ class EvaluationRunStatus(StrEnum):
     failed = "failed"
 
 
-class EvaluationResult(Base):
+class EvaluationResult(TenantOwned, Base):
     __tablename__ = "evaluation_results"
+    __table_args__ = tenant_constraints(
+        __tablename__,
+        {"evaluation_case_id": "evaluation_cases", "workflow_run_id": "workflow_runs"},
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -38,9 +43,7 @@ class EvaluationResult(Base):
     status: Mapped[EvaluationRunStatus] = mapped_column(
         Enum(EvaluationRunStatus), nullable=False, server_default=EvaluationRunStatus.pending.value
     )
-    prompt_version_summary_json: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONB, nullable=True
-    )
+    prompt_version_summary_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     factual_accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
     unsupported_claim_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
     completeness_score: Mapped[float | None] = mapped_column(Float, nullable=True)

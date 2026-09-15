@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getEvaluationSummary } from "@/lib/api";
 import type { EvaluationMetricsSummary, RunMode, WorkflowType } from "@/lib/types";
 
-const publicApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -159,19 +158,22 @@ export default async function EvaluationDashboardPage() {
 
       <section className="mt-5 flex flex-wrap gap-2">
         <a
-          href={`${publicApiUrl}/evaluation-results/export/csv`}
+          href="/evaluation/export/csv"
+          download
           className="rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
         >
           Export CSV
         </a>
         <a
-          href={`${publicApiUrl}/evaluation-results/export/json`}
+          href="/evaluation/export/json"
+          download
           className="rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
         >
           Export JSON
         </a>
         <a
-          href={`${publicApiUrl}/evaluation-results/export/markdown`}
+          href="/evaluation/export/markdown"
+          download
           className="rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
         >
           Export Markdown

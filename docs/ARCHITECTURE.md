@@ -46,8 +46,16 @@ Verified OIDC tokens and revocable browser sessions resolve users and active
 organization memberships in the shared authentication dependency. Roles and
 service-principal scopes come from the database. See [identity setup](IDENTITY.md)
 for PKCE sign-in, session expiry, provisioning and fixture validation. Public
-API startup is blocked until the tenant isolation/RBAC gate in Phases 68–69;
-identity alone does not isolate historical business data.
+API startup is blocked until the remaining RBAC gate in Phase 69.
+
+Phase 68 binds each request session to verified organization membership. All
+business models use `TenantOwned`; shared ORM filters cover list, nested and
+aggregate reads, and write checks plus composite database foreign keys enforce
+same-organization references. Migration `f068_tenant_ownership` preserves legacy
+IDs/content under the explicit default organization with a reversible owner ledger.
+Prompts/settings and demo copies are tenant-specific. Exports use the authenticated
+web server client. See [the tenant contract](IDENTITY.md#tenant-ownership-contract-phase-68)
+before adding a business resource or background query.
 
 ## Frontend Layout
 

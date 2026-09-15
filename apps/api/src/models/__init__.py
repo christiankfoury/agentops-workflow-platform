@@ -10,6 +10,7 @@ from src.models.prompt_version import PromptVersion
 from src.models.uploaded_input import UploadedInput
 from src.models.workflow_event import WorkflowEvent
 from src.models.workflow_run import WorkflowRun
+from src.services import tenancy as _tenancy  # noqa: F401
 
 __all__ = [
     "IdentitySession",

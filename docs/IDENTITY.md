@@ -1,8 +1,8 @@
 # Identity and organization membership
 
 Phase 67 adds an OIDC-compatible identity boundary, disabled by default. Public
-API startup is blocked until tenant isolation and role enforcement in Phases
-68–69 are complete. This phase alone does not make legacy data tenant-safe.
+API startup is blocked until role enforcement in Phase 69 is complete.
+Phase 68 enforces organization ownership across business resources.
 Existing prototype API-key mode remains available for local development.
 
 ## Verified identity
@@ -41,8 +41,8 @@ server. Both organization selection and API access check active membership.
 ## Configuration and provisioning
 
 Run `uv run --directory apps/api alembic upgrade head`. Migration `f067_identity`
-adds identity tables without assigning ownership to historical business data;
-the reversible legacy backfill belongs to Phase 68.
+adds identity tables. Migration `f068_tenant_ownership` assigns historical business
+data to the explicit legacy default organization, preserving IDs and content.
 
 API configuration: `IDENTITY_ENABLED=true`, `OIDC_ISSUER`, `OIDC_AUDIENCE`,
 `OIDC_JWKS_URL`, and optional `IDENTITY_SESSION_SECONDS`.
@@ -65,6 +65,34 @@ or conversion of service identities. The UUID above is an example. Membership
 administration and audit follow in Phase 69.
 
 ## Validation and limits
+
+### Tenant ownership contract (Phase 68)
+
+All business models inherit `TenantOwned`. Every API session binds once to the
+organization verified from current membership. ORM reads, including aliases,
+aggregates and nested lookups, receive that scope. New records inherit it; changing
+ownership or referencing another organization's resource is rejected. Composite
+database foreign keys also reject cross-organization references. ORM bulk business
+writes are disallowed. New business resources must use this model contract and
+the shared request session; raw SQL must explicitly include organization scope.
+
+Prompts, active-prompt uniqueness and agent settings are organization-specific.
+Demo seeds create independent copies inside the caller's organization and read
+only repository fixtures. Browser exports pass through the authenticated server
+client and disable caching. Local prototype and evaluation CLI sessions use the
+default organization; identity-enabled background work must bind a verified scope.
+
+The default organization ID is `00000000-0000-0000-0000-000000000001`. Provision an
+explicit membership in this organization to access migrated records. The migration
+stores row counts for all ten business tables and original input/run owner values
+in rollback ledgers. Downgrade restores those original values and preserves data;
+it refuses to discard ownership if any non-default organization has business data.
+Export/migrate such data before rollback. The default organization is retained on
+downgrade because subsequent memberships can reference it.
+
+PostgreSQL tests cover two organizations, foreign details/mutations, aggregates,
+exports, session scope, database references, independent demo copies and legacy
+migration upgrade/downgrade with original content and owner values preserved.
 
 `test_identity.py` uses locally generated RSA keys and real PostgreSQL schemas
 for claim/signature forgery, revocation, expiry, disabled membership, service

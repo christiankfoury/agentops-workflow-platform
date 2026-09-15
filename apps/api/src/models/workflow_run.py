@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.tenant import TenantOwned, tenant_constraints
 
 
 class WorkflowType(StrEnum):
@@ -35,13 +36,13 @@ class WorkflowStatus(StrEnum):
     cancelled = "cancelled"
 
 
-class WorkflowRun(Base):
+class WorkflowRun(TenantOwned, Base):
     __tablename__ = "workflow_runs"
+    __table_args__ = tenant_constraints(__tablename__, {'input_id': 'uploaded_inputs'})
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    organization_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

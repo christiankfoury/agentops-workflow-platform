@@ -17,6 +17,7 @@ from src.routers import (
     workflow_runs,
 )
 from src.security import enforce_rate_limit, require_api_key
+from src.services.tenancy import TenantAccessError
 from src.services.workflow_transactions import StaleWorkflowError
 
 
@@ -40,6 +41,11 @@ app.include_router(identity.router, prefix="/identity", tags=["identity"])
 @app.exception_handler(StaleWorkflowError)
 async def stale_workflow(_request: Request, exc: StaleWorkflowError):
     return JSONResponse({"detail": str(exc)}, status_code=409)
+
+
+@app.exception_handler(TenantAccessError)
+async def tenant_access_error(_request: Request, exc: TenantAccessError):
+    return JSONResponse({"detail": str(exc)}, status_code=403)
 
 
 @app.middleware("http")

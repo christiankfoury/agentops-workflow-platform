@@ -18,7 +18,7 @@ const NextResponse = {
   redirect: url => response({ redirect: String(url) }, 307),
   json: (body, options) => response(body, options?.status),
 };
-function loadRoute(path, fetchMock = () => { throw new Error("Unexpected request"); }) {
+function loadRoute(path, fetchMock = () => { throw new Error("Unexpected request"); }, extra = {}) {
   const source = readFileSync(new URL(`../src/app/${path}/route.ts`, import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -29,6 +29,7 @@ function loadRoute(path, fetchMock = () => { throw new Error("Unexpected request
     "@/lib/identity": { oidcConfig: () => config, cookieOptions: { httpOnly: true },
       sessionCookie: "agentops-session", organizationCookie: "agentops-organization" },
     "@/lib/api-url": { apiUrl: path => `https://api.example.test${path}` },
+    ...extra,
   };
   new Function("require", "exports", "fetch", compiled)(
     name => modules[name] ?? require(name), exports, fetchMock,
@@ -92,4 +93,32 @@ test("organization UI validates selection against current memberships", () => {
   assert.match(read("app/account/page.tsx"), /No active memberships/);
   assert.match(read("lib/identity.ts"), /httpOnly: true/);
   assert.match(read("lib/api.ts"), /await identityHeaders\(\)/);
+});
+
+test("exports use the authenticated API helper and retain private response headers", async () => {
+  const calls = [];
+  const route = loadRoute("evaluation/export/[format]", undefined, {
+    "@/lib/api": { fetchEvaluationExport: async format => {
+      calls.push(format);
+      return new Response("tenant-only-data", { headers: {
+        "content-type": "text/csv", "content-disposition": "attachment; filename=results.csv",
+      } });
+    } },
+  });
+  const result = await route.GET(null, { params: Promise.resolve({ format: "csv" }) });
+  assert.deepEqual(calls, ["csv"]);
+  assert.equal(await result.text(), "tenant-only-data");
+  assert.equal(result.headers.get("cache-control"), "private, no-store");
+  assert.equal(result.headers.get("content-disposition"), "attachment; filename=results.csv");
+  assert.equal((await route.GET(null, { params: Promise.resolve({ format: "invalid" }) })).status, 404);
+  assert.deepEqual(calls, ["csv"]);
+});
+
+test("export authorization failures do not leak upstream content", async () => {
+  const route = loadRoute("evaluation/export/[format]", undefined, {
+    "@/lib/api": { fetchEvaluationExport: async () => new Response("private error", { status: 403 }) },
+  });
+  const result = await route.GET(null, { params: Promise.resolve({ format: "json" }) });
+  assert.equal(result.status, 403);
+  assert.equal(await result.text(), "Export unavailable");
 });

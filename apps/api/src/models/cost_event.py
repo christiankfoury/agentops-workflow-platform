@@ -7,10 +7,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.models.tenant import TenantOwned, tenant_constraints
 
 
-class CostEvent(Base):
+class CostEvent(TenantOwned, Base):
     __tablename__ = "cost_events"
+    __table_args__ = tenant_constraints(
+        __tablename__, {"workflow_run_id": "workflow_runs", "agent_step_id": "agent_steps"}
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
