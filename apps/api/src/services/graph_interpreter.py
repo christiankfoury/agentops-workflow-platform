@@ -99,8 +99,10 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
     graph = graph_for(db, run)
     registry.validate(graph)
     rows = rows_for(db, run)
-    if any(row.status not in TERMINAL for row in rows.values()):
-        # Recovery of interrupted attempts belongs to the durable worker phases.
+    resumable = [row for row in rows.values() if row.status == "retrying"]
+    if len(resumable) > 1 or any(
+        row.status not in TERMINAL | {"retrying"} for row in rows.values()
+    ):
         return None
     work = None
     with workflow_transaction(db, run):
@@ -108,14 +110,19 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
             transition(db, run, run, "running")
         edges = dict(run.checkpoint_json.get("edges", {}))
         try:
-            node = next_node(db, run, graph, rows, edges)
+            node = (
+                next(node for node in graph.nodes if node.id == resumable[0].node_id)
+                if resumable
+                else next_node(db, run, graph, rows, edges)
+            )
             set_edges(run, edges)
             context = context_for(run, rows)
             if node is None:
                 run.output_json = resolve_bindings(graph.outputs, *context, graph.output_schema)
                 transition(db, run, run, "completed")
             else:
-                step = add_step(db, run, node.id)
+                step = resumable[0] if resumable else add_step(db, run, node.id)
+                step.error_code = step.error_message = None
                 attempt = add_attempt(db, run, step)
                 transition(db, run, step, "running")
                 transition(db, run, attempt, "running")

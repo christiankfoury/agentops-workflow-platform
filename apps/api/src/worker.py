@@ -11,6 +11,7 @@ from uuid import uuid4
 from src.config import settings
 from src.database import engine
 from src.services.durable_queue import claim_jobs, process_claim
+from src.services.worker_leases import recover_expired
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
                 stop.wait(poll_seconds) if not stop.is_set() else Event().wait(poll_seconds)
                 continue
             available = capacity - len(active)
+            recover_expired(database)
             if max_jobs is not None:
                 available = min(available, max_jobs - dispatched)
             claimed = claim_jobs(database, identity, available) if available else []

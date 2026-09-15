@@ -18,3 +18,6 @@ class JobRead(BaseModel):
     dispatched_at: datetime | None
     completed_at: datetime | None
     error_code: str | None
+    lease_expires_at: datetime | None
+    heartbeat_at: datetime | None
+    recovery_count: int

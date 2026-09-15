@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–75 are complete; Phases 76–105 remain planned.
+Phases 66–75 are complete; Phase 76 is in progress; Phases 77–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -114,7 +114,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 73 | Complete | Idempotent Generic Run Starts; fix, CI and review passed. |
 | 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
 | 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
-| 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
+| 76 | In progress | Leases Heartbeats and Crash Recovery |
 | 77 | Planned — not started | Durable Retries Backoff and Deadlines |
 | 78 | Planned — not started | Durable Cancellation |
 | 79 | Planned — not started | Durable Delay Steps |
@@ -701,6 +701,57 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 75 complete. Running-process crash recovery remains Phase 76;
   no live provider or hosted deployment claimed. Final record is pushed separately;
   finish its CI before Phase 76.
+
+### Phase 76 — Leases Heartbeats and Crash Recovery (2026-09-15)
+
+- Dependency gate: Phase 75 record `5e02d0a1b3dbeb3c56562613d7848398fe465b5e`
+  pushed; [CI run 35016450145](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35016450145)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected queue claims/dispatch, run revision fencing, generic terminal-history
+  guards, attempt limits and existing process-restart fixtures.
+- Plan: persisted lease expiry/heartbeat/recovery count, live-claim completion
+  checks, heartbeat renewal during execution, ordered run/job locking, and bounded
+  expired-job recovery. Retain abandoned attempts, resume retryable logical steps
+  within their pinned attempt budget, and rotate claims without repeating completed
+  checkpoints. Reapers use the existing execution transition authority.
+- Acceptance: competing reclaimers, expiry/renewal races, delayed stale results,
+  abandoned-attempt history and exhaustion, real worker kills before execution,
+  during work and after a completed checkpoint, unique completion/downstream work.
+- Rollout: stop old workers for the additive migration; existing running jobs get
+  an expired lease and can be recovered by new workers. Recovery is bounded by
+  configured reassignments and the pinned node attempt budget. Default one-attempt
+  nodes fail explicitly if an in-flight attempt is abandoned. Handler invocation
+  is at least once when retries are allowed; no remote exactly-once claim.
+- Implementation: persisted lease expiry/heartbeat/recovery count, live-token
+  result checks, heartbeat renewal during computation, and execution-before-job
+  locking. Expired claims recover atomically under the run revision fence, retain
+  abandoned attempts, and resume existing logical steps within bounded budgets.
+  New claim tokens reject delayed old completions and renewals. Added job-read
+  fields, worker configuration, migration and at-least-once delivery documentation.
+- Initial validation: **8 lease/recovery tests** passed with PostgreSQL, including
+  process kills before execution, during execution and after a checkpoint. Added
+  expiry-before-reassignment and pre-attempt recovery-limit cases afterward.
+- Broader command: `pytest tests/test_worker_leases.py tests/test_durable_queue.py
+  tests/test_execution_starts.py tests/test_graph_interpreter.py
+  tests/test_execution_records.py tests/test_workflow_transactions_postgres.py
+  -q --tb=short` passed **66 tests** and exposed one batched-migration failure:
+  deferred foreign-key checks from Phase 75's backfill blocked Phase 76's ALTER.
+  The migration now validates pending constraints before altering the table.
+  Both migration tests passed on rerun (`-k migration`, **2 passed**).
+- API/migration lint, Compose configuration and the final running-lease constraint's
+  empty disposable-database downgrade/reapply passed. The disposable database was
+  first synchronized with the final uncommitted migration draft; no retained jobs
+  were discarded. Fresh/batched upgrades and migrated old-running-job recovery are
+  covered by isolated-schema tests.
+- Final validation: `pytest tests/test_worker_leases.py tests/test_durable_queue.py
+  -q --tb=short` passed **20 tests** with PostgreSQL; API/migration lint and diff
+  checks passed. One upstream TestClient deprecation warning remains.
+- Local review checked lease renewal/expiry, lock order, stale/no-op rollback,
+  preserved terminal results, abandoned-attempt budgets, one-owner recovery and
+  migration compatibility. Process tests are local deterministic fixtures; no
+  provider/hosted deployment is claimed. The migration, recovery service and
+  process acceptance coverage make this phase larger than 700 changed lines.
+- Implementation commit, CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

@@ -26,8 +26,8 @@ Live records begin pending. Version/node/branch/iteration/attempt identities and
 history cannot be changed or deleted. The migration installs identity guards in
 PostgreSQL; ORM guards reject updates outside the matching run's shared authority,
 including output changes and writes made while holding a different run's lock.
-Heartbeat fields are storage only at this stage; no lease or recovery claim is
-made. Attempt allocation uses the pinned node's bounded retry policy, but durable
+Execution/attempt heartbeat fields remain storage; Phase 76 renews ownership on
+the durable job's heartbeat/lease fields. Attempt allocation uses the pinned node's bounded retry policy, but durable
 retry scheduling/backoff remains Phase 77.
 
 ## Transitions and transactions
@@ -114,8 +114,8 @@ can consume these operations; `run_deterministic_execution` is a bounded local
 runner. The start API enqueues work for the Phase 75 worker.
 
 Continuation after a completed checkpoint does not repeat completed handlers.
-An interrupted running attempt remains running until the recovery phases add
-lease handling. Missing bindings and invalid results fail with typed errors;
+An interrupted running attempt is retained as abandoned when Phase 76 recovers
+its expired job lease. Missing bindings and invalid results fail with typed errors;
 handler exception details are not copied into stored user-visible errors.
 Unselected condition routes get skipped logical steps without fabricated attempts.
 Checkpoint migration rollback refuses to discard nonempty checkpoint data.

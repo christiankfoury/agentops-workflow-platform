@@ -22,8 +22,16 @@ class DurableJob(TenantOwned, Base):
         ),
         UniqueConstraint("execution_id", "sequence", name="uq_execution_job_sequence"),
         CheckConstraint("sequence >= 0"),
+        CheckConstraint("recovery_count >= 0"),
+        CheckConstraint("status != 'running' OR lease_expires_at IS NOT NULL"),
         CheckConstraint("status IN ('queued', 'running', 'completed', 'failed')"),
         Index("ix_durable_jobs_due", "status", "due_at", "id"),
+        Index(
+            "ix_durable_jobs_expired",
+            "lease_expires_at",
+            "id",
+            postgresql_where="status = 'running'",
+        ),
         Index(
             "uq_execution_active_job",
             "execution_id",
@@ -44,6 +52,9 @@ class DurableJob(TenantOwned, Base):
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_code: Mapped[str | None] = mapped_column(String(80))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    recovery_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 @event.listens_for(Session, "before_flush")

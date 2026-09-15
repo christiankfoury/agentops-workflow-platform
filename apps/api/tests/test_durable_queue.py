@@ -290,7 +290,7 @@ def test_job_migration_backfill_and_history_retention(monkeypatch):
             row = conn.execute(text("SELECT execution_id,status FROM durable_jobs")).one()
             assert row.execution_id == identity and row.status == "queued"
             conn.commit()
-            with pytest.raises(RuntimeError, match="Retain durable jobs"):
+            with pytest.raises(RuntimeError, match="Retain .*job"):
                 command.downgrade(config, "f074_execution_checkpoints")
             conn.rollback()
             scoped = engine.execution_options(schema_translate_map={None: schema})

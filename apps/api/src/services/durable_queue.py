@@ -1,12 +1,14 @@
 """Trusted worker queue authority. Global claims use Core; execution work is scoped."""
 
 from dataclasses import dataclass
+from datetime import timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import insert, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
+from src.config import settings
 from src.models.durable_job import DurableJob
 from src.models.workflow_execution import TERMINAL, ExecutionEvent, WorkflowExecution
 from src.services.execution_records import execution
@@ -14,9 +16,13 @@ from src.services.execution_registry import DEFAULT_REGISTRY
 from src.services.graph_expressions import ExecutionError
 from src.services.graph_interpreter import complete_work, execute_work, prepare_next
 from src.services.tenancy import bind_tenant, tenant_id
-from src.services.workflow_transactions import workflow_transaction
+from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
 
 jobs = DurableJob.__table__
+
+
+class LeaseLostError(StaleWorkflowError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -72,6 +78,11 @@ def claim_jobs(engine, worker_id, capacity=1):
                     claim_token=token,
                     worker_id=worker_id,
                     claimed_at=func.now(),
+                    heartbeat_at=func.clock_timestamp(),
+                    lease_expires_at=func.clock_timestamp()
+                    + timedelta(
+                        seconds=settings.worker_lease_seconds,
+                    ),
                 )
             )
             conn.execute(
@@ -93,7 +104,7 @@ def claim_jobs(engine, worker_id, capacity=1):
     return claimed
 
 
-def locked_claim(db, claim):
+def locked_claim(db, claim, *, allow_expired=False):
     if tenant_id(db) != claim.organization_id:
         raise ValueError("Claim does not belong to the worker session organization")
     row = (
@@ -107,6 +118,7 @@ def locked_claim(db, claim):
                 jobs.c.claim_token == claim.token,
                 jobs.c.sequence == claim.sequence,
                 jobs.c.status == "running",
+                True if allow_expired else jobs.c.lease_expires_at > func.clock_timestamp(),
             )
             .with_for_update()
         )
@@ -116,14 +128,22 @@ def locked_claim(db, claim):
     return row
 
 
-def finish_job(db, run, claim, status, error_code=None):
+def finish_job(db, run, claim, status, error_code=None, *, allow_expired=False):
     if run.id != claim.execution_id or db.info.get("workflow_transaction") != (
         WorkflowExecution,
         run.id,
     ):
         raise ValueError("Job completion requires its execution transaction")
-    if status not in {"completed", "failed"} or locked_claim(db, claim) is None:
-        raise ValueError("Job is not owned by this running claim")
+    if (
+        status not in {"completed", "failed"}
+        or locked_claim(
+            db,
+            claim,
+            allow_expired=allow_expired,
+        )
+        is None
+    ):
+        raise LeaseLostError("Job is not owned by this live claim")
     db.connection().execute(
         update(jobs)
         .where(jobs.c.id == claim.id)
@@ -152,7 +172,7 @@ def commit_result(db, claim, work, *, result=None, error=None):
     with workflow_transaction(db, run, expected_revision=work.revision):
         row = locked_claim(db, claim)
         if row is None:
-            return False
+            raise LeaseLostError("Job lease expired or was reassigned")
         if row["attempt_id"] != work.attempt_id or row["dispatched_at"] is None:
             raise ValueError("Work does not belong to the dispatched job")
         complete_work(db, work, result=result, error=error)
@@ -165,8 +185,19 @@ def commit_result(db, claim, work, *, result=None, error=None):
 
 
 def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
+    from src.services.worker_leases import maintain_lease
+
     with Session(engine) as db:
         bind_tenant(db, claim.organization_id)
+        # Match completion/recovery lock order: execution first, then its job.
+        run = execution(db, claim.execution_id)
+        db.execute(
+            select(WorkflowExecution.id)
+            .where(
+                WorkflowExecution.id == run.id,
+            )
+            .with_for_update()
+        )
         # Serialize dispatch, then commit this marker with the prepared checkpoint.
         row = locked_claim(db, claim)
         if row is None or row["dispatched_at"] is not None:
@@ -215,8 +246,9 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                         else (run.error_code or "checkpoint_not_ready"),
                     )
             return True
-        try:
-            result = execute_work(work, registry)
-        except ExecutionError as error:
-            return commit_result(db, claim, work, error=error)
-        return commit_result(db, claim, work, result=result)
+        with maintain_lease(engine, claim):
+            try:
+                result = execute_work(work, registry)
+            except ExecutionError as error:
+                return commit_result(db, claim, work, error=error)
+            return commit_result(db, claim, work, result=result)
