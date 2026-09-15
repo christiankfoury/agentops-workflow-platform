@@ -9,7 +9,9 @@ from src.models.agent_type import AgentType
 from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
+from src.services.audit import record_audit
 from src.services.human_feedback import get_edited_fields
+from src.services.permissions import authorize
 from src.services.workflow_events import log_workflow_event
 from src.services.workflow_state import transition
 from src.services.workflow_transactions import commit_workflow, workflow_transaction
@@ -61,6 +63,7 @@ def approve_human_approval(
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
         db.refresh(approval)
+        approved_by_user_id = _authorize_decision(db, approval, "approve")
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         approval.status = ApprovalStatus.approved
@@ -93,6 +96,7 @@ def request_human_approval_retry(
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
         db.refresh(approval)
+        approved_by_user_id = _authorize_decision(db, approval, "retry")
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         approval.status = ApprovalStatus.retry_requested
@@ -124,6 +128,7 @@ def reject_human_approval(
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
         db.refresh(approval)
+        approved_by_user_id = _authorize_decision(db, approval, "reject")
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         approval.status = ApprovalStatus.rejected
@@ -155,6 +160,7 @@ def edit_human_approval(
     run = _get_run(db, approval.workflow_run_id)
     with workflow_transaction(db, run):
         db.refresh(approval)
+        _authorize_decision(db, approval, "edit")
         _ensure_pending(approval)
         _ensure_waiting_for_human(run)
         if human_feedback is not None:
@@ -176,6 +182,19 @@ def edit_human_approval(
             },
         )
         return approval
+
+
+def _authorize_decision(db: Session, approval: HumanApproval, action: str):
+    principal = authorize(db, "approval.decide", lock=True)
+    high_severity = any(
+        isinstance(issue, dict) and str(issue.get("severity", "")).lower() in {"high", "critical"}
+        for issue in approval.issues_json or []
+    )
+    if action == "approve" and high_severity:
+        principal = authorize(db, "approval.override", lock=True)
+    record_audit(db, principal, f"approval.{action}", "human_approval", approval.id,
+                 high_severity_override=action == "approve" and high_severity)
+    return principal.user_id
 
 
 def _get_pending_approval_for_run(db: Session, run_id: uuid.UUID) -> HumanApproval | None:

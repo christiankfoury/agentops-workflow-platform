@@ -45,7 +45,7 @@ from src.services.sales_baseline import BaselineRunError, run_sales_baseline
 from src.services.sales_reviewer import ReviewerRunError, run_sales_reviewer
 from src.services.sales_writer import WriterRunError, run_sales_writer
 from src.services.workflow_recovery import cancel_workflow_run
-from src.services.workflow_state import InvalidTransitionError, initialize_run, transition
+from src.services.workflow_state import InvalidTransitionError, initialize_run
 
 router = APIRouter()
 
@@ -300,15 +300,15 @@ def create_workflow_run(
 def update_workflow_status(
     run_id: uuid.UUID, body: WorkflowRunTransition, db: Session = Depends(get_db)
 ) -> dict[str, object]:
+    if body.status != WorkflowStatus.cancelled:
+        raise HTTPException(
+            422, "Use the authorized agent or approval action to advance a workflow"
+        )
     run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
     if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
     try:
-        updated_run = (
-            cancel_workflow_run(db, run)
-            if body.status == WorkflowStatus.cancelled
-            else transition(run, body.status, db)
-        )
+        updated_run = cancel_workflow_run(db, run)
         return _workflow_run_payload(updated_run, _input_title_for_run(db, updated_run))
     except InvalidTransitionError as e:
         raise HTTPException(status_code=422, detail=str(e))

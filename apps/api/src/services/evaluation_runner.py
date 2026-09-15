@@ -24,6 +24,7 @@ from src.services.incident_root_cause import run_incident_root_cause
 from src.services.incident_timeline import run_incident_timeline
 from src.services.incident_writer import run_incident_writer
 from src.services.llm_client import StructuredResponse, TextResponse
+from src.services.permissions import requires_permission
 from src.services.router_agent import RouterOutput, detect_workflow_type
 from src.services.sales_analyst import run_sales_analyst
 from src.services.sales_baseline import run_sales_baseline
@@ -57,6 +58,7 @@ class LLMClientLike(Protocol):
         pass
 
 
+@requires_permission("evaluation.run")
 def run_sales_evaluation_case(
     db: Session,
     evaluation_case: EvaluationCase,

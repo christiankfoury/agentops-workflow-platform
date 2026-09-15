@@ -27,6 +27,9 @@ class FakeSession:
         self.results: list[EvaluationResult] = []
         self.cases: list[EvaluationCase] = []
 
+    def commit(self) -> None:
+        pass  # Export audit transactions are verified separately against PostgreSQL.
+
     def query(self, model: type[EvaluationResult] | type[EvaluationCase]) -> FakeQuery:
         if model is EvaluationCase:
             return FakeQuery(self.cases)

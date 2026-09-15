@@ -17,6 +17,7 @@ from src.schemas.evaluation import (
     EvaluationMetricsSummaryRead,
     EvaluationResultRead,
 )
+from src.services.audit import record_audit
 from src.services.evaluation_comparisons import build_evaluation_comparisons
 from src.services.evaluation_exports import (
     build_evaluation_csv_export,
@@ -30,6 +31,7 @@ from src.services.evaluation_remediation import (
     create_corrected_evaluation_comparison_run,
 )
 from src.services.llm_client import LLMClient
+from src.services.permissions import authorize
 
 router = APIRouter()
 
@@ -110,31 +112,46 @@ def create_corrected_comparison_run(
 
 @router.get("/export/json")
 def export_evaluation_json(db: Session = Depends(get_db)) -> JSONResponse:
+    principal = authorize(db, "export", lock=True)
     cases = db.query(EvaluationCase).all()
     results = db.query(EvaluationResult).all()
-    return JSONResponse(
+    response = JSONResponse(
         build_evaluation_json_export(cases, results),
-        headers={"Content-Disposition": 'attachment; filename="evaluation-results.json"'},
+        headers={"Content-Disposition": 'attachment; filename="evaluation-results.json"',
+                 "Cache-Control": "private, no-store"},
     )
+    record_audit(db, principal, "export", "evaluation_results", "json")
+    db.commit()
+    return response
 
 
 @router.get("/export/csv")
 def export_evaluation_csv(db: Session = Depends(get_db)) -> Response:
+    principal = authorize(db, "export", lock=True)
     cases = db.query(EvaluationCase).all()
     results = db.query(EvaluationResult).all()
-    return Response(
+    response = Response(
         build_evaluation_csv_export(cases, results),
         media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="evaluation-results.csv"'},
+        headers={"Content-Disposition": 'attachment; filename="evaluation-results.csv"',
+                 "Cache-Control": "private, no-store"},
     )
+    record_audit(db, principal, "export", "evaluation_results", "csv")
+    db.commit()
+    return response
 
 
 @router.get("/export/markdown")
 def export_evaluation_markdown(db: Session = Depends(get_db)) -> Response:
+    principal = authorize(db, "export", lock=True)
     cases = db.query(EvaluationCase).all()
     results = db.query(EvaluationResult).all()
-    return Response(
+    response = Response(
         build_evaluation_markdown_export(cases, results),
         media_type="text/markdown",
-        headers={"Content-Disposition": 'attachment; filename="evaluation-report.md"'},
+        headers={"Content-Disposition": 'attachment; filename="evaluation-report.md"',
+                 "Cache-Control": "private, no-store"},
     )
+    record_audit(db, principal, "export", "evaluation_results", "markdown")
+    db.commit()
+    return response

@@ -6,6 +6,8 @@ from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
 from src.observability.platform_telemetry import emit_workflow_summary_telemetry
+from src.services.audit import record_audit
+from src.services.permissions import authorize
 from src.services.workflow_events import log_workflow_event
 from src.services.workflow_transactions import (
     after_workflow_commit,
@@ -83,6 +85,8 @@ def initialize_run(db: Session, run: WorkflowRun) -> WorkflowRun:
     if run.status not in {None, WorkflowStatus.created}:
         raise ValueError("Live runs must start in created state")
     try:
+        principal = authorize(db, "workflow.start", lock=True)
+        run.created_by_user_id = principal.user_id
         db.add(run)
         if isinstance(db, Session):
             db.flush()
@@ -90,6 +94,7 @@ def initialize_run(db: Session, run: WorkflowRun) -> WorkflowRun:
             db.commit()
         db.refresh(run)
         with workflow_transaction(db, run):
+            record_audit(db, principal, "workflow.start", "workflow_run", run.id)
             log_workflow_event(
                 db, run, WorkflowEventType.workflow_started, "Workflow run created.",
                 metadata={

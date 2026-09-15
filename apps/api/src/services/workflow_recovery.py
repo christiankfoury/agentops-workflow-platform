@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
+from src.services.audit import record_audit
+from src.services.permissions import authorize
 from src.services.workflow_events import log_workflow_event
 from src.services.workflow_state import transition, transition_step
 from src.services.workflow_transactions import commit_workflow, workflow_transaction
@@ -14,6 +16,8 @@ CANCELLED_STEP_MESSAGE = "Workflow was cancelled before this step completed."
 
 def cancel_workflow_run(db: Session, run: WorkflowRun) -> WorkflowRun:
     with workflow_transaction(db, run):
+        principal = authorize(db, "workflow.control", lock=True)
+        record_audit(db, principal, "workflow.cancel", "workflow_run", run.id)
         _mark_running_steps_failed(db, run)
         cancelled = transition(run, WorkflowStatus.cancelled, db)
         log_workflow_event(

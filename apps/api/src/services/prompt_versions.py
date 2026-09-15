@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 
 from src.models.agent_type import AgentType
 from src.models.prompt_version import PromptVersion
+from src.services.audit import record_audit
+from src.services.permissions import authorize
 
 DEFAULT_PROMPTS = [
     {
@@ -102,9 +104,11 @@ def deactivate_matching_prompts(
 
 
 def activate_prompt_version(db: Session, prompt: PromptVersion) -> PromptVersion:
+    principal = authorize(db, "prompt.manage", lock=True)
     deactivate_matching_prompts(db, prompt.agent_type, exclude_id=prompt.id)
     prompt.is_active = True
     db.add(prompt)
+    record_audit(db, principal, "prompt.activate", "prompt_version", prompt.id)
     db.commit()
     db.refresh(prompt)
     return prompt

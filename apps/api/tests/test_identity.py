@@ -223,9 +223,9 @@ def test_identity_endpoints_session_and_logout(auth_config, signing_key, databas
             app.dependency_overrides.clear()
 
 
-def test_incomplete_identity_rollout_blocks_public_startup(monkeypatch):
+def test_unconfigured_identity_blocks_public_startup(monkeypatch):
     monkeypatch.setattr(settings, "environment", "production")
-    with pytest.raises(RuntimeError, match="tenant/RBAC"):
+    with pytest.raises(RuntimeError, match="verified identity"):
         with TestClient(app):
             pass
 

@@ -122,3 +122,37 @@ test("export authorization failures do not leak upstream content", async () => {
   assert.equal(result.status, 403);
   assert.equal(await result.text(), "Export unavailable");
 });
+
+function loadPermissionGate(actions, fail = false) {
+  const source = readFileSync(new URL("../src/components/permission-gate.tsx", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const exports = {};
+  const modules = { react: { cache: fn => fn }, "@/lib/api": {
+    getAccessPermissions: async () => { if (fail) throw new Error("Unavailable"); return actions; },
+  } };
+  new Function("require", "exports", compiled)(name => modules[name], exports);
+  return exports;
+}
+
+test("UI gates use current server permissions and fail closed", async () => {
+  const input = { action: "approval.decide", children: "Decision controls" };
+  assert.equal(await loadPermissionGate(["approval.decide"]).PermissionGate(input), "Decision controls");
+  assert.equal(await loadPermissionGate(["read"]).PermissionGate(input), null);
+  assert.equal(await loadPermissionGate([], true).PermissionGate(input), null);
+  assert.equal(await loadPermissionGate(["approval.decide"]).PermissionGate({
+    action: "approval.override", children: "Approve high severity", fallback: "Administrator required",
+  }), "Administrator required");
+});
+
+test("sensitive UI actions are wired to the server permission contract", () => {
+  const read = path => readFileSync(new URL(`../src/app/${path}`, import.meta.url), "utf8");
+  assert.match(read("human-approvals/[id]/page.tsx"), /action="approval.decide"/);
+  assert.match(read("human-approvals/[id]/page.tsx"), /"approval.override"/);
+  assert.match(read("workflow-runs/[id]/page.tsx"), /action="workflow.control"/);
+  assert.match(read("prompt-versions/page.tsx"), /action="prompt.manage"/);
+  assert.match(read("settings/page.tsx"), /includes\("settings.manage"\)/);
+  assert.match(read("account/members/page.tsx"), /includes\("membership.manage"\)/);
+  assert.match(read("workflow-comparison/workflow-comparison-explorer.tsx"), /canCorrect && <CreateCorrectedRunForm/);
+});

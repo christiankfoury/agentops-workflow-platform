@@ -766,7 +766,7 @@ function ReviewerIssueCard({
   );
 }
 
-function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
+function DetailsPanel({ comparison, canCorrect }: { comparison: EvaluationComparison; canCorrect: boolean }) {
   const rows = metricRows(comparison);
   const severityCounts = comparison.reviewer_issues.reduce<Record<string, number>>(
     (counts, issue) => {
@@ -843,7 +843,7 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
           </p>
         ) : (
           <div className="mt-3 space-y-3">
-            <CreateCorrectedRunForm evaluationCaseId={comparison.evaluation_case_id} />
+            {canCorrect && <CreateCorrectedRunForm evaluationCaseId={comparison.evaluation_case_id} />}
             <ul className="space-y-2">
               {comparison.reviewer_issues.map((issue, index) => (
                 <ReviewerIssueCard
@@ -862,10 +862,12 @@ function DetailsPanel({ comparison }: { comparison: EvaluationComparison }) {
 
 function ComparisonCard({
   comparison,
+  canCorrect,
   expanded,
   onToggle,
 }: {
   comparison: EvaluationComparison;
+  canCorrect: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -948,7 +950,7 @@ function ComparisonCard({
         />
       </div>
 
-      {expanded && <DetailsPanel comparison={comparison} />}
+      {expanded && <DetailsPanel comparison={comparison} canCorrect={canCorrect} />}
     </section>
   );
 }
@@ -1023,9 +1025,11 @@ function compareNumbers(
 
 export function WorkflowComparisonExplorer({
   comparisons,
+  canCorrect = false,
   initialSearch = "",
 }: {
   comparisons: EvaluationComparison[];
+  canCorrect?: boolean;
   initialSearch?: string;
 }) {
   const [query, setQuery] = useState(initialSearch);
@@ -1182,6 +1186,7 @@ export function WorkflowComparisonExplorer({
           <div className="space-y-3">
             {visibleComparisons.map((comparison) => (
               <ComparisonCard
+                canCorrect={canCorrect}
                 key={comparison.evaluation_case_id}
                 comparison={comparison}
                 expanded={expandedId === comparison.evaluation_case_id}

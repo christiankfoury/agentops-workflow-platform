@@ -9,7 +9,9 @@ from src.models.prompt_version import PromptVersion
 from src.schemas.agent_setting import AgentSettingRead, AgentSettingUpdate
 from src.security import ROLE_ADMIN, require_role
 from src.services.agent_settings import DEFAULT_MAX_RETRIES, DEFAULT_TIMEOUT_SECONDS
+from src.services.audit import record_audit
 from src.services.llm_client import DEFAULT_MAX_TOKENS
+from src.services.permissions import authorize
 
 router = APIRouter(dependencies=[Depends(require_role(ROLE_ADMIN))])
 
@@ -25,6 +27,7 @@ def update_agent_setting(
     body: AgentSettingUpdate,
     db: Session = Depends(get_db),
 ) -> AgentSettingRead:
+    principal = authorize(db, "settings.manage", lock=True)
     if body.active_prompt_version_id is not None:
         prompt = (
             db.query(PromptVersion)
@@ -52,6 +55,8 @@ def update_agent_setting(
     setting.active_prompt_version_id = body.active_prompt_version_id
     setting.reviewer_approval_threshold = body.reviewer_approval_threshold
     setting.human_approval_threshold = body.human_approval_threshold
+    record_audit(db, principal, "settings.update", "agent_setting", agent_type.value,
+                 configuration=body.model_dump(mode="json"))
     db.commit()
     db.refresh(setting)
     return _read_effective_setting(db, agent_type)

@@ -22,6 +22,7 @@ from src.services.agent_settings import (
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
+from src.services.permissions import requires_permission
 from src.services.sales_reviewer import SALES_REVIEW_SCHEMA, SalesReviewOutput
 from src.services.structured_output_guardrails import validate_or_repair_structured_response
 from src.services.workflow_events import (
@@ -52,6 +53,7 @@ class LLMClientLike(Protocol):
         pass
 
 
+@requires_permission("workflow.control")
 def run_incident_reviewer(
     db: Session,
     run: WorkflowRun,

@@ -18,6 +18,7 @@ from src.schemas.uploaded_input import (
 )
 from src.security import ROLE_ADMIN, ROLE_OPERATOR, require_role
 from src.services.llm_client import LLMClient
+from src.services.permissions import authorize
 from src.services.router_agent import RouterRunError, detect_workflow_type
 
 router = APIRouter()
@@ -47,10 +48,11 @@ def create_uploaded_input(
     db: Session = Depends(get_db),
     _principal: object = Depends(require_role(ROLE_OPERATOR, ROLE_ADMIN)),
 ) -> UploadedInput:
+    principal = authorize(db, "input.write")
     raw_text = _normalize_and_validate_input_text(body.raw_text, body.input_type)
     uploaded_input = UploadedInput(
         organization_id=body.organization_id,
-        created_by_user_id=body.created_by_user_id,
+        created_by_user_id=principal.user_id,
         title=body.title,
         input_type=body.input_type,
         raw_text=raw_text,
@@ -107,6 +109,7 @@ async def upload_input_file(
 
     uploaded_input = UploadedInput(
         title=title,
+        created_by_user_id=authorize(db, "input.write").user_id,
         input_type=input_type,
         raw_text=raw_text,
         notes=_clean_optional_text(notes),

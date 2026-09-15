@@ -1,8 +1,8 @@
 # Identity and organization membership
 
-Phase 67 adds an OIDC-compatible identity boundary, disabled by default. Public
-API startup is blocked until role enforcement in Phase 69 is complete.
-Phase 68 enforces organization ownership across business resources.
+Phase 67 adds an OIDC-compatible identity boundary, disabled by default.
+Phase 68 enforces organization ownership across business resources. Phase 69
+enforces membership permissions, service scopes and transactional audit records.
 Existing prototype API-key mode remains available for local development.
 
 ## Verified identity
@@ -21,7 +21,7 @@ disablement is checked on subsequent requests.
 Service identities share the unique issuer/subject binding and use a separate
 `service_principals` record containing one organization, viewer/operator role,
 explicit scopes and enablement. They cannot establish browser sessions.
-Operation-specific scope enforcement follows in the Phase 69 role gate.
+Operation-specific scopes are enforced using the permission action names below.
 
 ## Browser flow
 
@@ -62,7 +62,55 @@ uv run --directory apps/api python -m src.provision_identity --issuer https://is
 Use the provider's verified subject, not a caller-supplied email. The command is
 idempotent for matching records and refuses implicit reactivation, role changes
 or conversion of service identities. The UUID above is an example. Membership
-administration and audit follow in Phase 69.
+administration and audit are available to organization administrators at
+`/account/members`, backed by the `/access/members` and `/access/audit` APIs.
+
+## Permissions and public-deployment gate (Phase 69)
+
+| Action | Viewer | Operator | Reviewer | Admin |
+| --- | --- | --- | --- | --- |
+| Read organization data and export evaluations | Yes | Yes | Yes | Yes |
+| Upload inputs, start agents/workflows, cancel runs | No | Yes | No | Yes |
+| Approve, edit, retry or reject pending approvals | No | No | Yes | Yes |
+| Approve high/critical reviewer findings | No | No | No | Yes |
+| Manage prompts/settings, members, demo seeds and read audit | No | No | No | Yes |
+| Automated evaluation comparisons (include automatic approvals) | No | No | No | Yes |
+
+`services/permissions.py` owns the matrix. API dependencies check every business
+request; service entry points also enforce control/start/decision/configuration
+permissions. Approval transactions re-read active user, organization and membership
+from PostgreSQL with row locks before recording a decision. Role claims and actor
+IDs in request bodies cannot impersonate a reviewer. High/critical findings require
+admin approval even after analysis edits. The generic status endpoint only cancels;
+advancement uses authorized agent or approval actions.
+
+Service principals require both an allowed role and an explicit action scope:
+`read`, `export`, `workflow.start`, `workflow.control`, or `input.write`, as applicable.
+Scopes never grant roles; adding `approval.decide` cannot give an operator service
+approval authority. `credentials.manage` and `workflow.publish` are reserved admin
+permissions for subsequent phases. Services cannot hold admin/reviewer roles.
+
+Accepted starts, approval decisions/edits, prompt changes, settings, cancellation,
+exports and membership changes append tenant audit events in their owning database
+transaction. Events contain the verified actor, organization, action and target,
+with bounded configuration metadata; they omit input bodies and credentials.
+Rollback removes the success record along with the failed change. ORM checks and
+a PostgreSQL trigger reject audit updates/deletes. Administrator audit reads are
+paginated; the UI shows the latest 100. Local prototype actions use the explicit
+`local` actor kind and do not claim a verified human actor. Direct database/initial
+provisioning access remains an administrative boundary outside the HTTP audit API.
+
+The UI requests permissions from the API and hides unavailable controls. API failure
+hides actions; server enforcement remains authoritative if permissions change after
+rendering. Membership management cannot remove the last active human administrator.
+
+Outside `development`/`test`, API startup requires `IDENTITY_ENABLED=true`, a configured
+audience and HTTPS issuer/JWKS URLs. Anonymous business requests fail closed. The
+temporary phase-number startup block is removed. This passes the code security gate;
+public rollout still requires actual provider registration, HTTPS ingress, secret
+configuration and the deployment validation in Phases 100–102. No live sign-in or
+public deployment is implied. Audit migration downgrade removes audit history, so
+retain/export that history before an operational rollback.
 
 ## Validation and limits
 

@@ -1282,8 +1282,9 @@ do not meet this durability requirement; a separate broker is not required.
 Phase 67 adds an opt-in verified OIDC identity boundary, persisted users,
 organizations, memberships, scoped service identities and revocable browser
 sessions. Phase 68 isolates business data by organization with a reversible legacy
-backfill. Local prototype API-key mode remains available. Phase 69 completes the
-role/audit contract before public deployment.
+backfill. Phase 69 enforces server-owned roles, scoped service permissions and
+transactional audit for sensitive actions. Local prototype API-key mode remains
+available; public startup requires configured verified identity and HTTPS OIDC.
 See [identity setup](IDENTITY.md); live provider configuration is a separate check.
 Prototype role headers do not provide real RBAC.
 

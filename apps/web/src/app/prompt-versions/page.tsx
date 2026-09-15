@@ -1,3 +1,4 @@
+import { PermissionGate } from "@/components/permission-gate";
 import Link from "next/link";
 import { CheckCircle2, GitBranch, ShieldCheck, Sparkles } from "lucide-react";
 import { LocalDateTime } from "@/components/local-date-time";
@@ -324,7 +325,7 @@ export default async function PromptVersionsPage() {
               Full version history across all workflow-specific and shared agents.
             </p>
           </div>
-          <CreatePromptVersionModal />
+          <PermissionGate action="prompt.manage"><CreatePromptVersionModal /></PermissionGate>
         </div>
         <div className="overflow-x-auto">
         <table className="min-w-[1120px] w-full text-left text-sm">

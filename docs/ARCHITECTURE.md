@@ -46,7 +46,12 @@ Verified OIDC tokens and revocable browser sessions resolve users and active
 organization memberships in the shared authentication dependency. Roles and
 service-principal scopes come from the database. See [identity setup](IDENTITY.md)
 for PKCE sign-in, session expiry, provisioning and fixture validation. Public
-API startup is blocked until the remaining RBAC gate in Phase 69.
+API startup outside development/test requires configured verified identity with
+HTTPS OIDC endpoints. Phase 69 adds shared role/service permissions and transactional
+tenant audit events. Decisions recheck membership under row locks; actors come from
+identity. Only reviewer/admin may decide, and only admin may approve high/critical
+findings. The UI uses the API permission response. See the
+[permission and rollout gate](IDENTITY.md#permissions-and-public-deployment-gate-phase-69).
 
 Phase 68 binds each request session to verified organization membership. All
 business models use `TenantOwned`; shared ORM filters cover list, nested and

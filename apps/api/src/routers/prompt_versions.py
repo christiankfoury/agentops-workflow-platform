@@ -8,6 +8,8 @@ from src.database import get_db
 from src.models.agent_type import AgentType
 from src.models.prompt_version import PromptVersion
 from src.schemas.prompt_version import PromptVersionCreate, PromptVersionRead
+from src.services.audit import record_audit
+from src.services.permissions import authorize
 from src.services.prompt_versions import activate_prompt_version, deactivate_matching_prompts
 
 router = APIRouter()
@@ -51,6 +53,7 @@ def get_prompt_version(
 def create_prompt_version(
     body: PromptVersionCreate, db: Session = Depends(get_db)
 ) -> PromptVersion:
+    principal = authorize(db, "prompt.manage", lock=True)
     prompt = PromptVersion(
         agent_type=body.agent_type,
         name=body.name,
@@ -58,13 +61,17 @@ def create_prompt_version(
         template=body.template,
         is_active=body.is_active,
         notes=body.notes,
-        created_by_user_id=body.created_by_user_id,
+        created_by_user_id=principal.user_id,
     )
     if body.is_active:
         deactivate_matching_prompts(db, body.agent_type)
 
     try:
         db.add(prompt)
+        if isinstance(db, Session):
+            db.flush()
+        record_audit(db, principal, "prompt.create", "prompt_version", prompt.id,
+                     activated=body.is_active)
         db.commit()
         db.refresh(prompt)
     except IntegrityError as e:

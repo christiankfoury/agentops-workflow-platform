@@ -1,3 +1,4 @@
+import { PermissionGate } from "@/components/permission-gate";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -443,7 +444,7 @@ function CompletedRunSummary({
             </Link>
           )}
           {canCreateEvaluationComparison && (
-            <CreateEvaluationComparisonForm compact runId={runId} />
+            <PermissionGate action="evaluation.run"><CreateEvaluationComparisonForm compact runId={runId} /></PermissionGate>
           )}
         </div>
       </div>
@@ -959,22 +960,22 @@ export default async function WorkflowRunDetailPage({
       </h1>
 
       {canRunAnalyst && (
-        <RunAnalystForm runId={run.id} />
+        <PermissionGate action="workflow.control"><RunAnalystForm runId={run.id} /></PermissionGate>
       )}
 
-      {canRunBaseline && <RunBaselineForm runId={run.id} />}
+      {canRunBaseline && <PermissionGate action="workflow.control"><RunBaselineForm runId={run.id} /></PermissionGate>}
 
-      {canRunClassifier && <RunClassifierForm runId={run.id} />}
+      {canRunClassifier && <PermissionGate action="workflow.control"><RunClassifierForm runId={run.id} /></PermissionGate>}
 
-      {canRunInsight && <RunInsightForm runId={run.id} />}
+      {canRunInsight && <PermissionGate action="workflow.control"><RunInsightForm runId={run.id} /></PermissionGate>}
 
-      {canRunTimeline && <RunTimelineForm runId={run.id} />}
+      {canRunTimeline && <PermissionGate action="workflow.control"><RunTimelineForm runId={run.id} /></PermissionGate>}
 
-      {canRunRootCause && <RunRootCauseForm runId={run.id} />}
+      {canRunRootCause && <PermissionGate action="workflow.control"><RunRootCauseForm runId={run.id} /></PermissionGate>}
 
-      {canRunReviewer && <RunReviewerForm runId={run.id} />}
+      {canRunReviewer && <PermissionGate action="workflow.control"><RunReviewerForm runId={run.id} /></PermissionGate>}
 
-      {canRunWriter && <RunWriterForm runId={run.id} />}
+      {canRunWriter && <PermissionGate action="workflow.control"><RunWriterForm runId={run.id} /></PermissionGate>}
 
       {pendingApproval && (
         <div className="mt-4">
@@ -987,7 +988,7 @@ export default async function WorkflowRunDetailPage({
         </div>
       )}
 
-      {canCancelWorkflow && <CancelWorkflowForm runId={run.id} />}
+      {canCancelWorkflow && <PermissionGate action="workflow.control"><CancelWorkflowForm runId={run.id} /></PermissionGate>}
 
       <RecoverySummary status={run.status} messages={recoveryMessages} />
 

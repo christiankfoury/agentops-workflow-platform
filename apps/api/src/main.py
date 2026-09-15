@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -6,6 +7,7 @@ from fastapi.responses import JSONResponse
 from src.config import settings
 from src.database import check_db
 from src.routers import (
+    access,
     agent_performance,
     agent_settings,
     demo,
@@ -16,7 +18,7 @@ from src.routers import (
     uploaded_inputs,
     workflow_runs,
 )
-from src.security import enforce_rate_limit, require_api_key
+from src.security import enforce_rate_limit, require_access
 from src.services.tenancy import TenantAccessError
 from src.services.workflow_transactions import StaleWorkflowError
 
@@ -24,7 +26,13 @@ from src.services.workflow_transactions import StaleWorkflowError
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     if settings.environment not in {"development", "test"}:
-        raise RuntimeError("Public deployment requires the Phase 68–69 tenant/RBAC delivery gate")
+        if not settings.identity_enabled or not settings.oidc_audience or any(
+            not value or urlparse(value).scheme != "https" or not urlparse(value).hostname
+            for value in [settings.oidc_issuer, settings.oidc_jwks_url]
+        ):
+            raise RuntimeError(
+                "Public deployment requires configured verified identity and HTTPS OIDC endpoints"
+            )
     yield
 
 
@@ -34,8 +42,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-authenticated_router_dependencies = [Depends(require_api_key)]
+authenticated_router_dependencies = [Depends(require_access)]
 app.include_router(identity.router, prefix="/identity", tags=["identity"])
+app.include_router(access.router, prefix="/access", tags=["access"],
+                   dependencies=authenticated_router_dependencies)
 
 
 @app.exception_handler(StaleWorkflowError)

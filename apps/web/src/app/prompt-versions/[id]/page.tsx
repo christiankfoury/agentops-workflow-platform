@@ -1,3 +1,4 @@
+import { PermissionGate } from "@/components/permission-gate";
 import {
   Activity,
   CheckCircle2,
@@ -129,12 +130,12 @@ export default async function PromptVersionDetailPage({
             </p>
           </div>
           {!prompt.is_active ? (
-            <form action={activatePromptVersionAction}>
+            <PermissionGate action="prompt.manage"><form action={activatePromptVersionAction}>
               <input type="hidden" name="prompt_id" value={prompt.id} />
               <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
                 Activate Prompt
               </button>
-            </form>
+            </form></PermissionGate>
           ) : null}
         </div>
       </section>

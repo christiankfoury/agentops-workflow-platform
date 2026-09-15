@@ -1,3 +1,4 @@
+import { PermissionGate } from "@/components/permission-gate";
 import Link from "next/link";
 import { getEvaluationSummary, listWorkflowRuns } from "@/lib/api";
 import type { DemoSeedTarget, EvaluationMetricsSummary, WorkflowType } from "@/lib/types";
@@ -272,12 +273,12 @@ export default async function DemoPage() {
                     {card.primaryMetric}
                   </p>
                 </div>
-                <button
+                <PermissionGate action="demo.seed"><button
                   type="submit"
                   className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
                 >
                   {card.actionLabel}
-                </button>
+                </button></PermissionGate>
               </div>
               <div className="grid grid-cols-2 gap-3 rounded-md bg-muted p-3 text-sm">
                 <div>

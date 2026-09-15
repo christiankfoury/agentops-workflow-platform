@@ -12,6 +12,7 @@ from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.cost_tracking import record_agent_cost, update_workflow_cost_totals
 from src.services.llm_client import TextResponse
+from src.services.permissions import requires_permission
 from src.services.workflow_events import (
     log_agent_completed,
     log_agent_failed,
@@ -57,6 +58,7 @@ class LLMClientLike(Protocol):
         pass
 
 
+@requires_permission("workflow.control")
 def run_sales_baseline(
     db: Session,
     run: WorkflowRun,

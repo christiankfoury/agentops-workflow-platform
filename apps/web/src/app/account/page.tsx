@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { PermissionGate } from "@/components/permission-gate";
 import { getIdentity } from "@/lib/identity";
 import { selectOrganization, signOut } from "./actions";
 
@@ -8,6 +10,7 @@ export default async function AccountPage() {
   const identity = await getIdentity();
   return <section className="mx-auto max-w-2xl space-y-6 rounded-xl border bg-card p-6">
     <h1 className="text-2xl font-semibold">Account and organization</h1>
+    <PermissionGate action="membership.manage"><Link href="/account/members" className="underline">Manage members and view audit history</Link></PermissionGate>
     {!enabled ? <p>Sign-in is not configured for this local workspace.</p> : !identity ? <>
       <p>Sign in with your organization’s identity provider to access your workflows.</p>
       <a href="/auth/sign-in" className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-white">

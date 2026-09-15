@@ -101,6 +101,7 @@ export default async function WorkflowComparisonPage({
       ) : (
         comparisons.length > 0 && (
           <WorkflowComparisonExplorer
+            canCorrect={(await allowedActions()).includes("evaluation.run")}
             comparisons={comparisons}
             initialSearch={initialSearch}
           />
@@ -109,3 +110,4 @@ export default async function WorkflowComparisonPage({
     </div>
   );
 }
+import { allowedActions } from "@/components/permission-gate";

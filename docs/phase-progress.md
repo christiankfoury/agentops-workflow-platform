@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–68 are complete; Phases 69–105 remain planned.
+Phases 66–68 are complete; Phase 69 is in progress; Phases 70–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -107,7 +107,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 66 | Complete | State Transition Invariants |
 | 67 | Complete | User Identity and Organization Membership |
 | 68 | Complete | Tenant Ownership and Isolation; migration, CI and review passed. |
-| 69 | Planned — not started | Role Permissions and Approval Audit |
+| 69 | In progress | Role Permissions and Approval Audit |
 | 70 | Planned — not started | Typed Workflow Graph Schema |
 | 71 | Planned — not started | Workflow Definitions and Immutable Versions |
 | 72 | Planned — not started | Generic Step Runs and Attempts |
@@ -304,6 +304,52 @@ This is a status index; implementation details live only in `docs/phases.md`.
   boundary and must explicitly scope reads; this is not database row-level security.
 - Completion: Phase 68 complete. The final record is pushed separately and its CI
   must finish before beginning Phase 69. No public deployment or live IdP claimed.
+
+### Phase 69 — Role Permissions and Approval Audit (2026-09-15)
+
+- Dependency gate: Phase 68 record `1f952071dfebac0cee49118d9dc3c35bb8c823a6`
+  pushed; [CI run 34939200348](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34939200348)
+  passed all API, Web and Docker Compose checks. Clean working tree.
+- Inspected identity resolution, all mutation routers, approval transactions,
+  prompt/settings services, exports, existing security tests and action UI.
+- Plan: one server-owned permission matrix and explicit service scopes; enforce
+  request permissions plus sensitive service checks. Recheck current membership
+  inside approval transactions, derive actors from identity, and require admin
+  to approve high/critical findings. Persist append-only tenant audit events in
+  the same transaction as starts, decisions/edits, prompts/settings, membership
+  changes and accepted exports. Add admin membership/audit APIs and permission UI.
+- Acceptance: role matrix, service scopes, actor forgery, membership revocation,
+  cross-tenant decisions, high-severity approval, transaction rollback without
+  success audit, audit actor/organization correctness and permission-aware UI.
+- Migration/rollout: additive audit table; preserve legacy records and local
+  development. Replace the temporary public-startup block with fail-closed verified
+  identity/configuration checks. No live provider or hosted rollout is claimed.
+- Implementation: shared role matrix and explicit service scopes; authenticated
+  actors; decision-time membership rechecks/locks; admin-only high-severity
+  approval and automated evaluation comparisons; append-only tenant audit table
+  and database trigger; admin membership/audit APIs and permission-aware UI.
+  Generic status PATCH only cancels, preventing advancement around approval gates.
+- Local validation: `uv run --directory apps/api pytest -q` with disposable
+  PostgreSQL passed **320 tests**. Final audit metadata/export changes passed
+  `pytest tests/test_permissions_audit.py tests/test_evaluation_results_api.py -q`
+  (**33 tests**). `ruff check src tests`, changed migration lint, web `typecheck`,
+  `lint`, `test:smoke` (**11 tests**) and production `build` passed.
+  The audit migration was upgraded, downgraded and reapplied in an isolated
+  PostgreSQL schema; direct audit UPDATE/DELETE were rejected by its trigger.
+- Local review fixes: the generic status route could bypass approval advancement;
+  it now only cancels. Legacy automated comparisons can approve results, so they
+  require admin. Migration logging now preserves existing application loggers
+  after an in-process migration exposed a full-suite logging regression. Export
+  fixtures were updated for their new audit commit contract. Initial test/build
+  failures were resolved and are not counted as passing checks.
+- Scope size: permission checks across all existing agent/API paths, transactional
+  audit and migration, membership UI and the role/forgery/rollback matrix exceed
+  the preferred phase size; all changes belong to the Phase 69 security gate.
+- Limits: no live IdP or hosted rollout. Public startup now requires configured
+  verified identity/HTTPS endpoints; deployment evidence follows in Phases 100–102.
+  Initial provisioning and direct database administration remain privileged access
+  outside the HTTP audit boundary. Audit downgrade requires retaining history.
+- Implementation commit, pushed CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

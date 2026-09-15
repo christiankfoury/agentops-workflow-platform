@@ -11,12 +11,14 @@ from sqlalchemy.orm import Session
 from src.config import settings
 from src.database import get_db
 from src.services.identity import Principal, authenticate, resolve_principal
+from src.services.permissions import authorize, request_action
 from src.services.tenancy import bind_tenant
 
 ROLE_VIEWER = "viewer"
 ROLE_OPERATOR = "operator"
+ROLE_REVIEWER = "reviewer"
 ROLE_ADMIN = "admin"
-VALID_ROLES = {ROLE_VIEWER, ROLE_OPERATOR, ROLE_ADMIN}
+VALID_ROLES = {ROLE_VIEWER, ROLE_OPERATOR, ROLE_REVIEWER, ROLE_ADMIN}
 
 _rate_limit_hits: dict[str, deque[float]] = defaultdict(deque)
 
@@ -31,9 +33,13 @@ def require_api_key(
     if settings.identity_enabled:
         principal = resolve_principal(db, authenticate(db, authorization), x_organization_id)
         bind_tenant(db, principal.organization_id)
+        db.info["principal"] = principal
         return principal
     if not settings.api_auth_enabled:
-        return Principal(role=ROLE_ADMIN)
+        principal = Principal(role=ROLE_ADMIN)
+        if isinstance(db, Session):
+            db.info["principal"] = principal
+        return principal
 
     expected_key = settings.api_key_value
     if not expected_key:
@@ -47,7 +53,18 @@ def require_api_key(
     role = (x_agentops_role or ROLE_VIEWER).strip().lower()
     if role not in VALID_ROLES:
         raise HTTPException(status_code=403, detail="Invalid API role")
-    return Principal(role=role)
+    principal = Principal(role=role)
+    if isinstance(db, Session):
+        db.info["principal"] = principal
+    return principal
+
+
+def require_access(
+    request: Request,
+    _principal: Principal = Depends(require_api_key),
+    db: Session = Depends(get_db),
+) -> Principal:
+    return authorize(db, request_action(request.method, request.url.path))
 
 
 def require_role(*allowed_roles: str) -> Callable[[Principal], Principal]:

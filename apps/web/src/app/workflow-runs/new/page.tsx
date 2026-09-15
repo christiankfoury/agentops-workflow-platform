@@ -1,3 +1,4 @@
+import { PermissionGate } from "@/components/permission-gate";
 import { NewWorkflowForm } from "./form";
 
 const workflowExamples = [
@@ -48,7 +49,7 @@ export default function NewWorkflowPage() {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <NewWorkflowForm />
+        <PermissionGate action="workflow.start"><NewWorkflowForm /></PermissionGate>
 
         <aside className="space-y-4 lg:sticky lg:top-28">
           <section className="rounded-lg border border-border bg-card p-5">

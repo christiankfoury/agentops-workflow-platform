@@ -53,6 +53,37 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
   });
 }
 
+export async function getAccessPermissions(): Promise<string[]> {
+  const res = await apiFetch("/access/permissions", { cache: "no-store" });
+  if (!res.ok) return [];
+  return (await res.json()).actions as string[];
+}
+
+export async function listMembers(): Promise<Array<{
+  user_id: string; display_name: string; role: string; active: boolean;
+}>> {
+  const res = await apiFetch("/access/members", { cache: "no-store" });
+  if (!res.ok) throw new Error("Membership access is unavailable");
+  return res.json();
+}
+
+export async function updateMembership(userId: string, role: string, active: boolean) {
+  const res = await apiFetch(`/access/members/${encodeURIComponent(userId)}`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role, active }),
+  });
+  if (!res.ok) throw new Error("Membership update was not accepted");
+}
+
+export async function listAuditEvents(): Promise<Array<{
+  id: string; action: string; actor_user_id: string | null; actor_kind: string;
+  target_type: string; target_id: string; created_at: string;
+}>> {
+  const res = await apiFetch("/access/audit?limit=100", { cache: "no-store" });
+  if (!res.ok) throw new Error("Audit access is unavailable");
+  return res.json();
+}
+
 export async function listWorkflowRuns(): Promise<WorkflowRun[]> {
   const res = await apiFetch("/workflow-runs", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch workflow runs: ${res.status}`);

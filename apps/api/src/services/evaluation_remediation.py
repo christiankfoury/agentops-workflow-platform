@@ -12,6 +12,7 @@ from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.workflow_run import RunMode
 from src.services.evaluation_runner import LLMClientLike, run_sales_evaluation_case
+from src.services.permissions import requires_permission
 
 
 class EvaluationRemediationError(Exception):
@@ -29,6 +30,7 @@ class CorrectedEvaluationComparisonResult:
     comparison_url: str
 
 
+@requires_permission("evaluation.run")
 def create_corrected_evaluation_comparison_run(
     db: Session,
     evaluation_case_id: uuid.UUID,

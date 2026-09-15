@@ -1,3 +1,4 @@
+import { allowedActions } from "@/components/permission-gate";
 import { CheckCircle2, GitBranch, ShieldCheck, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { getAgentDisplay } from "@/lib/agent-display";
 import { listAgentSettings, listPromptVersions } from "@/lib/api";
@@ -51,6 +52,7 @@ function riskyRuntimeCount(settings: AgentSetting[]): number {
 }
 
 export default async function SettingsPage() {
+  if (!(await allowedActions()).includes("settings.manage")) return <p>Administrator access is required to manage agent settings.</p>;
   const [settings, prompts] = await Promise.all([
     listAgentSettings(),
     listPromptVersions(),

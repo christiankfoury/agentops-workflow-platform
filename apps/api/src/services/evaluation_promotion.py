@@ -19,6 +19,7 @@ from src.services.evaluation_runner import (
     _run_multi_agent_case,
     run_sales_evaluation_case,
 )
+from src.services.permissions import requires_permission
 
 
 class EvaluationPromotionError(Exception):
@@ -42,6 +43,7 @@ STRUCTURED_AGENT_BY_WORKFLOW: dict[WorkflowType, str] = {
 }
 
 
+@requires_permission("evaluation.run")
 def promote_workflow_run_to_evaluation_comparison(
     db: Session,
     run: WorkflowRun,

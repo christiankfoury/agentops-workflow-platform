@@ -99,7 +99,7 @@ def test_approve_human_approval_marks_approved_and_advances_workflow():
     body = response.json()
     assert body["status"] == ApprovalStatus.approved
     assert body["human_feedback"] == "Looks good."
-    assert body["approved_by_user_id"] == str(user_id)
+    assert body["approved_by_user_id"] is None  # Local mode has no verified user actor.
     assert body["resolved_at"] is not None
     assert run.status == WorkflowStatus.writer_running
     clear_overrides()

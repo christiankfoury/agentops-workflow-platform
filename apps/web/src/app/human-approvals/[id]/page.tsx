@@ -1,3 +1,4 @@
+import { PermissionGate } from "@/components/permission-gate";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -229,9 +230,13 @@ function ApprovalActionControls({
   approval: HumanApproval;
   isActionable: boolean;
 }) {
+  const requiresAdmin = approval.issues_json?.some(issue =>
+    typeof issue === "object" && issue !== null && "severity" in issue
+    && ["high", "critical"].includes(String(issue.severity).toLowerCase()));
   return (
     <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
-      <form action={approveAction}>
+      <PermissionGate action={requiresAdmin ? "approval.override" : "approval.decide"}
+        fallback={<p className="text-sm text-amber-700">An administrator must approve high-severity findings.</p>}><form action={approveAction}>
         <input type="hidden" name="approval_id" value={approval.id} />
         <input
           type="hidden"
@@ -245,7 +250,7 @@ function ApprovalActionControls({
         >
           Approve
         </button>
-      </form>
+      </form></PermissionGate>
       <div className="contents">
         <form action={requestRetryAction}>
           <input type="hidden" name="approval_id" value={approval.id} />
@@ -1044,7 +1049,7 @@ export default async function HumanApprovalDetailPage({
         </p>
         <ApprovalMetadata approval={approval} run={run} />
         {isActionable && (
-          <ApprovalActionControls approval={approval} isActionable={isActionable} />
+          <PermissionGate action="approval.decide"><ApprovalActionControls approval={approval} isActionable={isActionable} /></PermissionGate>
         )}
         {approval.status === "approved" && run.status === "writer_running" && (
           <Link
@@ -1091,7 +1096,7 @@ export default async function HumanApprovalDetailPage({
           <summary className="cursor-pointer text-lg font-semibold">
             Edit approved analysis
           </summary>
-          <form action={editAction} className="mt-4">
+          <PermissionGate action="approval.decide"><form action={editAction} className="mt-4">
           <input type="hidden" name="approval_id" value={approval.id} />
           <input type="hidden" name="workflow_type" value={run.workflow_type} />
           <label className="block text-sm font-medium" htmlFor="human_feedback">
@@ -1124,7 +1129,7 @@ export default async function HumanApprovalDetailPage({
           >
             Save Edits
           </button>
-          </form>
+          </form></PermissionGate>
         </details>
       </section>
 
