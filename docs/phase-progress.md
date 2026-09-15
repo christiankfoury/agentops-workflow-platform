@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 70 — Typed Workflow Graph Schema**.
+Current next implementation phase: **Phase 71 — Workflow Definitions and Immutable Versions**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–69 are complete; Phase 70 is in progress; Phases 71–105 remain planned.
+Phases 66–70 are complete; Phases 71–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +89,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 70: Typed Workflow Graph Schema
+### Phase 71: Workflow Definitions and Immutable Versions
 
-Status: In progress — authorized implementation run.
+Status: Next — authorized implementation run; waiting for Phase 70 record CI.
 
-Scope: typed graph primitives, constrained expressions, structural/type validation,
-bounded policies and explicit executor capability gates.
-See [the full phase entry](phases.md#phase-70-typed-workflow-graph-schema) for
+Scope: tenant-owned definitions, revisioned drafts, immutable publication snapshots,
+version history and archive APIs.
+See [the full phase entry](phases.md#phase-71-workflow-definitions-and-immutable-versions) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -108,7 +108,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 67 | Complete | User Identity and Organization Membership |
 | 68 | Complete | Tenant Ownership and Isolation; migration, CI and review passed. |
 | 69 | Complete | Role Permissions and Approval Audit; fix, CI and review passed. |
-| 70 | In progress | Typed Workflow Graph Schema |
+| 70 | Complete | Typed Workflow Graph Schema; fix, CI and review passed. |
 | 71 | Planned — not started | Workflow Definitions and Immutable Versions |
 | 72 | Planned — not started | Generic Step Runs and Attempts |
 | 73 | Planned — not started | Idempotent Generic Run Starts |
@@ -407,7 +407,15 @@ This is a status index; implementation details live only in `docs/phases.md`.
   activations. The join now restores its matching fork's incoming route context;
   closed-region validation still checks all branch boundaries. Added a failing
   regression before the fix. Fix validation: **38 graph tests**, API lint and
-  `git diff --check` passed. Fix push/CI and completion pending.
+  `git diff --check` passed.
+- Fix commit: `dd3ce5da322e5754b238db0d06e10996381d50a0`, pushed to main.
+  [CI run 35003435421](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35003435421)
+  passed API, Web and Docker Compose. Follow-up review checked fork context,
+  closed-region enforcement, conditional fan-in and unchanged rejection cases;
+  no unresolved blocking findings remain.
+- Completion: Phase 70 complete. Schema acceptance does not enable execution;
+  no migration, provider call or deployment claimed. Final record is pushed
+  separately; its CI must pass before Phase 71 starts.
 
 When a future phase starts, add a record here using these fields:
 
