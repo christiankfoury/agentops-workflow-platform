@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–69 are complete; Phases 70–105 remain planned.
+Phases 66–69 are complete; Phase 70 is in progress; Phases 71–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +89,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 68: Tenant Ownership and Isolation
+### Phase 70: Typed Workflow Graph Schema
 
 Status: In progress — authorized implementation run.
 
-Scope: reversible legacy ownership backfill and isolation of business resources,
-nested reads, mutations, exports, aggregates, and scoped demo data.
-See [the full phase entry](phases.md#phase-68-tenant-ownership-and-isolation) for
+Scope: typed graph primitives, constrained expressions, structural/type validation,
+bounded policies and explicit executor capability gates.
+See [the full phase entry](phases.md#phase-70-typed-workflow-graph-schema) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -108,7 +108,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 67 | Complete | User Identity and Organization Membership |
 | 68 | Complete | Tenant Ownership and Isolation; migration, CI and review passed. |
 | 69 | Complete | Role Permissions and Approval Audit; fix, CI and review passed. |
-| 70 | Planned — not started | Typed Workflow Graph Schema |
+| 70 | In progress | Typed Workflow Graph Schema |
 | 71 | Planned — not started | Workflow Definitions and Immutable Versions |
 | 72 | Planned — not started | Generic Step Runs and Attempts |
 | 73 | Planned — not started | Idempotent Generic Run Starts |
@@ -365,6 +365,41 @@ This is a status index; implementation details live only in `docs/phases.md`.
   audit success. No unresolved blocking findings remain.
 - Completion: Phase 69 complete. Final record is pushed separately; finish its CI
   before Phase 70. No live identity-provider validation or public deployment claimed.
+
+### Phase 70 — Typed Workflow Graph Schema (2026-09-15)
+
+- Dependency gate: Phase 69 record `e93390002cb72e9b1c3bf3e2cda1fd74e7a90730`
+  pushed; [CI run 34942474365](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34942474365)
+  passed all checks. Clean working tree before this phase.
+- Inspected existing Pydantic schema conventions, the complete R01/R02 contract,
+  architecture defaults and downstream interpreter/definition requirements.
+- Plan: a versioned typed DAG schema for all eight primitives, bounded policies,
+  closed data schemas and constrained expressions. Validate references, types,
+  branch defaults, reachability/cycles, explicit merges and fork/join regions.
+  Recognize bounded quality-revision metadata without permitting graph cycles.
+  Keep executable support separately gated; no new runtime or persistence yet.
+- Acceptance: round-trip fixtures with every primitive; both condition paths,
+  missing/null/default bindings, invalid expressions/types/references/joins/cycles,
+  graph complexity bounds and an explicit unsupported-executor check.
+- Rollout: pure schema/validation code and fixtures; no database migration,
+  provider call, public endpoint or existing workflow behavior change.
+- Scope: typed configurations plus structural/type validation and security-focused
+  rejection cases may exceed the preferred size; keep all work within this schema.
+- Resumed with three existing untracked Phase 70 files and this phase plan;
+  preserved that work. Verified local/remote main both point to `e933900` and
+  rechecked the dependency CI through GitHub: all three jobs succeeded.
+- Implementation: typed graph schemas and pure structural/type validation for all
+  eight primitives; separate executor/revision capability checks. Added strict
+  schema fixtures and graph-format documentation. Hardened pre-serialization
+  depth checks and closed revision-region validation during local review.
+- Validation: `uv run --directory apps/api pytest tests/test_workflow_graph.py -q`
+  passed **37 tests**; `uv run --directory apps/api ruff check src tests` and
+  `git diff --check` passed. No migration, frontend or runtime behavior changes.
+- Local review: inspected graph topology, all expression/type checks, round-trip
+  defaults, limits, missing/null handling and unavailable executor rejection.
+  Scope exceeds the preferred size because typed configurations, validation and
+  rejection fixtures form one graph contract. No provider calls or deployment.
+- Commit, push, CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

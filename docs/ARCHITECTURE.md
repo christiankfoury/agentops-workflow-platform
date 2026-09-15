@@ -161,7 +161,9 @@ CI supplies PostgreSQL and also runs the complete migration chain.
 The current architecture is the business-workflow foundation. The
 [platform implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
 defines the future generic graph, versions, step attempts, workers, tools,
-triggers, tenant permissions, and Kubernetes architecture. These remain planned.
+triggers and Kubernetes architecture. Identity, tenant isolation and role/audit
+controls are implemented through Phase 69. Phase 70 adds the validated
+[graph format](WORKFLOW_GRAPH.md); generic execution remains planned.
 
 ## Agent Execution Pattern
 
