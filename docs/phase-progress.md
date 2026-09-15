@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 69 — Role Permissions and Approval Audit**.
+Current next implementation phase: **Phase 70 — Typed Workflow Graph Schema**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–68 are complete; Phase 69 is in progress; Phases 70–105 remain planned.
+Phases 66–69 are complete; Phases 70–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -107,7 +107,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 66 | Complete | State Transition Invariants |
 | 67 | Complete | User Identity and Organization Membership |
 | 68 | Complete | Tenant Ownership and Isolation; migration, CI and review passed. |
-| 69 | In progress | Role Permissions and Approval Audit |
+| 69 | Complete | Role Permissions and Approval Audit; fix, CI and review passed. |
 | 70 | Planned — not started | Typed Workflow Graph Schema |
 | 71 | Planned — not started | Workflow Definitions and Immutable Versions |
 | 72 | Planned — not started | Generic Step Runs and Attempts |
@@ -357,8 +357,14 @@ This is a status index; implementation details live only in `docs/phases.md`.
   Reproduced with a failing PostgreSQL regression. Membership/user lookups now
   refresh cached identities under the existing organization/membership locks.
   Fix validation: `pytest tests/test_permissions_audit.py -q` passed **31 tests**;
-  API lint and `git diff --check` passed. Fix commit/push and follow-up CI/review:
-  pending.
+  API lint and `git diff --check` passed.
+- Fix commit: `c1a1a20c140333c8801897949e47ba05b820da8a`, pushed to main.
+  [CI run 34942274258](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34942274258)
+  passed API, Web and Docker Compose. Follow-up review confirms the locked row
+  overwrites stale cached state before the guard; failed changes roll back without
+  audit success. No unresolved blocking findings remain.
+- Completion: Phase 69 complete. Final record is pushed separately; finish its CI
+  before Phase 70. No live identity-provider validation or public deployment claimed.
 
 When a future phase starts, add a record here using these fields:
 
