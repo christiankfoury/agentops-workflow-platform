@@ -42,8 +42,12 @@ def graph_for(db, run):
 
 
 def rows_for(db, run):
-    rows = db.scalars(select(StepRun).where(StepRun.execution_id == run.id)).all()
-    if any(row.branch != "main" or row.iteration != 0 for row in rows):
+    rows = db.scalars(
+        select(StepRun).where(StepRun.execution_id == run.id).order_by(StepRun.iteration)
+    ).all()
+    if any(
+        row.branch != "main" or (row.iteration != 0 and row.step_type != "approval") for row in rows
+    ):
         raise ExecutionError("unsupported_checkpoint", "Branch/revision execution is unavailable")
     return {row.node_id: row for row in rows}
 
@@ -131,8 +135,11 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
             transition(db, run, run, "running")
         edges = dict(run.checkpoint_json.get("edges", {}))
         try:
+            approval_retry = run.checkpoint_json.get("approval_retry")
             node = (
-                next(node for node in graph.nodes if node.id == resumable[0].node_id)
+                next(node for node in graph.nodes if node.id == approval_retry["node_id"])
+                if approval_retry
+                else next(node for node in graph.nodes if node.id == resumable[0].node_id)
                 if resumable
                 else next_node(db, run, graph, rows, edges)
             )
@@ -142,7 +149,16 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                 run.output_json = resolve_bindings(graph.outputs, *context, graph.output_schema)
                 transition(db, run, run, "completed")
             else:
-                step = resumable[0] if resumable else add_step(db, run, node.id)
+                step = (
+                    resumable[0]
+                    if resumable
+                    else add_step(
+                        db,
+                        run,
+                        node.id,
+                        iteration=approval_retry["iteration"] if approval_retry else 0,
+                    )
+                )
                 attempt = add_attempt(db, run, step)
                 step.error_code = step.error_message = None
                 step.next_attempt_at = None
@@ -155,6 +171,16 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                         from src.services.delay_runtime import schedule_delay
 
                         schedule_delay(db, run, step, attempt, node, now)
+                    elif node.type == "approval":
+                        from src.services.approval_runtime import register_approval
+
+                        register_approval(db, run, step, attempt, node, now, approval_retry)
+                        if approval_retry:
+                            run.checkpoint_json = {
+                                key: value
+                                for key, value in run.checkpoint_json.items()
+                                if key != "approval_retry"
+                            }
                     else:
                         work = WorkItem(
                             run.id,

@@ -180,6 +180,7 @@ class ConditionConfig(GraphModel):
 
 
 class ApprovalConfig(GraphModel):
+    max_review_retries: int = Field(default=2, ge=0, le=5, strict=True)
     reviewer_roles: list[Literal["reviewer", "admin"]] = Field(
         default_factory=lambda: ["reviewer", "admin"], min_length=1, max_length=2
     )

@@ -188,6 +188,48 @@ def terminal_job_status(status):
     return status if status in {"completed", "cancelled"} else "failed"
 
 
+def settle_local_checkpoint(db, run):
+    """Consume an undispatched receipt when local preparation already reached a wait."""
+    if db.info.get("workflow_transaction") != (WorkflowExecution, run.id):
+        raise ValueError("Receipt settlement requires its execution transaction")
+    rows = (
+        db.connection()
+        .execute(
+            select(jobs)
+            .where(
+                jobs.c.execution_id == run.id,
+                jobs.c.organization_id == tenant_id(db),
+                jobs.c.status.in_(["queued", "running"]),
+            )
+            .with_for_update()
+        )
+        .mappings()
+        .all()
+    )
+    for row in rows:
+        if row["attempt_id"] is not None or row["dispatched_at"] is not None:
+            raise StaleWorkflowError("Wait registration job is still dispatched")
+        db.connection().execute(
+            update(jobs)
+            .where(jobs.c.id == row["id"])
+            .values(
+                status="completed",
+                completed_at=func.clock_timestamp(),
+                error_code=None,
+            )
+        )
+        db.add(
+            ExecutionEvent(
+                execution_id=run.id,
+                entity_type="durable_jobs",
+                entity_id=row["id"],
+                from_status=row["status"],
+                to_status="completed",
+                details={"reason": "local_wait_registered"},
+            )
+        )
+
+
 def finish_job(db, run, claim, status, error_code=None, *, allow_expired=False):
     if run.id != claim.execution_id or db.info.get("workflow_transaction") != (
         WorkflowExecution,

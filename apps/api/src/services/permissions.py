@@ -123,6 +123,7 @@ def request_action(method: str, path: str) -> str:
         return "evaluation.run" if "evaluation-comparison" in path else "workflow.control"
     return {
         "human-approvals": "approval.decide",
+        "execution-approvals": "approval.decide",
         "uploaded-inputs": "input.write",
         "prompt-versions": "prompt.manage",
         "agent-settings": "settings.manage",

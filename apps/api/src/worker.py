@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from src.config import settings
 from src.database import engine
+from src.services.approval_runtime import expire_approval_waits
 from src.services.delay_runtime import wake_due_delays
 from src.services.durable_queue import claim_jobs, has_queued_jobs, process_claim
 from src.services.execution_deadlines import enforce_deadlines
@@ -43,6 +44,7 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
                         log.error("Worker checkpoint interrupted: %s", type(error).__name__)
             enforce_deadlines(database)
             wake_due_delays(database)
+            expire_approval_waits(database)
             if stop.is_set() or (max_jobs is not None and dispatched >= max_jobs):
                 if not active:
                     break

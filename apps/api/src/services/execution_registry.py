@@ -26,7 +26,7 @@ class ExecutorRegistry:
 
     def validate(self, graph):
         # Delay checkpoints are registered transactionally, without an I/O executor.
-        validate_types(graph, {*self.executors, "delay"})
+        validate_types(graph, {*self.executors, "delay", "approval"})
         for index, node in enumerate(graph.nodes):
             if (
                 node.type == "code"

@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–79 are complete; Phases 80–105 remain planned.
+Phases 66–79 are complete; Phase 80 is in progress; Phases 81–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -118,7 +118,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
 | 78 | Complete | Durable cancellation intent/API, atomic work termination, I/O abort hooks and late-result fencing; CI/review passed. |
 | 79 | Complete | Persisted UTC waits, bounded wake processor, atomic continuation and cancellation/deadline integration; CI/review passed. |
-| 80 | Planned — not started | Durable Approval Steps and Resume |
+| 80 | In progress | Durable Approval Steps and Resume |
 | 81 | Planned — not started | Parallel Branches and Joins |
 | 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
 | 83 | Planned — not started | Sales Workflow Template Migration |
@@ -929,6 +929,63 @@ This is a status index; implementation details live only in `docs/phases.md`.
   No actionable blocking findings; no separate fix commit required.
 - Completion: Phase 79 complete. Final record is pushed separately; finish its CI
   before starting Phase 80. No live provider or hosted deployment claimed.
+
+### Phase 80 — Durable Approval Steps and Resume (2026-09-15)
+
+- Dependency gate: Phase 79 record `7af753ebdab27ca7f02a3d588ada216daa276d9a`
+  pushed; [CI run 35026486138](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35026486138)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected existing approval review/issue contracts, actor/audit and high-severity
+  permission checks, generic wait/continuation semantics, iteration identity and
+  the Phase 82 boundary for upstream LLM quality-revision execution.
+- Plan: persist tenant-owned approval snapshots bound to version/node/iteration
+  and hashes of governed input plus candidate output/review. Registration releases
+  the worker. Approve/reject/edit/request-retry decisions serialize on the run,
+  enforce current membership/scopes, and append actor evidence. Edits supersede
+  old approvals; changed governed input invalidates stale snapshots. Accepted
+  decisions enqueue one continuation atomically; retries create a bounded new
+  approval iteration, separately from infrastructure attempts. Upstream revision
+  subgraphs remain Phase 82 scope.
+- Acceptance: concurrent conflicting decisions/cancellation, identical replay,
+  rollback/no duplicate resume, restart while waiting, stale payloads, edited
+  outputs, rejection, review retry exhaustion, expiry and high-severity overrides,
+  role/revocation/service scopes and cross-tenant access.
+- Rollout: additive approval records with tenant FKs, pending uniqueness and
+  history guards. Restart API/workers before publishing approval graphs; legacy
+  approvals remain readable and their endpoints retain existing behavior.
+- Implemented immutable approval snapshots and revision history, tenant-scoped
+  reads and minimal decision acknowledgements, current-role/high-severity checks,
+  superseding edits, stale-input invalidation, and atomic approve/retry resume.
+  Approval registration releases workers; cancellation and deadline/expiry close
+  pending approvals. Review retries preserve feedback/candidate edits and use a
+  new logical approval iteration with a fresh infrastructure attempt budget.
+- Initial validation: seven lifecycle tests passed. The expanded suite passed
+  20 tests with one invalid service-role fixture; corrected the fixture to assert
+  the existing prohibition on service reviewer/admin roles. All nine focused
+  role/revocation/service-scope cases then passed. Pre-commit review reproduced
+  and fixed a local-runner receipt collision; that handoff regression passed.
+  A separate regression verifies execution/step IDs participate in approval hashes
+  even for identical versions and payloads. Migration upgrade, Ruff, Compose
+  config and diff checks passed.
+- Scope/limitations: immutable snapshots, migration guards, four decision paths,
+  expiry processing and concurrency/security tests require more than 700 lines
+  together; they remain one Phase 80 delivery unit. Approval inputs carry a
+  `payload` and the existing structured `review` shape; approved outputs use the
+  pinned node output schema. Edits retain reviewer issues and cannot bypass high
+  severity. Phase 80 retries re-register bounded approval iterations; upstream
+  reviewer/LLM subgraph revisions are explicitly Phase 82. No live provider or
+  hosted deployment was performed.
+- Final validation:
+  `uv run --directory apps/api pytest tests/test_execution_approvals.py tests/test_execution_cancellation.py tests/test_durable_delays.py tests/test_durable_queue.py tests/test_worker_leases.py tests/test_retry_runtime.py tests/test_graph_interpreter.py tests/test_permissions_audit.py -q --tb=short`
+  passed **131 tests** against disposable PostgreSQL. The approval-only rerun
+  passed **25 tests**. Final pre-commit review added a locked fresh read of governed
+  step inputs; its cached-session stale-input regression passed separately.
+  `ruff check src tests alembic/versions/f080_execution_approvals.py`, migration
+  upgrade, Compose config and `git diff --check` passed. The existing upstream
+  TestClient/httpx deprecation warning is non-blocking. PostgreSQL migration
+  tests exercised empty downgrade/reapply, old-run compatibility, immutable
+  snapshot/decision guards, edit/approve transitions and retention refusal.
+- Implementation commit, pushed CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

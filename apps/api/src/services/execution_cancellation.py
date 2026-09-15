@@ -36,6 +36,9 @@ def cancel_execution(db, identity, reason=None):
             db.commit()
             return run
         with workflow_transaction(db, run):
+            from src.services.approval_runtime import close_pending
+
+            close_pending(db, run, "cancelled")
             run.cancel_requested = True
             run.cancel_requested_at = runtime_now(db)
             run.cancel_requested_by_user_id = principal.user_id
