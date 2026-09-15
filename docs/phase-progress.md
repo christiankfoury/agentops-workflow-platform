@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 75 — Transactional Durable Job Queue**.
+Current next implementation phase: **Phase 76 — Leases Heartbeats and Crash Recovery**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–74 are complete; Phase 75 is in progress; Phases 76–105 remain planned.
+Phases 66–75 are complete; Phases 76–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -113,7 +113,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 72 | Complete | Generic Step Runs and Attempts; fix, CI and review passed. |
 | 73 | Complete | Idempotent Generic Run Starts; fix, CI and review passed. |
 | 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
-| 75 | In progress | Transactional Durable Job Queue |
+| 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
 | 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
 | 77 | Planned — not started | Durable Retries Backoff and Deadlines |
 | 78 | Planned — not started | Durable Cancellation |
@@ -692,7 +692,15 @@ This is a status index; implementation details live only in `docs/phases.md`.
   now records completed jobs without a false error and does not repeat the handler.
   The regression failed before the fix. `pytest tests/test_durable_queue.py -q
   --tb=short` with PostgreSQL passed **10 tests**; API lint and diff checks passed.
-  Fix commit/CI and follow-up review: pending.
+- Fix commit: `220903d1c13b5ec000164cb84895036d86811405`, pushed to main.
+  [CI run 35015916314](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35015916314)
+  passed API, Web and Docker Compose, including the API dependency audit.
+  Follow-up review confirmed successful terminal-job recording without repeated
+  work, preserved failure reporting, and unchanged atomic scheduling. No unresolved
+  blocking findings remain.
+- Completion: Phase 75 complete. Running-process crash recovery remains Phase 76;
+  no live provider or hosted deployment claimed. Final record is pushed separately;
+  finish its CI before Phase 76.
 
 When a future phase starts, add a record here using these fields:
 
