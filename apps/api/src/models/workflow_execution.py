@@ -6,6 +6,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
@@ -75,6 +76,7 @@ class StepRun(ExecutionFields, TenantOwned, Base):
         *tenant_constraints(__tablename__, {"execution_id": "workflow_executions"}),
         UniqueConstraint("execution_id", "node_id", "branch", "iteration", name="uq_logical_step"),
         CheckConstraint("iteration >= 0"),
+        Index("ix_step_delay_wake", "wake_at", "id", postgresql_where="status = 'waiting'"),
         status_constraint(
             [
                 "pending",
@@ -95,6 +97,8 @@ class StepRun(ExecutionFields, TenantOwned, Base):
     iteration: Mapped[int] = mapped_column(Integer, default=0)
     idempotency_key: Mapped[str] = mapped_column(String(64))
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    waiting_reason: Mapped[str | None] = mapped_column(String(40))
+    wake_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class StepAttempt(ExecutionFields, TenantOwned, Base):

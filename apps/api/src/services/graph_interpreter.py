@@ -150,6 +150,22 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                 transition(db, run, attempt, "running")
                 try:
                     inputs = resolve_bindings(node.inputs, *context, node.input_schema)
+                    step.input_json = attempt.input_json = inputs
+                    if node.type == "delay":
+                        from src.services.delay_runtime import schedule_delay
+
+                        schedule_delay(db, run, step, attempt, node, now)
+                    else:
+                        work = WorkItem(
+                            run.id,
+                            step.id,
+                            attempt.id,
+                            0,
+                            node,
+                            inputs,
+                            context,
+                            attempt.deadline_at,
+                        )
                 except (ExecutionError, ValidationError, ValueError) as error:
                     failure = (
                         error
@@ -160,11 +176,6 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                         )
                     )
                     fail_execution(db, run, failure, step, attempt)
-                else:
-                    step.input_json = attempt.input_json = inputs
-                    work = WorkItem(
-                        run.id, step.id, attempt.id, 0, node, inputs, context, attempt.deadline_at
-                    )
         except (ExecutionError, ValidationError, ValueError) as error:
             failure = (
                 error

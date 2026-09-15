@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–78 are complete; Phases 79–105 remain planned.
+Phases 66–78 are complete; Phase 79 is in progress; Phases 80–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -117,7 +117,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
 | 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
 | 78 | Complete | Durable cancellation intent/API, atomic work termination, I/O abort hooks and late-result fencing; CI/review passed. |
-| 79 | Planned — not started | Durable Delay Steps |
+| 79 | In progress | Durable Delay Steps |
 | 80 | Planned — not started | Durable Approval Steps and Resume |
 | 81 | Planned — not started | Parallel Branches and Joins |
 | 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
@@ -875,6 +875,51 @@ This is a status index; implementation details live only in `docs/phases.md`.
   history. No actionable blocking findings; no separate fix commit required.
 - Completion: Phase 78 complete. Final record is pushed separately; finish its CI
   before starting Phase 79. Physical reversal of remote effects is not guaranteed.
+
+### Phase 79 — Durable Delay Steps (2026-09-15)
+
+- Dependency gate: Phase 78 record `f8b8f50fabc30b7d1e5a2e1e1246dc91edf482a0`
+  pushed; [CI run 35024351491](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35024351491)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected delay schema/capability gating, interpreter checkpoints, worker claims,
+  cancellation and deadline authority, retained attempts and generic step reads.
+- Plan: accept a bounded duration or timezone-aware wake timestamp; persist UTC
+  wake time/reason on a waiting logical step. Finish timer registration and its
+  job atomically, releasing the worker. A bounded wake processor serializes on the
+  execution, completes due waits and enqueues exactly one continuation. Integrate
+  cancellation and overall deadline expiry even when no active job exists.
+- Acceptance: no early wake or sleeping executor, restart after persisted wait,
+  competing/duplicate wake processors, rollback, cancellation/deadline suppression,
+  lease recovery around wait registration, invalid/excessive timer values and
+  tenant-scoped read visibility. Use fake clocks and real PostgreSQL/processes.
+- Rollout: additive nullable step wait metadata/index, retention-guarded downgrade.
+  Restart workers with the new wake processor before publishing delay graphs;
+  old pinned deterministic workflows remain supported. Past explicit timestamps
+  are immediately due; future timestamps are bounded to seven days at registration.
+- Implemented bounded duration/aware-timestamp delay configuration, UTC wake
+  metadata and generic step read fields. Timer registration completes its attempt
+  and job atomically while the logical step/run wait. The worker's bounded wake
+  processor serializes due waits, retains metadata, commits selected outgoing
+  edges and one continuation, and expires waiting runs at their overall deadline.
+  Cancellation suppresses wakeup, and existing local checkpoints can hand off to
+  workers without leaving false job errors.
+- Validation: initial delay suite passed **21 tests**. The broader command
+  `uv run --directory apps/api pytest tests/test_durable_delays.py tests/test_execution_cancellation.py tests/test_durable_queue.py tests/test_worker_leases.py tests/test_retry_runtime.py tests/test_graph_interpreter.py tests/test_workflow_graph.py tests/test_execution_records.py -q --tb=short`
+  passed **121 tests** using real disposable PostgreSQL and existing subprocess
+  recovery fixtures. Pre-commit review added a UTC-overflow guard; the focused
+  `tests/test_durable_delays.py -k excessive` rerun passed both timestamp boundary
+  cases. `ruff check src tests alembic/versions/f079_durable_delays.py`, migration
+  upgrade, Compose config and `git diff --check` passed. Existing TestClient/httpx
+  deprecation warning remains non-blocking.
+- Persistence checks cover migration downgrade/reapply and old-row compatibility,
+  retained wait history, enqueue rollback, duplicate wake processing, worker
+  restart after committed registration, expired pre-registration ownership,
+  fake-clock no-early-wake, cancellation, and deadlines without active jobs.
+- Limitations: delay outputs are empty objects; past timestamps are immediately
+  due. A normal worker service polls for due waits; `--drain` exits when current
+  runnable work ends, leaving future waits durable for a later worker. These are
+  local/process fixtures, not hosted deployment evidence.
+- Implementation commit, pushed CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

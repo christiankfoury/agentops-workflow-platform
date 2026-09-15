@@ -321,7 +321,7 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                     db,
                     run,
                     claim,
-                    terminal_job_status(run.status),
+                    "completed" if run.status == "waiting" else terminal_job_status(run.status),
                     run.error_code,
                 )
 
@@ -334,9 +334,9 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                         db,
                         run,
                         claim,
-                        terminal_job_status(run.status),
+                        "completed" if run.status == "waiting" else terminal_job_status(run.status),
                         None
-                        if run.status == "completed"
+                        if run.status in {"completed", "waiting"}
                         else (run.error_code or "checkpoint_not_ready"),
                     )
             return True

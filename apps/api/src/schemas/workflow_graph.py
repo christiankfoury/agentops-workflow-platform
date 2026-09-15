@@ -2,9 +2,20 @@
 
 import json
 import uuid
+from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictInt, StrictStr, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
 NodeID = Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")]
 DataType = Literal["object", "array", "string", "integer", "number", "boolean", "null"]
@@ -203,7 +214,21 @@ class ParallelConfig(GraphModel):
 
 
 class DelayConfig(GraphModel):
-    seconds: float = Field(ge=0, le=604800)
+    seconds: float | None = Field(default=None, ge=0, le=604800, strict=True)
+    wake_at: AwareDatetime | None = None
+
+    @field_validator("wake_at", mode="before")
+    @classmethod
+    def timestamp_format(cls, value):
+        if value is not None and not isinstance(value, (str, datetime)):
+            raise ValueError("wake_at must be a timezone-aware timestamp")
+        return value
+
+    @model_validator(mode="after")
+    def one_timer(self):
+        if (self.seconds is None) == (self.wake_at is None):
+            raise ValueError("Delay requires exactly one duration or timezone-aware wake_at")
+        return self
 
 
 class LLMNode(BaseNode):
@@ -289,6 +314,7 @@ class WorkflowGraph(GraphModel):
         if isinstance(value, dict):
             if type(value.get("schema_version", 1)) is not int:
                 raise ValueError("schema_version must be an integer")
+
             def depth(item, level=0):
                 if level > 32:
                     raise ValueError("Graph nesting exceeds 32 levels")

@@ -45,6 +45,8 @@ class StepRunRead(ExecutionFieldsRead):
     iteration: int
     idempotency_key: str
     next_attempt_at: datetime | None
+    waiting_reason: str | None
+    wake_at: datetime | None
 
 
 class StepAttemptRead(ExecutionFieldsRead):
