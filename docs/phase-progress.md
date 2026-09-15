@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 67 — User Identity and Organization Membership**.
+Current next implementation phase: **Phase 68 — Tenant Ownership and Isolation**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phase 66 is complete; Phase 67 is in progress; Phases 68–105 remain planned.
+Phases 66–67 are complete; Phases 68–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +89,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 67: User Identity and Organization Membership
+### Phase 68: Tenant Ownership and Isolation
 
-Status: In progress — authorized implementation run.
+Status: Next — authorized implementation run.
 
-Scope: verified identity, users, organizations, memberships, scoped service
-principals, and session/organization UI behind the public-deployment gate.
-See [the full phase entry](phases.md#phase-67-user-identity-and-organization-membership) for
+Scope: reversible legacy ownership backfill and isolation of business resources,
+nested reads, mutations, exports, aggregates, and scoped demo data.
+See [the full phase entry](phases.md#phase-68-tenant-ownership-and-isolation) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -105,7 +105,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | Phase | Status | Scope |
 | --- | --- | --- |
 | 66 | Complete | State Transition Invariants |
-| 67 | In progress | User Identity and Organization Membership |
+| 67 | Complete | User Identity and Organization Membership |
 | 68 | Planned — not started | Tenant Ownership and Isolation |
 | 69 | Planned — not started | Role Permissions and Approval Audit |
 | 70 | Planned — not started | Typed Workflow Graph Schema |
@@ -244,7 +244,18 @@ This is a status index; implementation details live only in `docs/phases.md`.
   stay outside request bodies to avoid validation-error echo; cookies store opaque
   sessions; membership/disablement is server-authoritative. Public identity rollout
   and operation-specific service scopes remain gated on Phases 68–69.
-- Implementation commit/push/CI and post-push review: pending; phase is not complete.
+- Implementation commit: `2f926cd2985564c946af3f731e194394aaee0251`, pushed to main.
+  [CI run 34937076289](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34937076289)
+  passed API (fresh migration, tests, lint, audit), Web, and Docker Compose.
+- Post-push review: checked fixed issuer/audience/algorithm validation, authoritative
+  identity and membership lookup, disabled accounts, service organization boundaries,
+  session hashing/expiry/revocation, state/nonce/PKCE, secret handling and migration
+  compatibility. No blocking findings; no fix commit required.
+- Completion: Phase 67 complete. Final provisioning adjustment passed 18 identity
+  tests, lint and typecheck; final account rendering is dynamic and passed CI build.
+  Public deployment and operation-specific scope enforcement remain gated for
+  Phases 68–69. No live identity provider or hosted authentication is claimed.
+  Final documentation record is pushed separately; wait for its CI before Phase 68.
 
 When a future phase starts, add a record here using these fields:
 
