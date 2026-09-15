@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 78 — Durable Cancellation**.
+Current next implementation phase: **Phase 79 — Durable Delay Steps**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–77 are complete; Phase 78 is in progress; Phases 79–105 remain planned.
+Phases 66–78 are complete; Phases 79–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -116,7 +116,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
 | 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
 | 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
-| 78 | In progress | Durable Cancellation |
+| 78 | Complete | Durable cancellation intent/API, atomic work termination, I/O abort hooks and late-result fencing; CI/review passed. |
 | 79 | Planned — not started | Durable Delay Steps |
 | 80 | Planned — not started | Durable Approval Steps and Resume |
 | 81 | Planned — not started | Parallel Branches and Joins |
@@ -865,7 +865,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   actions can remain uncertain; later effect-ledger/tool adapters must reconcile
   them rather than infer non-delivery from a cancelled attempt. Only controllable
   fixture I/O was exercised; no live provider or hosted deployment claimed.
-- Implementation commit, pushed CI and post-push review: pending.
+- Implementation commit: `c6c440199526bcd5d05f071b66392193b2709e4a`, pushed to main.
+  [CI run 35023922575](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35023922575)
+  passed API, Web and Docker Compose, including full API tests and dependency audits.
+- Post-push review checked decision-time membership/service scope, minimal response
+  boundaries, execution-first claim locks, atomic rollback, cancel-versus-success
+  and recovery ordering, no downstream enqueue after cancellation, pre-I/O checks,
+  cooperative abort failure isolation, migration compatibility and immutable partial
+  history. No actionable blocking findings; no separate fix commit required.
+- Completion: Phase 78 complete. Final record is pushed separately; finish its CI
+  before starting Phase 79. Physical reversal of remote effects is not guaranteed.
 
 When a future phase starts, add a record here using these fields:
 
