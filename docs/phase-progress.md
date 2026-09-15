@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 72 — Generic Step Runs and Attempts**.
+Current next implementation phase: **Phase 73 — Idempotent Generic Run Starts**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–71 are complete; Phase 72 is in progress; Phases 73–105 remain planned.
+Phases 66–72 are complete; Phases 73–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +89,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 72: Generic Step Runs and Attempts
+### Phase 73: Idempotent Generic Run Starts
 
-Status: In progress — authorized implementation run.
+Status: Next — authorized implementation run; waiting for Phase 72 record CI.
 
-Scope: version-bound generic run, step and attempt records, centralized lifecycle
-transitions and compatibility reads for historical agent traces.
-See [the full phase entry](phases.md#phase-72-generic-step-runs-and-attempts) for
+Scope: atomic tenant-scoped start keys and canonical request fingerprints,
+version resolution, input validation and gated pending execution creation.
+See [the full phase entry](phases.md#phase-73-idempotent-generic-run-starts) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -110,7 +110,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 69 | Complete | Role Permissions and Approval Audit; fix, CI and review passed. |
 | 70 | Complete | Typed Workflow Graph Schema; fix, CI and review passed. |
 | 71 | Complete | Workflow Definitions and Immutable Versions; fix, CI and review passed. |
-| 72 | In progress | Generic Step Runs and Attempts |
+| 72 | Complete | Generic Step Runs and Attempts; fix, CI and review passed. |
 | 73 | Planned — not started | Idempotent Generic Run Starts |
 | 74 | Planned — not started | Deterministic Graph Interpreter |
 | 75 | Planned — not started | Transactional Durable Job Queue |
@@ -526,8 +526,14 @@ This is a status index; implementation details live only in `docs/phases.md`.
   output/history from updates even inside a later authorized run transaction.
   Fix validation: `pytest tests/test_execution_records.py
   tests/test_workflow_transactions_postgres.py -q --tb=short` with PostgreSQL
-  passed **28 tests**; API lint and diff checks passed. Fix commit/push/CI and
-  follow-up review pending.
+  passed **28 tests**; API lint and diff checks passed.
+- Fix commit: `ad09eb0494920679a745fa546f4ea1fa395ccdbb`, pushed to main.
+  [CI run 35008525314](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35008525314)
+  passed API, Web and Docker Compose. Follow-up review checked parent activation,
+  terminal data preservation, atomic nested transitions, and legacy compatibility;
+  no unresolved blocking findings remain.
+- Completion: Phase 72 complete. Final record is pushed separately; finish its
+  CI before Phase 73. No generic starts, queue, provider or deployment claimed.
 
 When a future phase starts, add a record here using these fields:
 
