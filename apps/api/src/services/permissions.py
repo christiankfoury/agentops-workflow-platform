@@ -109,6 +109,10 @@ def request_action(method: str, path: str) -> str:
             return "membership.manage"
         return "export" if "/export/" in path else "read"
     prefix = path.split("/")[1]
+    if prefix == "workflow-executions":
+        return (
+            "workflow.start" if path.rstrip("/") == "/workflow-executions" else "workflow.control"
+        )
     if prefix == "workflow-definitions":
         if path.rstrip("/").endswith(("/publish", "/archive")):
             return "workflow.publish"

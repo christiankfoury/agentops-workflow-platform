@@ -169,7 +169,8 @@ diffs. Generic execution remains planned; runtime capability checks reject all
 unavailable primitives independently of schema acceptance/publication.
 Phase 72 adds [generic execution records](EXECUTION_RECORDS.md) and read APIs,
 sharing the revision-checked transition authority with existing business runs.
-The generic records have no start/dispatch/worker path yet.
+Phase 73 adds atomic tenant-scoped idempotent pending starts. Unavailable executors
+remain blocked; generic dispatch and workers are still planned.
 
 ## Agent Execution Pattern
 

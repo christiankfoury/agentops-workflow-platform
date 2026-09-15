@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–72 are complete; Phases 73–105 remain planned.
+Phases 66–72 are complete; Phase 73 is in progress; Phases 74–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 73: Idempotent Generic Run Starts
 
-Status: Next — authorized implementation run; waiting for Phase 72 record CI.
+Status: In progress — authorized implementation run.
 
 Scope: atomic tenant-scoped start keys and canonical request fingerprints,
 version resolution, input validation and gated pending execution creation.
@@ -111,7 +111,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 70 | Complete | Typed Workflow Graph Schema; fix, CI and review passed. |
 | 71 | Complete | Workflow Definitions and Immutable Versions; fix, CI and review passed. |
 | 72 | Complete | Generic Step Runs and Attempts; fix, CI and review passed. |
-| 73 | Planned — not started | Idempotent Generic Run Starts |
+| 73 | In progress | Idempotent Generic Run Starts |
 | 74 | Planned — not started | Deterministic Graph Interpreter |
 | 75 | Planned — not started | Transactional Durable Job Queue |
 | 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
@@ -535,6 +535,44 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 72 complete. Final record is pushed separately; finish its
   CI before Phase 73. No generic starts, queue, provider or deployment claimed.
 
+### Phase 73 — Idempotent Generic Run Starts (2026-09-15)
+
+- Dependency gate: Phase 72 record `d870fcf31079b57aa828a76a37b7c5aee09e5cdc`
+  pushed; [CI run 35008772253](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35008772253)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected execution initialization/immutability, tenant transactions, published
+  pointer/archive locking, graph data validation and unavailable-executor gate.
+- Plan: an immutable tenant-scoped start receipt with canonical request hash and
+  execution link; create receipt, pending execution, event and actor audit in one
+  transaction. Add POST start with explicit/latest version resolution and retain
+  the original accepted version across publication changes and request retries.
+- Acceptance: independent-session duplicate starts, changed input/version conflicts,
+  separate tenant key reuse, rollback without orphaned records, missing/archived/
+  unavailable versions, invalid inputs, unauthorized starts and receipt retention.
+- Rollout: additive receipt table; keys retained for the execution's lifetime with
+  no expiry/reuse or purge API. No dispatch/queue yet; default unavailable-executor
+  gate blocks real starts. Deterministic test capability fixtures exercise pending
+  persistence; actual code/condition/transform executors arrive in Phase 74.
+- Implementation: immutable tenant-scoped start receipts, canonical fingerprints,
+  POST pending-start API, locked version resolution and atomic execution/event/
+  audit acceptance. Retried requests retain their accepted version after publish
+  or archive; changed requests conflict. Version reads refresh archival state.
+- Initial validation: **6 focused start tests** passed with PostgreSQL, including
+  concurrent duplicates, changed-request conflicts, independent tenant keys,
+  rollback and receipt migration/immutability. API/migration lint passed; upgrade
+  head passed on the disposable database. Added concurrent archive/cache coverage
+  and broadened version, execution and authorization regression checks.
+- Local review: checked stable request fingerprints, tenant boundaries, atomic
+  duplicate resolution and archive locking. The uniqueness-race recovery path
+  also rolls back its read transaction on failed replay. No queue/dispatch,
+  provider call or deployment is claimed.
+- Validation: `pytest tests/test_execution_starts.py tests/test_workflow_definitions.py
+  tests/test_execution_records.py tests/test_permissions_audit.py -q --tb=short`
+  with PostgreSQL passed **57 tests**. The final rollback refinement separately
+  passed all **7 start tests**. API/migration lint, upgrade head and staged diff
+  checks passed; fresh/downgrade/reapply and receipt retention checks passed.
+- Commit, push, CI and post-push review pending.
+
 When a future phase starts, add a record here using these fields:
 
 - Phase and authorized target range.
@@ -546,10 +584,10 @@ When a future phase starts, add a record here using these fields:
 - Fix commit IDs, validation, push status, and follow-up review, if needed.
 - Completion decision, remaining limitations, and next phase eligibility.
 
-No new implementation commits, pushes, tests, deployment results, or completed
-phases are claimed by this planning update. Documentation validation checks
-feature coverage, numbering, dependencies, links, and consistency with the inspected
-code. The future delivery loop is plan → implement → validate → commit → push →
+The 2026-09-14 planning update did not claim implementation commits, pushes, tests,
+deployment results or completed expansion phases. Its documentation checks covered
+feature coverage, numbering, dependencies, links and consistency with inspected
+code. The active delivery loop is plan → implement → validate → commit → push →
 review → fix/revalidate/commit/push/review as needed.
 
 ## Last Known Validation Pattern

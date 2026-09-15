@@ -34,7 +34,7 @@ def version(db, definition_id, identity):
         select(WorkflowVersion).where(
             WorkflowVersion.id == identity,
             WorkflowVersion.definition_id == definition_id,
-        )
+        ).execution_options(populate_existing=True)
     )
     if item is None:
         raise HTTPException(404, "Workflow version not found")

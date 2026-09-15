@@ -1,8 +1,8 @@
 # Generic execution records
 
-Phase 72 adds persistence, centralized lifecycle transitions and read APIs. It
-does not accept starts, interpret graphs, enqueue jobs or call providers. Those
-boundaries follow in Phases 73–75 and the primitive implementation phases.
+Phase 72 adds persistence, centralized lifecycle transitions and read APIs.
+Phase 73 adds the idempotent pending-start contract below. Graph interpretation,
+queueing and provider calls follow in later phases.
 
 ## Identity and history
 
@@ -64,3 +64,34 @@ Migration rollback refuses to discard generic execution history when it exists.
 `tests/test_execution_records.py` uses independent PostgreSQL sessions for races,
 checks state/output/event rollback, logical uniqueness, optional metadata, version
 pinning, tenant reads and complete historical-row preservation across migration.
+
+## Idempotent starts (Phase 73)
+
+`POST /workflow-executions` accepts `definition_id`, optional `version_id`, object
+`input` and a required `idempotency_key` (1–128 ASCII letters/digits or `._:-`).
+Operators/admins with `workflow.start` permission may start. HTTP 200 returns the
+same execution for both first acceptance and identical request retries. Input
+must satisfy the pinned graph's strict schema and bounded JSON payload contract.
+
+The server fingerprints the canonical JSON of the requested definition, version
+selection and input. Object-key order is ignored; JSON numeric representations
+remain distinct. The key is unique within an organization, across definitions
+and callers. Reusing it with a changed request returns 409. A client must generate
+one key per intended start and retain it across network retries.
+
+The first acceptance resolves the published pointer while holding the definition
+lock, or uses an explicit version belonging to that definition. Receipt, execution,
+initial event and authenticated audit commit together. Duplicate attempts cannot
+leave orphaned executions. A receipt retry returns its original execution even
+after a newer publication or archival; a new key cannot start an archived version.
+
+Receipts remain immutable for the full retained execution history. There is no
+expiry, key reuse or purge API; therefore there is no expired-key fallback that
+could silently create another run. Different organizations may reuse the same key.
+Migration downgrade refuses to discard receipts once they exist.
+
+Phase 73 retains the unavailable-executor gate: no generic executors are installed
+yet, so production requests cannot create runnable work. Deterministic capability
+fixtures test pending starts only. Phase 74 installs real deterministic executors;
+Phase 75 adds atomic job enqueue and asynchronous acceptance. No in-process
+background dispatch is used by this endpoint.
