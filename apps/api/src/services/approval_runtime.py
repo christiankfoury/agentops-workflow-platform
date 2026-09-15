@@ -257,8 +257,15 @@ def decide_approval(db, identity, body):
                 )
                 if body.action == "approve" and high:
                     authorize(db, "approval.override", lock=True)
+                from src.services.quality_revisions import human_retry_policy, restart
+
+                graph = graph_for(db, run)
+                quality_retry = body.action == "request_retry" and human_retry_policy(
+                    run, graph, step
+                )
                 if (
                     body.action == "request_retry"
+                    and not quality_retry
                     and step.iteration >= node.config.max_review_retries
                 ):
                     raise HTTPException(
@@ -315,7 +322,19 @@ def decide_approval(db, identity, body):
                             deepcopy(item.payload_json) if body.action == "approve" else None
                         )
                         transition(db, run, step, "completed")
-                        if body.action == "request_retry":
+                        if quality_retry:
+                            restart(
+                                db,
+                                run,
+                                graph,
+                                {
+                                    "review": item.review_json,
+                                    "human_feedback": body.human_feedback,
+                                    "edited_payload": item.payload_json,
+                                },
+                                human=True,
+                            )
+                        elif body.action == "request_retry":
                             retry = {
                                 "node_id": step.node_id,
                                 "iteration": step.iteration + 1,

@@ -53,11 +53,12 @@ def get_agent_runtime_config(
     agent_type: AgentType,
     *,
     default_max_tokens: int = DEFAULT_MAX_TOKENS,
+    prompt_override: PromptVersion | None = None,
 ) -> AgentRuntimeConfig:
     setting = (
         db.query(AgentSetting).filter(AgentSetting.agent_type == agent_type).first()
     )
-    prompt = _resolve_prompt(db, agent_type, setting)
+    prompt = prompt_override or _resolve_prompt(db, agent_type, setting)
     return AgentRuntimeConfig(
         prompt=prompt,
         model=setting.model if setting is not None else settings.openai_model,

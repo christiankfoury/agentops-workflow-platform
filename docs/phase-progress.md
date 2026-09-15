@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–81 are complete; Phases 82–105 remain planned.
+Phases 66–81 are complete; Phase 82 is in progress; Phases 83–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -120,7 +120,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 79 | Complete | Persisted UTC waits, bounded wake processor, atomic continuation and cancellation/deadline integration; CI/review passed. |
 | 80 | Complete | Immutable approval snapshots, authorized decisions, superseding edits and bounded durable resume; CI/review passed. |
 | 81 | Complete | Parallel Branches and Joins |
-| 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
+| 82 | In progress | LLM Executor and Bounded Quality Revisions |
 | 83 | Planned — not started | Sales Workflow Template Migration |
 | 84 | Planned — not started | Customer Feedback Template Migration |
 | 85 | Planned — not started | Incident Template and Evaluation Compatibility |
@@ -1058,6 +1058,60 @@ This is a status index; implementation details live only in `docs/phases.md`.
   eligible after this final record is pushed and its CI passes. No external
   providers or hosted deployment were exercised. Parallel execution requires
   upgraded durable workers; existing retention and at-least-once I/O limits apply.
+
+### Phase 82 — LLM Executor and Bounded Quality Revisions (2026-09-15)
+
+- Dependency gate: Phase 81 record `ea64f978d1fab7466bf00d007e645f9bf067f9c3`
+  pushed; [CI run 35033116582](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35033116582)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected prompt publication snapshots, agent settings resolution, structured
+  output guardrails, provider timeout/retry options, cost estimates, generic
+  attempts/events, targeted jobs and approval payload/retry fencing.
+- Plan: pin per-node runtime configuration at acceptance, including published
+  prompt, explicit or selected agent settings, schemas and pricing estimates.
+  Add a generic LLM executor using the existing client with SDK retries disabled,
+  bounded schema repair, abort/deadline handling and accounting for every returned
+  provider response. Persist usage/cost/repair metadata with fenced attempts/events.
+- Quality revisions: explicitly declare the entry-to-review region and its human
+  escalation approval. Track quality iteration and feedback independently of
+  infrastructure attempts; restart only the declared region, re-evaluate its
+  continuation, preserve sibling/prefix outputs and invalidate superseded approvals.
+  Route exhausted or non-retryable quality failures to the declared human gate;
+  downstream writer bindings consume approved/human-edited outputs.
+- Acceptance: provider fixtures cover schema repair/failure, usage, SDK retry
+  coordination, timeout/abort, immutable paused-run settings, quality bounds,
+  re-review, stale approval rejection and approved writer inputs. No paid calls
+  or new credentials are required for automated validation.
+- Rollout: additive immutable execution configuration snapshot; old deterministic
+  runs retain empty snapshots. Update workers together with migration. Keep
+  legacy business APIs working; template migration belongs to Phases 83–85.
+  The LLM, revision lifecycle and regression fixtures may exceed 700 lines as one
+  complete phase.
+- Implemented immutable run configuration with ORM/SQL guards and migration
+  `f082_execution_config`; opt-in agent settings resolution; generic LLM execution
+  through the existing provider client; bounded JSON/schema/reviewer repair;
+  typed provider failures, abort/timeout handling and per-response usage/cost events.
+  Added targeted quality iterations, bounded human retries, forced escalation,
+  preserved feedback/edits and independent sibling/prefix history. Runtime and
+  rollout details are in [LLM execution](LLM_EXECUTION.md).
+- Local validation used disposable PostgreSQL and credential-free provider fixtures:
+  `pytest tests/test_execution_config.py tests/test_graph_interpreter.py tests/test_workflow_definitions.py tests/test_execution_starts.py -q --tb=short`
+  passed **32 tests** after correcting a test schema import. The broader command
+  `pytest tests/test_workflow_graph.py tests/test_durable_queue.py tests/test_worker_leases.py tests/test_retry_runtime.py tests/test_execution_cancellation.py tests/test_durable_delays.py tests/test_execution_approvals.py tests/test_parallel_runtime.py tests/test_parallel_recovery.py tests/test_quality_revisions.py tests/test_llm_execution.py tests/test_execution_config.py -q --tb=short`
+  passed **167 tests**. Final focused LLM/quality/settings/client/guardrail validation
+  (`test_llm_execution.py test_quality_revisions.py test_agent_settings_api.py test_llm_client.py test_structured_output_guardrails.py`)
+  passed **48 tests**; the additional impossible-review-schema rejection case
+  passed separately. All pytest commands used `uv run --directory apps/api`.
+  Ruff, `alembic upgrade head`, Compose configuration and diff checks passed.
+  Existing TestClient deprecation warning remains. No paid provider request,
+  credential change or hosted deployment was performed.
+- Pre-push review checked configuration pinning, tenant-scoped settings, provider
+  schema compatibility, SDK/engine retry separation, returned usage preservation,
+  terminal fencing, iteration bounds, human-edited writer input and retained
+  migration history. Hardened reviewer contract validation before provider I/O.
+  No unresolved finding. Approximately 1,600 changed lines include more than 680
+  new test lines; provider execution, quality lifecycle and their evidence remain
+  one phase-scoped unit. Push, CI and post-push review are pending.
 
 When a future phase starts, add a record here using these fields:
 

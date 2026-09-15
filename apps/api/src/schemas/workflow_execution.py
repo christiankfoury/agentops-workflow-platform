@@ -30,6 +30,7 @@ class ExecutionRead(ExecutionFieldsRead):
     created_by_user_id: uuid.UUID | None
     state_revision: int
     checkpoint_json: dict
+    runtime_config: dict
     deadline_at: datetime | None
     cancel_requested: bool
     cancel_requested_at: datetime | None

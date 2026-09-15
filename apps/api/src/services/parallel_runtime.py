@@ -6,6 +6,7 @@ from src.models.workflow_execution import TERMINAL, StepAttempt, StepRun
 from src.services.execution_records import add_step
 from src.services.graph_expressions import ExecutionError, resolve_bindings
 from src.services.parallel_graph import branch_paths
+from src.services.quality_revisions import iteration_for
 from src.services.workflow_state import transition_execution_entity as transition
 
 
@@ -66,11 +67,14 @@ def schedule_parallel(db, run):
             if key != graph.entry_node and any(edge not in edges for edge in incoming):
                 continue
             if key == graph.entry_node or any(edges[edge] == "selected" for edge in incoming):
-                if (key, 0) not in targets:
-                    ready.append((node, 0, None))
+                iteration = iteration_for(run, graph, key)
+                if (key, iteration) not in targets:
+                    ready.append((node, iteration, None))
                 del remaining[key]
                 continue
-            step = add_step(db, run, key, branch=paths[key])
+            step = add_step(
+                db, run, key, branch=paths[key], iteration=iteration_for(run, graph, key)
+            )
             transition(db, run, step, "skipped")
             rows[key] = step
             for i, edge in enumerate(graph.edges):

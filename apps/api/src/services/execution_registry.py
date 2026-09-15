@@ -12,10 +12,14 @@ from src.services.graph_validation import invalid
 class NodeResult:
     output: dict
     route: str | None = None
+    llm_metadata: dict | None = None
 
 
 class ExecutorRegistry:
     def __init__(self):
+        from src.services.llm_execution import client_factory
+
+        self.llm_factory = client_factory
         self.handlers = {("builtin.identity", 1): deepcopy}
         self.controlled_handlers = {}
         self.executors = {
@@ -27,8 +31,13 @@ class ExecutorRegistry:
 
     def validate(self, graph):
         # Delay checkpoints are registered transactionally, without an I/O executor.
-        validate_types(graph, {*self.executors, "delay", "approval"})
+        from src.services.quality_revisions import validate_policy
+
+        validate_types(graph, {*self.executors, "delay", "approval", "llm"}, quality_revisions=True)
+        validate_policy(graph)
         for index, node in enumerate(graph.nodes):
+            if node.type == "llm" and node.output_schema.types != {"object"}:
+                invalid(("nodes", index, "output_schema"), "LLM output must be a non-null object")
             if (
                 node.type == "code"
                 and (node.config.handler, node.config.version) not in self.handlers

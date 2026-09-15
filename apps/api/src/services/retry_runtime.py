@@ -10,6 +10,13 @@ from src.services.execution_records import pinned_node
 from src.services.workflow_state import transition_execution_entity as transition
 
 PERMANENT_ERRORS = {
+    "provider_rejected",
+    "provider_refused",
+    "provider_incomplete",
+    "provider_response_invalid",
+    "configuration_missing",
+    "review_invalid",
+    "quality_revision_busy",
     "binding_missing",
     "input_invalid",
     "output_invalid",

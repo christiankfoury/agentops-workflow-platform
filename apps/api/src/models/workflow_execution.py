@@ -63,6 +63,7 @@ class WorkflowExecution(ExecutionFields, TenantOwned, Base):
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     state_revision: Mapped[int] = mapped_column(Integer, default=0)
     checkpoint_json: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+    runtime_config: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -142,6 +143,7 @@ def preserve_execution_identity(db, _context, _instances):
             "created_by_user_id",
             "business_type",
             "run_mode",
+            "runtime_config",
         ),
         StepRun: ("execution_id", "node_id", "step_type", "branch", "iteration", "idempotency_key"),
         StepAttempt: ("step_run_id", "number", "idempotency_key"),

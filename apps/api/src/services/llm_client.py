@@ -32,6 +32,16 @@ class StructuredResponse:
     data: Any
     model: str
     usage: LLMUsage
+    refusal: str | None = None
+    finish_reason: str | None = None
+
+
+class StructuredDecodeError(json.JSONDecodeError):
+    """Retain returned usage even when the provider's JSON cannot be decoded."""
+
+    def __init__(self, error, response):
+        super().__init__(error.msg, error.doc, error.pos)
+        self.response = response
 
 
 class LLMClient:
@@ -54,6 +64,9 @@ class LLMClient:
             max_retries=max_retries,
         )
         self.default_model = default_model
+
+    def close(self):
+        self._client.close()
 
     def generate_text(
         self,
@@ -104,8 +117,8 @@ class LLMClient:
     ) -> StructuredResponse:
         """Send a chat completion request and return a JSON-parsed response.
 
-        The schema must be a valid JSON Schema object. The API guarantees the
-        response text is valid JSON conforming to the schema.
+        Callers validate the returned object against their schema and handle refusals,
+        truncated or malformed output explicitly.
         """
         request_messages = list(messages)
         if system is not None:
@@ -129,12 +142,20 @@ class LLMClient:
         if timeout is not None or max_retries is not None:
             client = self._client.with_options(timeout=timeout, max_retries=max_retries)
         response = client.chat.completions.create(**kwargs)
-        text = response.choices[0].message.content or "{}"
-        return StructuredResponse(
-            data=json.loads(text),
+        choice = response.choices[0]
+        text = choice.message.content or "{}"
+        result = StructuredResponse(
+            data=None,
             model=response.model,
             usage=LLMUsage(
                 input_tokens=response.usage.prompt_tokens,
                 output_tokens=response.usage.completion_tokens,
             ),
+            refusal=choice.message.refusal if isinstance(choice.message.refusal, str) else None,
+            finish_reason=choice.finish_reason if isinstance(choice.finish_reason, str) else None,
         )
+        try:
+            result.data = json.loads(text)
+        except json.JSONDecodeError as error:
+            raise StructuredDecodeError(error, result) from error
+        return result

@@ -12,6 +12,7 @@ from src.models.workflow_execution import ExecutionEvent, WorkflowExecution
 from src.schemas.workflow_graph import WorkflowGraph
 from src.services.audit import record_audit
 from src.services.durable_queue import enqueue
+from src.services.execution_config import snapshot_config
 from src.services.execution_records import execution
 from src.services.graph_validation import validate_data
 from src.services.permissions import authorize
@@ -67,6 +68,7 @@ def start_execution(db, body):
             version_id=selected.id,
             input_json=body.input,
             created_by_user_id=principal.user_id,
+            runtime_config=snapshot_config(db, selected, graph),
             deadline_at=db.scalar(select(func.clock_timestamp()))
             + timedelta(
                 seconds=graph.overall_timeout_seconds,

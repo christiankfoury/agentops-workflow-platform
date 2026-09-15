@@ -94,9 +94,7 @@ class TestGenerateText:
     def test_model_override(self, mock_openai):
         mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
-        LLMClient(api_key="k").generate_text(
-            [{"role": "user", "content": "Hi"}], model="gpt-4.1"
-        )
+        LLMClient(api_key="k").generate_text([{"role": "user", "content": "Hi"}], model="gpt-4.1")
 
         kwargs = mock_openai.chat.completions.create.call_args[1]
         assert kwargs["model"] == "gpt-4.1"
@@ -112,9 +110,7 @@ class TestGenerateText:
     def test_max_tokens_passed_through(self, mock_openai):
         mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
-        LLMClient(api_key="k").generate_text(
-            [{"role": "user", "content": "Hi"}], max_tokens=512
-        )
+        LLMClient(api_key="k").generate_text([{"role": "user", "content": "Hi"}], max_tokens=512)
 
         kwargs = mock_openai.chat.completions.create.call_args[1]
         assert kwargs["max_completion_tokens"] == 512
@@ -122,9 +118,7 @@ class TestGenerateText:
     def test_temperature_passed_through(self, mock_openai):
         mock_openai.chat.completions.create.return_value = _mock_response("ok")
 
-        LLMClient(api_key="k").generate_text(
-            [{"role": "user", "content": "Hi"}], temperature=0.2
-        )
+        LLMClient(api_key="k").generate_text([{"role": "user", "content": "Hi"}], temperature=0.2)
 
         kwargs = mock_openai.chat.completions.create.call_args[1]
         assert kwargs["temperature"] == 0.2
@@ -149,6 +143,19 @@ class TestGenerateStructured:
         "required": ["name"],
         "additionalProperties": False,
     }
+
+    def test_structured_request_disables_sdk_retries_and_keeps_returned_metadata(self, mock_openai):
+        request_client = MagicMock()
+        response = _mock_response('{"name": "Alice"}')
+        response.choices[0].finish_reason = "length"
+        response.choices[0].message.refusal = None
+        request_client.chat.completions.create.return_value = response
+        mock_openai.with_options.return_value = request_client
+        result = LLMClient(api_key="fixture").generate_structured(
+            [], self.SCHEMA, timeout=5, max_retries=0
+        )
+        mock_openai.with_options.assert_called_once_with(timeout=5, max_retries=0)
+        assert result.finish_reason == "length" and result.usage.total_tokens == 30
 
     def test_returns_structured_response(self, mock_openai):
         mock_openai.chat.completions.create.return_value = _mock_response('{"name": "Alice"}')

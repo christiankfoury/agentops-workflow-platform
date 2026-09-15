@@ -122,5 +122,6 @@ Checkpoint migration rollback refuses to discard nonempty checkpoint data.
 
 Durable delays, approvals and parallel regions are available through Phases 79–81.
 See [durable queue](DURABLE_QUEUE.md) for parallel ownership and joins.
-LLM/tool executors and bounded quality revisions remain unavailable until their
-respective phases. Infrastructure retries use the Phase 77 durable scheduler.
+Phase 82 adds [LLM execution and bounded quality revisions](LLM_EXECUTION.md).
+Tool execution follows in its respective phases. Infrastructure retries use the
+Phase 77 durable scheduler.

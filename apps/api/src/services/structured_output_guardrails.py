@@ -11,6 +11,22 @@ class StructuredOutputRepairError(Exception):
     pass
 
 
+def repair_messages(messages, data, error):
+    return [
+        *messages,
+        {
+            "role": "user",
+            "content": (
+                "The previous structured output failed schema validation. "
+                "Return a corrected JSON object that strictly matches the schema. "
+                "Do not add keys outside the schema.\n\n"
+                f"Validation error:\n{str(error)[:4000]}\n\n"
+                f"Invalid output:\n{str(data)[:16000]}"
+            ),
+        },
+    ]
+
+
 class StructuredLLMClientLike(Protocol):
     def generate_structured(
         self,
@@ -40,19 +56,7 @@ def validate_or_repair_structured_response[ModelT: BaseModel](
         repair_kwargs = dict(request_kwargs or {})
         repair_kwargs.setdefault("max_tokens", max_tokens)
         repair_response = llm_client.generate_structured(
-            messages=[
-                *messages,
-                {
-                    "role": "user",
-                    "content": (
-                        "The previous structured output failed schema validation. "
-                        "Return a corrected JSON object that strictly matches the schema. "
-                        "Do not add keys outside the schema.\n\n"
-                        f"Validation error:\n{first_error}\n\n"
-                        f"Invalid output:\n{response.data}"
-                    ),
-                },
-            ],
+            messages=repair_messages(messages, response.data, first_error),
             system=system,
             schema=schema,
             **repair_kwargs,
@@ -61,6 +65,5 @@ def validate_or_repair_structured_response[ModelT: BaseModel](
             return output_model.model_validate(repair_response.data), repair_response
         except ValidationError as second_error:
             raise StructuredOutputRepairError(
-                "Structured output failed validation after repair attempt: "
-                f"{second_error}"
+                f"Structured output failed validation after repair attempt: {second_error}"
             ) from second_error

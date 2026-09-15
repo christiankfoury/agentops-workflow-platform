@@ -156,6 +156,8 @@ class LLMConfig(GraphModel):
     model: str = Field(min_length=1, max_length=100)
     max_tokens: int = Field(default=2048, ge=1, le=32768)
     temperature: float | None = Field(default=None, ge=0, le=2)
+    use_agent_settings: bool = False
+    max_schema_repairs: int = Field(default=1, ge=0, le=2, strict=True)
 
 
 class CodeConfig(GraphModel):
@@ -295,7 +297,8 @@ class QualityRevisionPolicy(GraphModel):
     entry_node: NodeID
     review_node: NodeID
     nodes: list[NodeID] = Field(min_length=2, max_length=30)
-    max_revisions: int = Field(ge=1, le=5)
+    max_revisions: int = Field(ge=1, le=5, strict=True)
+    approval_node: NodeID | None = None
 
 
 class WorkflowGraph(GraphModel):

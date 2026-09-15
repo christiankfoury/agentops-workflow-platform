@@ -57,8 +57,9 @@ It exposes no public port. Production packaging follows in Phase 100.
 Unexpected worker exceptions are logged by class without copying sensitive
 exception text. Expired interrupted claims are recovered as described below.
 Phase 77 adds [engine retries, backoff and deadlines](RETRIES_AND_DEADLINES.md).
-Phases 78–81 add cancellation, durable waits and parallel execution. LLM calls
-and external side effects arrive in later phases.
+Phases 78–81 add cancellation, durable waits and parallel execution. Phase 82 adds
+[LLM calls and bounded quality revisions](LLM_EXECUTION.md). External side effects
+arrive in later phases.
 
 The PostgreSQL tests in `tests/test_durable_queue.py` cover atomic acceptance,
 concurrent bounded claims, duplicate deliveries during and after execution,

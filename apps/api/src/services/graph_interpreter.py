@@ -17,6 +17,12 @@ from src.services.execution_registry import DEFAULT_REGISTRY, NodeResult
 from src.services.graph_expressions import ExecutionError, resolve_bindings
 from src.services.graph_validation import validate_data
 from src.services.parallel_graph import branch_paths, has_parallel
+from src.services.quality_revisions import (
+    affected_nodes,
+    after_review,
+    iteration_for,
+    revision_context,
+)
 from src.services.retry_runtime import expire_execution, fail_attempt, runtime_now
 from src.services.workflow_state import transition_execution_entity as transition
 from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
@@ -34,6 +40,8 @@ class WorkItem:
     deadline_at: datetime | None = None
     control: AbortSignal = field(default_factory=AbortSignal, compare=False, repr=False)
     parallel: bool = False
+    runtime_config: dict = field(default_factory=dict)
+    revision_context: dict = field(default_factory=dict)
 
 
 def graph_for(db, run):
@@ -47,13 +55,18 @@ def rows_for(db, run, graph=None):
     rows = db.scalars(
         select(StepRun).where(StepRun.execution_id == run.id).order_by(StepRun.iteration)
     ).all()
-    paths = branch_paths(graph or graph_for(db, run))
+    graph = graph or graph_for(db, run)
+    paths = branch_paths(graph)
+    affected = affected_nodes(graph)
     if any(
-        row.branch != paths.get(row.node_id) or (row.iteration != 0 and row.step_type != "approval")
+        row.branch != paths.get(row.node_id)
+        or (row.iteration != 0 and row.step_type != "approval" and row.node_id not in affected)
         for row in rows
     ):
         raise ExecutionError("unsupported_checkpoint", "Branch/revision execution is unavailable")
-    return {row.node_id: row for row in rows}
+    return {
+        row.node_id: row for row in rows if row.iteration >= iteration_for(run, graph, row.node_id)
+    }
 
 
 def context_for(run, rows):
@@ -124,7 +137,7 @@ def prepare_next(
     if run.status in TERMINAL or run.status in {"waiting", "retrying"}:
         return None
     graph = graph_for(db, run)
-    parallel = has_parallel(graph)
+    parallel = has_parallel(graph) or graph.quality_revision is not None
     registry.validate(graph)
     rows = rows_for(db, run, graph)
     resumable = [
@@ -237,6 +250,8 @@ def prepare_next(
                             context,
                             attempt.deadline_at,
                             parallel=parallel,
+                            runtime_config=deepcopy(run.runtime_config.get(node.id, {})),
+                            revision_context=revision_context(run, graph, node.id),
                         )
                 except (ExecutionError, ValidationError, ValueError) as error:
                     failure = (
@@ -267,8 +282,26 @@ def execute_work(work, registry=DEFAULT_REGISTRY):
     """No database session or lock crosses this boundary."""
     try:
         work.control.raise_if_aborted()
-        result = registry.execute(work.node, work.inputs, work.context, work.control)
+        if work.node.type == "llm":
+            from src.services.llm_execution import execute_llm
+
+            result = execute_llm(work, registry.llm_factory)
+        elif work.node.type == "condition" and "forced_route" in work.revision_context:
+            result = NodeResult({}, route=work.revision_context["forced_route"])
+        else:
+            result = registry.execute(work.node, work.inputs, work.context, work.control)
         work.control.raise_if_aborted()
+        if work.revision_context.get("quality_reviewer"):
+            from src.schemas.execution_approval import ApprovalReview
+
+            try:
+                ApprovalReview.model_validate(result.output)
+            except ValidationError as error:
+                failure = ExecutionError(
+                    "review_invalid", "Reviewer output violates the quality contract"
+                )
+                failure.llm_metadata = result.llm_metadata
+                raise failure from error
         validate_data(result.output, work.node.output_schema)
         WorkflowGraph.payload_bounds({"output": result.output})
         if work.node.type == "condition" and result.route not in {
@@ -318,6 +351,27 @@ def complete_work(
         ):
             raise StaleWorkflowError("Prepared step or attempt is no longer running")
         now = now or runtime_now(db)
+        metadata = (
+            getattr(error, "llm_metadata", None)
+            if error
+            else result.llm_metadata
+            if result
+            else None
+        )
+        if metadata:
+            from src.models.workflow_execution import ExecutionEvent
+
+            attempt.llm_metadata = deepcopy(metadata)
+            db.add(
+                ExecutionEvent(
+                    execution_id=run.id,
+                    entity_type="step_attempts",
+                    entity_id=attempt.id,
+                    from_status=attempt.status,
+                    to_status=attempt.status,
+                    details={"reason": "llm_usage", **metadata},
+                )
+            )
         if run.deadline_at and now >= run.deadline_at:
             error = ExecutionError("run_deadline", "Workflow deadline expired")
         elif attempt.deadline_at and now >= attempt.deadline_at:
@@ -354,12 +408,17 @@ def complete_work(
                     else {**regions[key], "status": "joined"}
                 )
                 run.checkpoint_json = {**run.checkpoint_json, "parallel_regions": regions}
+            after_review(db, run, step, graph)
     return run
 
 
 def advance_checkpoint(db, execution_id, registry=DEFAULT_REGISTRY):
-    if has_parallel(graph_for(db, execution(db, execution_id))):
-        raise ExecutionError("durable_worker_required", "Parallel graphs require durable workers")
+    graph = graph_for(db, execution(db, execution_id))
+    if has_parallel(graph) or graph.quality_revision:
+        raise ExecutionError(
+            "durable_worker_required",
+            "Parallel graphs and quality revisions require durable workers",
+        )
     work = prepare_next(db, execution_id, registry)
     if work is None:
         return execution(db, execution_id)
