@@ -60,6 +60,7 @@ class WorkflowExecution(ExecutionFields, TenantOwned, Base):
     run_mode: Mapped[str | None] = mapped_column(String(40))
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     state_revision: Mapped[int] = mapped_column(Integer, default=0)
+    checkpoint_json: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
 
 
 class StepRun(ExecutionFields, TenantOwned, Base):

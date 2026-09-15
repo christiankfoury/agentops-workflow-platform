@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–73 are complete; Phases 74–105 remain planned.
+Phases 66–73 are complete; Phase 74 is in progress; Phases 75–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 74: Deterministic Graph Interpreter
 
-Status: Next — authorized implementation run; waiting for Phase 73 record CI.
+Status: In progress — authorized implementation run.
 
 Scope: registry-dispatched deterministic code, transform and condition execution,
 persisted selected/skipped routes and restartable checkpoints.
@@ -112,7 +112,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 71 | Complete | Workflow Definitions and Immutable Versions; fix, CI and review passed. |
 | 72 | Complete | Generic Step Runs and Attempts; fix, CI and review passed. |
 | 73 | Complete | Idempotent Generic Run Starts; fix, CI and review passed. |
-| 74 | Planned — not started | Deterministic Graph Interpreter |
+| 74 | In progress | Deterministic Graph Interpreter |
 | 75 | Planned — not started | Transactional Durable Job Queue |
 | 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
 | 77 | Planned — not started | Durable Retries Backoff and Deadlines |
@@ -579,8 +579,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
   returns only ID/version/status; stored I/O remains behind the read API. Added
   a failing authenticated service regression before the response projection fix.
   Fix validation: `pytest tests/test_execution_starts.py -q --tb=short` with
-  PostgreSQL passed **8 tests**; API lint and diff checks passed. Fix commit/push/CI
-  and follow-up review pending.
+  PostgreSQL passed **8 tests**; API lint and diff checks passed.
 - Fix commit: `a6e296f68822472b5d7c50f9f447123e3d1a6924`, pushed to main.
   [CI run 35010443711](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35010443711)
   passed API, Web and Docker Compose. Follow-up review confirmed the response
@@ -589,6 +588,45 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 73 complete. Start acceptance remains behind unavailable
   executor gates; capability fixtures did not dispatch work or call providers.
   Final record is pushed separately; its CI must pass before Phase 74.
+
+### Phase 74 — Deterministic Graph Interpreter (2026-09-15)
+
+- Dependency gate: Phase 73 record `cf428ea6af15c5fa3c7104418265bb663ce27603`
+  pushed; [CI run 35010717889](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35010717889)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected graph topology/bindings, generic records/attempt guards, revision
+  transactions, start capability checks and all prior generic regression fixtures.
+- Plan: server-owned versioned deterministic handler/type registry; constrained
+  expression evaluation; persisted edge checkpoint state; prepare/execute/commit
+  continuation functions that release database locks during executor work.
+  Determine readiness from pinned graphs and persisted selected/skipped edges,
+  resolve outputs and retain typed input/handler/output failures.
+- Acceptance: both condition routes and output bindings, missing/null/default and
+  existence/coalesce semantics, restart between checkpoints without duplicate
+  completed work, stale completion, failing handlers, invalid outputs, unavailable
+  primitives/handlers and bounded revision capability rejection.
+- Rollout: additive checkpoint JSON on generic executions; no legacy changes or
+  queue/worker deployment yet. Only code/condition/transform become executable;
+  approved server registrations are required for code handler names/versions.
+  Waits, parallelism, LLM/tools and quality revisions remain gated.
+- Implementation: a server-owned executor registry, constrained expression evaluator,
+  persisted selected/skipped edge checkpoints and a prepare/execute/complete
+  continuation interface. Prepared work releases the run lock; completion checks
+  the exact revision. Inputs, outputs and typed failures persist with transitions.
+  Local continuation skips completed work and resolves final output bindings.
+- Focused validation: `pytest tests/test_graph_interpreter.py -q --tb=short` with
+  PostgreSQL passed **9 tests**. API/migration lint and disposable database upgrade
+  to `f074_execution_checkpoints` passed. Migration tests covered fresh install,
+  downgrade/reapply and refusal to discard nonempty checkpoints.
+- Broader validation: `uv run --directory apps/api pytest -q --tb=short` with
+  PostgreSQL passed **395 tests** in 377 seconds (one upstream TestClient
+  deprecation warning). API/migration lint and diff checks passed. Reviewed
+  capability gating, checkpoint readiness, lock release, failure atomicity,
+  version pinning and legacy migration fixtures locally.
+- Scope size: interpreter, expression evaluator, registry and PostgreSQL acceptance
+  coverage require more than 700 changed lines together; all changes belong to
+  Phase 74. No queue, live provider or deployment claim.
+- Implementation commit, CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

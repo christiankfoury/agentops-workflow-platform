@@ -29,6 +29,7 @@ class ExecutionRead(ExecutionFieldsRead):
     run_mode: str | None
     created_by_user_id: uuid.UUID | None
     state_revision: int
+    checkpoint_json: dict
 
 
 class StepRunRead(ExecutionFieldsRead):

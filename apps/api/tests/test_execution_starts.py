@@ -29,7 +29,7 @@ from tests.test_workflow_transactions_postgres import database as database
 
 @pytest.fixture
 def available_code(monkeypatch):
-    # Capability fixture only: no handler dispatch exists in Phase 73.
+    # Capability fixture only: these start tests never dispatch handlers.
     monkeypatch.setattr(
         workflow_definitions, "ensure_executable", lambda graph: ensure_executable(graph, {"code"})
     )
@@ -127,9 +127,11 @@ def test_invalid_unavailable_missing_and_rollback_starts_leave_no_receipt(databa
     with Session(database) as db:
         item = definition(db)
         body = request(item.id)
-        with pytest.raises(HTTPException) as error:
-            execution_starts.start_execution(db, body)
-        assert error.value.status_code == 409  # Real registry remains unavailable.
+        with monkeypatch.context() as unavailable:
+            unavailable.setattr(workflow_definitions, "ensure_executable", ensure_executable)
+            with pytest.raises(HTTPException) as error:
+                execution_starts.start_execution(db, body)
+            assert error.value.status_code == 409
         monkeypatch.setattr(workflow_definitions, "ensure_executable", lambda graph: None)
         with pytest.raises(HTTPException) as error:
             execution_starts.start_execution(
@@ -215,7 +217,7 @@ def test_start_receipt_migration_is_immutable_and_refuses_history_loss(available
             config.attributes["connection"] = conn
             command.upgrade(config, "f073_execution_starts")
             command.downgrade(config, "f072_execution_records")
-            command.upgrade(config, "f073_execution_starts")
+            command.upgrade(config, "head")
             with Session(conn) as db:
                 item = definition(db)
                 run = execution_starts.start_execution(db, request(item.id))

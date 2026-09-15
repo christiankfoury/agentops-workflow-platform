@@ -50,7 +50,7 @@ def test_drafts_publication_archive_history_and_runtime_gate(tenant_client, data
     )
     assert updated.status_code == 200 and updated.json()["draft_revision"] == 2
     result = client.post(path + "/validate").json()
-    assert result["valid"] and not result["executable"] and result["runtime_errors"]
+    assert result["valid"] and result["executable"] and not result["runtime_errors"]
     published = client.post(path + "/publish", json={"expected_revision": 2})
     assert published.status_code == 201, published.text
     first = published.json()
@@ -76,9 +76,9 @@ def test_drafts_publication_archive_history_and_runtime_gate(tenant_client, data
     assert len(client.get(path + "/versions").json()) == 2
     with Session(database) as db:
         bind_tenant(db, tenants[0]["org"])
-        with pytest.raises(HTTPException) as error:
-            service.require_runnable_version(db, uuid.UUID(item["id"]), uuid.UUID(first["id"]))
-        assert error.value.status_code == 409
+        assert service.require_runnable_version(
+            db, uuid.UUID(item["id"]), uuid.UUID(first["id"]),
+        ).id == uuid.UUID(first["id"])
         assert db.scalar(select(func.count()).select_from(WorkflowVersion)) == 2
         # Failed publication produced no success audit or version.
         assert (

@@ -15,7 +15,7 @@ from src.models.workflow_definition import (
 from src.schemas.workflow_definition import ValidationResult
 from src.schemas.workflow_graph import WorkflowGraph
 from src.services.audit import record_audit
-from src.services.graph_validation import ensure_executable
+from src.services.execution_registry import ensure_executable
 from src.services.permissions import authorize
 
 
@@ -58,7 +58,7 @@ def validate_draft(graph):
     except ValidationError as error:
         return ValidationResult(valid=False, errors=validation_errors(error))
     try:
-        ensure_executable(parsed)  # No generic executors exist in Phase 71.
+        ensure_executable(parsed)
     except ValidationError as error:
         return ValidationResult(valid=True, runtime_errors=validation_errors(error))
     return ValidationResult(valid=True, executable=True)

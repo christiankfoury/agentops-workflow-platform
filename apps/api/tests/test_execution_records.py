@@ -264,7 +264,7 @@ def test_execution_migration_preserves_legacy_data_and_fences_identity():
                 )
             conn.commit()
             command.downgrade(config, "f071_workflow_definitions")
-            command.upgrade(config, "f072_execution_records")
+            command.upgrade(config, "head")
             with Session(conn) as db:
                 run = fixture_execution(db)
                 run_id = run.id

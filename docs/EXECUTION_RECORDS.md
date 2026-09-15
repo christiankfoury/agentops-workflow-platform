@@ -1,8 +1,8 @@
 # Generic execution records
 
 Phase 72 adds persistence, centralized lifecycle transitions and read APIs.
-Phase 73 adds the idempotent pending-start contract below. Graph interpretation,
-queueing and provider calls follow in later phases.
+Phase 73 adds the idempotent pending-start contract below. Phase 74 adds the
+deterministic interpreter; queueing and provider calls follow in later phases.
 
 ## Identity and history
 
@@ -91,8 +91,34 @@ expiry, key reuse or purge API; therefore there is no expired-key fallback that
 could silently create another run. Different organizations may reuse the same key.
 Migration downgrade refuses to discard receipts once they exist.
 
-Phase 73 retains the unavailable-executor gate: no generic executors are installed
-yet, so production requests cannot create runnable work. Deterministic capability
-fixtures test pending starts only. Phase 74 installs real deterministic executors;
-Phase 75 adds atomic job enqueue and asynchronous acceptance. No in-process
-background dispatch is used by this endpoint.
+Start acceptance checks the server's executor registry. Phase 74 supports code,
+condition and transform nodes. Phase 75 adds atomic job enqueue and asynchronous
+acceptance. No in-process background dispatch is used by this endpoint.
+
+## Deterministic checkpoints (Phase 74)
+
+`execution_registry.py` registers supported node executors and versioned code
+handlers. The initial `builtin.identity` version 1 returns its validated inputs.
+Graph data cannot import code or register handlers. Constrained expressions
+provide references, explicit missing/default/null behavior, lazy boolean/coalesce
+operations, comparisons, arithmetic and string concatenation without `eval`.
+
+`graph_interpreter.prepare_next` resolves readiness from the pinned graph,
+completed outputs and persisted selected/skipped edges. It commits a running
+attempt with resolved inputs and returns a `WorkItem`. `execute_work` runs without
+a database session or lock; `complete_work` fences its result against the prepared
+execution revision and commits outputs, transitions and edge selections together.
+Final output binding and execution completion use another checkpoint. Workers
+can consume these operations; `run_deterministic_execution` is a bounded local
+runner. The start API itself only persists pending work in this phase.
+
+Continuation after a completed checkpoint does not repeat completed handlers.
+An interrupted running attempt remains running until the recovery phases add
+lease handling. Missing bindings and invalid results fail with typed errors;
+handler exception details are not copied into stored user-visible errors.
+Unselected condition routes get skipped logical steps without fabricated attempts.
+Checkpoint migration rollback refuses to discard nonempty checkpoint data.
+
+Wait, parallel, LLM and tool executors and bounded quality revisions remain
+explicitly unavailable. Retry policy metadata does not schedule infrastructure
+retries yet. These capabilities are enabled by their respective later phases.
