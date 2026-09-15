@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 79 — Durable Delay Steps**.
+Current next implementation phase: **Phase 80 — Durable Approval Steps and Resume**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–78 are complete; Phase 79 is in progress; Phases 80–105 remain planned.
+Phases 66–79 are complete; Phases 80–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -117,7 +117,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
 | 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
 | 78 | Complete | Durable cancellation intent/API, atomic work termination, I/O abort hooks and late-result fencing; CI/review passed. |
-| 79 | In progress | Durable Delay Steps |
+| 79 | Complete | Persisted UTC waits, bounded wake processor, atomic continuation and cancellation/deadline integration; CI/review passed. |
 | 80 | Planned — not started | Durable Approval Steps and Resume |
 | 81 | Planned — not started | Parallel Branches and Joins |
 | 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
@@ -919,7 +919,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   due. A normal worker service polls for due waits; `--drain` exits when current
   runnable work ends, leaving future waits durable for a later worker. These are
   local/process fixtures, not hosted deployment evidence.
-- Implementation commit, pushed CI and post-push review: pending.
+- Implementation commit: `3921e53818af19ab3ae20d6293fc713305e6da5c`, pushed to main.
+  [CI run 35026013473](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35026013473)
+  passed API, Web and Docker Compose, including full API tests and dependency audits.
+- Post-push review checked pinned timer configuration, strict timestamp bounds,
+  registration atomicity, worker release, no-early/duplicate wake behavior,
+  transactional enqueue rollback, cancellation/deadline ordering, UTC history,
+  tenant read boundaries, migration compatibility and local-to-worker handoff.
+  No actionable blocking findings; no separate fix commit required.
+- Completion: Phase 79 complete. Final record is pushed separately; finish its CI
+  before starting Phase 80. No live provider or hosted deployment claimed.
 
 When a future phase starts, add a record here using these fields:
 
