@@ -17,6 +17,7 @@ from src.routers import (
     prompt_versions,
     uploaded_inputs,
     workflow_definitions,
+    workflow_executions,
     workflow_runs,
 )
 from src.security import enforce_rate_limit, require_access
@@ -44,6 +45,8 @@ app = FastAPI(
 )
 
 authenticated_router_dependencies = [Depends(require_access)]
+app.include_router(workflow_executions.router, prefix="/workflow-executions",
+                   tags=["workflow-executions"], dependencies=authenticated_router_dependencies)
 app.include_router(workflow_definitions.router, prefix="/workflow-definitions",
                    tags=["workflow-definitions"], dependencies=authenticated_router_dependencies)
 app.include_router(identity.router, prefix="/identity", tags=["identity"])

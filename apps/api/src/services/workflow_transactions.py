@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from src.models.workflow_execution import WorkflowExecution
 from src.models.workflow_run import WorkflowRun
 
 
@@ -29,31 +30,35 @@ def commit_workflow(db: Session) -> None:
 
 
 @contextmanager
-def workflow_transaction(db: Session, run: WorkflowRun, *, expected_revision=None):
+def workflow_transaction(
+    db: Session, run: WorkflowRun | WorkflowExecution, *, expected_revision=None,
+):
     # Existing unit-test doubles exercise domain behavior without SQL semantics.
     if not isinstance(db, Session):
         yield
         return
     active = db.info.get("workflow_transaction")
+    identity = (type(run), run.id)
     if active is not None:
-        if active != run.id:
+        if active != identity:
             raise ValueError("A workflow transaction may own only one run")
         yield
         return
     expected = run.state_revision if expected_revision is None else expected_revision
+    model = type(run)
     expire_on_commit = db.expire_on_commit
     try:
         with db.no_autoflush:
             current = db.execute(
-                select(WorkflowRun.state_revision, WorkflowRun.status)
-                .where(WorkflowRun.id == run.id)
+                select(model.state_revision, model.status)
+                .where(model.id == run.id)
                 .with_for_update()
             ).one_or_none()
         if current is None or current.state_revision != expected:
             raise StaleWorkflowError("Workflow changed; reload before retrying this operation")
         if current.status != run.status:
             raise StaleWorkflowError("Workflow status changed")
-        db.info["workflow_transaction"] = run.id
+        db.info["workflow_transaction"] = identity
         # Preserve the exact revision and provider inputs observed under the lock.
         # Lazy reload after commit could otherwise adopt a competing revision.
         db.expire_on_commit = False

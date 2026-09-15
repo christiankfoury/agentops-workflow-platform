@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
+from src.models.workflow_execution import ExecutionEvent, StepAttempt, StepRun, WorkflowExecution
 from src.models.workflow_run import WorkflowRun, WorkflowStatus
 from src.observability.platform_telemetry import emit_workflow_summary_telemetry
 from src.services.audit import record_audit
@@ -146,3 +147,72 @@ def transition_step(step: AgentStep, new_status: AgentStepStatus) -> None:
     step.status = new_status
     if new_status in {AgentStepStatus.completed, AgentStepStatus.failed}:
         step.completed_at = datetime.now(UTC)
+
+
+GENERIC_TRANSITIONS = {
+    "pending": {"running", "failed", "cancelled", "skipped"},
+    "running": {"waiting", "retrying", "completed", "failed", "cancelled"},
+    "waiting": {"running", "completed", "failed", "cancelled"},
+    "retrying": {"running", "failed", "cancelled"},
+    "completed": set(), "failed": set(), "cancelled": set(), "skipped": set(),
+}
+
+
+def transition_execution_entity(db, run, entity, new_status):
+    """One authority for generic run/step/attempt state, inside the run fence."""
+    from sqlalchemy import select
+
+    from src.models.workflow_execution import TERMINAL
+
+    with workflow_transaction(db, run):
+        if not isinstance(run, WorkflowExecution) or type(entity) not in {
+            WorkflowExecution, StepRun, StepAttempt,
+        }:
+            raise ValueError("Unsupported execution entity")
+        if isinstance(entity, WorkflowExecution):
+            owner = entity.id
+        elif isinstance(entity, StepRun):
+            owner = entity.execution_id
+        else:
+            owner = db.scalar(select(StepRun.execution_id).where(StepRun.id == entity.step_run_id))
+        if owner != run.id:
+            raise ValueError("Entity does not belong to the locked execution")
+        current = db.scalar(select(type(entity).status).where(type(entity).id == entity.id))
+        if current is None or current != entity.status:
+            raise ValueError("Execution entity status is stale or missing")
+        old = entity.status
+        if new_status not in GENERIC_TRANSITIONS[old]:
+            raise ValueError(f"Cannot transition execution entity from {old} to {new_status}")
+        if isinstance(entity, WorkflowExecution) and new_status == "skipped":
+            raise ValueError("An execution cannot be skipped")
+        if isinstance(entity, StepAttempt) and new_status in {"waiting", "retrying", "skipped"}:
+            raise ValueError("An attempt cannot wait, retry or skip; use logical step state")
+        if entity is not run and run.status in TERMINAL:
+            raise ValueError("Terminal executions cannot change child state")
+        if isinstance(entity, StepRun) and new_status in TERMINAL | {"retrying", "waiting"}:
+            active = db.scalar(select(StepAttempt.id).where(
+                StepAttempt.step_run_id == entity.id, StepAttempt.status.not_in(TERMINAL),
+            ).limit(1))
+            if active:
+                raise ValueError("Finish active attempts before advancing their logical step")
+        if entity is run and new_status in TERMINAL:
+            children = list(db.scalars(
+                select(StepRun.status).where(StepRun.execution_id == run.id),
+            ))
+            if any(state not in TERMINAL for state in children):
+                raise ValueError("Finish active steps before terminating their execution")
+            if new_status == "completed" and (not children or any(
+                state not in {"completed", "skipped"} for state in children
+            )):
+                raise ValueError("Successful execution requires successful or skipped steps")
+        entity.status = new_status
+        now = datetime.now(UTC)
+        if new_status == "running":
+            entity.started_at = entity.started_at or now
+        if new_status in TERMINAL:
+            entity.completed_at = now
+        db.add(ExecutionEvent(
+            execution_id=run.id, entity_type=entity.__tablename__, entity_id=entity.id,
+            from_status=old, to_status=new_status,
+        ))
+        db.flush()

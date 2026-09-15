@@ -15,10 +15,15 @@ from src.models.workflow_definition import (
     WorkflowVersionPrompt,
 )
 from src.models.workflow_event import WorkflowEvent
+from src.models.workflow_execution import ExecutionEvent, StepAttempt, StepRun, WorkflowExecution
 from src.models.workflow_run import WorkflowRun
 from src.services import tenancy as _tenancy  # noqa: F401
 
 __all__ = [
+    "WorkflowExecution",
+    "StepRun",
+    "StepAttempt",
+    "ExecutionEvent",
     "WorkflowDefinition",
     "WorkflowVersion",
     "WorkflowVersionPrompt",

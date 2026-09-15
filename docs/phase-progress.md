@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–71 are complete; Phases 72–105 remain planned.
+Phases 66–71 are complete; Phase 72 is in progress; Phases 73–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 72: Generic Step Runs and Attempts
 
-Status: Next — authorized implementation run; waiting for Phase 71 record CI.
+Status: In progress — authorized implementation run.
 
 Scope: version-bound generic run, step and attempt records, centralized lifecycle
 transitions and compatibility reads for historical agent traces.
@@ -110,7 +110,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 69 | Complete | Role Permissions and Approval Audit; fix, CI and review passed. |
 | 70 | Complete | Typed Workflow Graph Schema; fix, CI and review passed. |
 | 71 | Complete | Workflow Definitions and Immutable Versions; fix, CI and review passed. |
-| 72 | Planned — not started | Generic Step Runs and Attempts |
+| 72 | In progress | Generic Step Runs and Attempts |
 | 73 | Planned — not started | Idempotent Generic Run Starts |
 | 74 | Planned — not started | Deterministic Graph Interpreter |
 | 75 | Planned — not started | Transactional Durable Job Queue |
@@ -477,6 +477,48 @@ This is a status index; implementation details live only in `docs/phases.md`.
   No unresolved blocking findings remain.
 - Completion: Phase 71 complete. No runtime, provider or deployment claim.
   Final record is pushed separately; wait for its CI before Phase 72.
+
+### Phase 72 — Generic Step Runs and Attempts (2026-09-15)
+
+- Dependency gate: Phase 71 record `61eb0937aedbfe1c94a8b266511b0072623b9381`
+  pushed; [CI run 35006262965](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35006262965)
+  passed all API, Web and Docker Compose checks. Working tree clean.
+- Inspected legacy runs/agent steps, event/status authority, revision transactions,
+  tenant foreign keys, version retention and historical API schemas.
+- Plan: additive version-bound executions, logical steps, attempts and transition
+  events; keep historical run/agent tables unchanged. Reuse the Phase 66 transaction
+  authority for both run models and extend its centralized lifecycle operations.
+  Add tenant-scoped generic reads and an explicitly labeled historical trace read.
+- Acceptance: unique node/branch/iteration and attempt identity, non-LLM records
+  without invented agent/model values, version pinning, illegal/stale transitions,
+  independent-session duplicate attempts, atomic rollback/events, historical reads
+  and migrations preserving traces/costs/evaluation links.
+- Architecture/rollout: generic executions use additive tables with optional
+  legacy run linkage and business labels for later template adapters. No fake
+  historical graph/version backfill. New starts, dispatch and queueing remain
+  Phases 73–75; this phase adds persistence/lifecycle/read contracts only.
+- Implementation: four additive execution/step/attempt/event tables, unique logical
+  and attempt identities, optional LLM metadata, pinned version/history guards,
+  paginated tenant read APIs and explicitly labeled legacy trace compatibility.
+  Extended the existing transaction/transition authority to both run models.
+- Initial validation: `pytest tests/test_execution_records.py -q --tb=short`
+  with PostgreSQL passed **6 tests**; API and migration lint passed. Migration
+  upgrade head passed on the disposable database. Added attempt-bound/active-wait
+  and pending-initialization checks before broad validation.
+- Local review: strengthened generic writes to require the matching run transaction
+  for output updates as well as statuses; immutable business labels preserve
+  reporting identity. Added unlocked/wrong-run write regression cases. Existing
+  legacy transaction semantics and APIs remain unchanged.
+- Scope size: record schemas, migration/history protections, lifecycle/read APIs
+  and PostgreSQL migration/race/compatibility coverage exceed the preferred size;
+  all changes belong to this persistence boundary.
+- Validation: full `uv run --directory apps/api pytest -q --tb=short` with
+  PostgreSQL passed **377 tests**. Final write-guard changes separately passed
+  `pytest tests/test_execution_records.py tests/test_workflow_transactions_postgres.py
+  -q --tb=short` (**27 tests**). API/migration lint and staged diff checks passed.
+  Fresh migration, downgrade/reapply, nonempty rollback refusal and complete
+  legacy trace/cost/evaluation-row preservation passed in isolated schemas.
+- Commit, CI and post-push review pending. No runtime/provider/deployment claim.
 
 When a future phase starts, add a record here using these fields:
 

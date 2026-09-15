@@ -167,6 +167,9 @@ controls are implemented through Phase 69. Phases 70–71 add the validated
 immutable publication snapshots, retained prompts, archive/history and version
 diffs. Generic execution remains planned; runtime capability checks reject all
 unavailable primitives independently of schema acceptance/publication.
+Phase 72 adds [generic execution records](EXECUTION_RECORDS.md) and read APIs,
+sharing the revision-checked transition authority with existing business runs.
+The generic records have no start/dispatch/worker path yet.
 
 ## Agent Execution Pattern
 
