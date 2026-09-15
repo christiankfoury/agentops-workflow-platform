@@ -83,6 +83,10 @@ def tenant_writes(db: Session, _context, _instances):
                     continue
                 checked_targets = set()
                 for foreign_key in column.foreign_keys:
+                    # Composite reference context (e.g. definition_id in a
+                    # published pointer) is checked by the database constraint.
+                    if foreign_key.column.key != "id":
+                        continue
                     target = foreign_key.column.table
                     if target.name in checked_targets:
                         continue

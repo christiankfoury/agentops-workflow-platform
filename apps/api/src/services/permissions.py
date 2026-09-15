@@ -15,6 +15,7 @@ PERMISSIONS = {
     "read": {"viewer", "operator", "reviewer", "admin"},
     "export": {"viewer", "operator", "reviewer", "admin"},
     "workflow.start": {"operator", "admin"},
+    "workflow.draft": {"operator", "admin"},
     "workflow.control": {"operator", "admin"},
     "input.write": {"operator", "admin"},
     # Legacy comparison execution includes automatic approval decisions.
@@ -108,6 +109,10 @@ def request_action(method: str, path: str) -> str:
             return "membership.manage"
         return "export" if "/export/" in path else "read"
     prefix = path.split("/")[1]
+    if prefix == "workflow-definitions":
+        if path.rstrip("/").endswith(("/publish", "/archive")):
+            return "workflow.publish"
+        return "read" if path.rstrip("/").endswith("/validate") else "workflow.draft"
     if prefix == "workflow-runs":
         if path.rstrip("/") == "/workflow-runs":
             return "workflow.start"

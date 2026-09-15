@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–70 are complete; Phases 71–105 remain planned.
+Phases 66–70 are complete; Phase 71 is in progress; Phases 72–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 71: Workflow Definitions and Immutable Versions
 
-Status: Next — authorized implementation run; waiting for Phase 70 record CI.
+Status: In progress — authorized implementation run.
 
 Scope: tenant-owned definitions, revisioned drafts, immutable publication snapshots,
 version history and archive APIs.
@@ -109,7 +109,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 68 | Complete | Tenant Ownership and Isolation; migration, CI and review passed. |
 | 69 | Complete | Role Permissions and Approval Audit; fix, CI and review passed. |
 | 70 | Complete | Typed Workflow Graph Schema; fix, CI and review passed. |
-| 71 | Planned — not started | Workflow Definitions and Immutable Versions |
+| 71 | In progress | Workflow Definitions and Immutable Versions |
 | 72 | Planned — not started | Generic Step Runs and Attempts |
 | 73 | Planned — not started | Idempotent Generic Run Starts |
 | 74 | Planned — not started | Deterministic Graph Interpreter |
@@ -416,6 +416,50 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 70 complete. Schema acceptance does not enable execution;
   no migration, provider call or deployment claimed. Final record is pushed
   separately; its CI must pass before Phase 71 starts.
+
+### Phase 71 — Workflow Definitions and Immutable Versions (2026-09-15)
+
+- Dependency gate: Phase 70 record `bdde1ca6b18e77e21f496648d2be2f355fe7e709`
+  pushed; [CI run 35003717707](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35003717707)
+  passed API, Web and Docker Compose. Working tree clean at phase start.
+- Inspected schema, tenant session hooks, permission matrix, prompt API/model,
+  transactional audit, migration chain and independent PostgreSQL test fixtures.
+- Plan: tenant-owned definitions with editable bounded JSON drafts, optimistic
+  revisions, immutable version graph snapshots and known prompt snapshots/links.
+  Add create/read/update/validate/publish/archive/history/diff APIs; admin-only
+  publication/archive, operator drafting and explicit unavailable-runtime results.
+- Acceptance: stale and concurrent drafts/publishes, snapshot immutability,
+  prompt retention, archived history, tenant/role isolation, failed-publication
+  rollback and fresh/upgrade/downgrade/reapply PostgreSQL migration checks.
+- Rollout: additive tables only; existing runs and prompts remain readable.
+  Invalid drafts can be saved but cannot publish. Tool reference resolution is
+  deferred until its registry exists; versions cannot start through an executor
+  gate. No provider calls, new runtime or public deployment in this phase.
+- Implementation: three tenant-owned tables, definition/version APIs, revision
+  locks, transactional audit, snapshot hash and pinned prompt content/references;
+  database immutability triggers and same-definition published-pointer constraint.
+  The shared tenant hook now leaves non-ID composite context to database checks.
+- Baseline: full API suite with disposable PostgreSQL passed **359 tests** before
+  Phase 71 changes. Initial focused run found one test fixture invocation error
+  and lint formatting errors; those were corrected. The next focused run passed
+  **10 tests**, including migrations and independent-session races. Added a stale
+  cache and wrong-definition pointer regression before full-suite validation.
+- Rollout details: migration downgrade refuses to discard any saved definitions.
+  Prompt activation remains mutable; referenced prompt content/deletion is blocked.
+  Publication can store recognized unavailable types but cannot enable execution.
+- Scope size exceeds the preferred range: persistence, reference retention,
+  migration protections, complete API surface and PostgreSQL/security regression
+  cases form one publication boundary.
+- Validation: `uv run --directory apps/api alembic upgrade head` passed on the
+  disposable PostgreSQL database. Full `uv run --directory apps/api pytest -q`
+  with `WORKFLOW_TEST_DATABASE_URL` passed **370 tests** (including **11** Phase 71
+  cases). API `ruff check src tests alembic/versions/f071_workflow_definitions.py`
+  and `git diff --cached --check` passed. Fresh migration, downgrade/reapply and
+  nonempty rollback refusal are covered in the isolated-schema migration test.
+- Local review: verified locked fresh revisions, publication/rollback atomicity,
+  permission/tenant checks, retained prompt activation compatibility and immutable
+  history. No unresolved local findings; no live provider or deployment claims.
+- Commit, push, CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

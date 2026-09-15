@@ -162,8 +162,11 @@ The current architecture is the business-workflow foundation. The
 [platform implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
 defines the future generic graph, versions, step attempts, workers, tools,
 triggers and Kubernetes architecture. Identity, tenant isolation and role/audit
-controls are implemented through Phase 69. Phase 70 adds the validated
-[graph format](WORKFLOW_GRAPH.md); generic execution remains planned.
+controls are implemented through Phase 69. Phases 70–71 add the validated
+[graph format and version APIs](WORKFLOW_GRAPH.md), tenant-owned revisioned drafts,
+immutable publication snapshots, retained prompts, archive/history and version
+diffs. Generic execution remains planned; runtime capability checks reject all
+unavailable primitives independently of schema acceptance/publication.
 
 ## Agent Execution Pattern
 
