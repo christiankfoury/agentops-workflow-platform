@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–80 are complete; Phases 81–105 remain planned.
+Phases 66–80 are complete; Phase 81 is in progress; Phases 82–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -119,7 +119,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 78 | Complete | Durable cancellation intent/API, atomic work termination, I/O abort hooks and late-result fencing; CI/review passed. |
 | 79 | Complete | Persisted UTC waits, bounded wake processor, atomic continuation and cancellation/deadline integration; CI/review passed. |
 | 80 | Complete | Immutable approval snapshots, authorized decisions, superseding edits and bounded durable resume; CI/review passed. |
-| 81 | Planned — not started | Parallel Branches and Joins |
+| 81 | In progress | Parallel Branches and Joins |
 | 82 | Planned — not started | LLM Executor and Bounded Quality Revisions |
 | 83 | Planned — not started | Sales Workflow Template Migration |
 | 84 | Planned — not started | Customer Feedback Template Migration |
@@ -999,6 +999,54 @@ This is a status index; implementation details live only in `docs/phases.md`.
   immutable snapshot model, decision runtime and 574 lines of focused acceptance
   tests; the scope remains approval lifecycle only. No live provider or hosted
   deployment claimed.
+
+### Phase 81 — Parallel Branches and Joins (2026-09-15)
+
+- Dependency gate: Phase 80 record `2a2756451649930fdf04f954eb85ac5eba6c0b8f`
+  pushed; [CI run 35029941182](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35029941182)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected validated fork/join regions and branch bindings, single-active-job
+  assumptions, global revision fences, durable waits, approval retry checkpoints,
+  deadline/cancellation and recovery ownership.
+- Plan: assign stable nested branch paths and persist node/iteration job targets.
+  Schedule ready branch work and joins under the run lock; use per-attempt and
+  claim ownership for parallel result commits so siblings do not invalidate one
+  another. Keep worker capacity/fan-out bounded. Join inputs explicitly bind branch
+  outputs and produce deterministic named output; skipped routes settle before
+  joins. Integrate branch waits, targeted retry/recovery, fail-fast sibling
+  cancellation, run deadlines and immutable branch traces.
+- Acceptance: out-of-order/simultaneous completion, one join under replay,
+  conditional skips and nested forks, delay/approval waits within branches,
+  cancellation/failure/deadline propagation, crash/recovery without sibling
+  overwrite, malformed region/binding rejection and worker capacity limits.
+- Rollout: additive job target fields and revised active-job uniqueness; stop old
+  workers before migration/restart. Preserve linear receipts and pinned runs.
+  Retention guards prevent dropping active parallel history. Parallel graphs run
+  through durable workers; the local deterministic helper remains for linear
+  graphs. The scheduler, lifecycle integration and real concurrency fixtures may
+  exceed 700 lines as one phase-scoped delivery unit.
+- Implemented stable branch paths, persisted fork/join checkpoints and independently
+  targeted node/iteration jobs. Scheduling and join creation share the execution
+  lock; parallel completion uses the live claim/attempt fence and current run state.
+  Delay/approval waits, infrastructure and human retries, cancellation, deadlines
+  and recovery now preserve independent siblings and fail unfinished work together.
+  Added queue/runtime documentation and migration `f081_parallel_jobs`.
+- Local validation (disposable PostgreSQL): all 19 new parallel cases passed across
+  focused runs in `test_parallel_runtime.py` and `test_parallel_recovery.py`,
+  including real branch process kill/recovery and migrated history. Two initial
+  fixture errors (approval request field and raw SQL job status) were corrected
+  and affected cases rerun successfully. Broader command
+  `uv run --directory apps/api pytest tests/test_workflow_graph.py tests/test_graph_interpreter.py tests/test_durable_queue.py tests/test_worker_leases.py tests/test_retry_runtime.py tests/test_execution_cancellation.py tests/test_durable_delays.py tests/test_execution_approvals.py -q --tb=short`
+  passed **140 tests**. Ruff (`src tests` and the migration), `alembic upgrade head`,
+  Compose configuration and `git diff --check` passed. Existing upstream TestClient
+  deprecation warning remains; no provider or hosted deployment was performed.
+- Scope size: approximately 1,350 changed lines, including 649 test lines. The
+  scheduler, node ownership migration and lifecycle integrations form one phase;
+  concurrency, recovery and rollback evidence are kept with that implementation.
+- Pre-push review checked lock order, live attempt/claim fencing, unique joins,
+  deterministic bindings/skips, retry targeting, wait release, terminal history,
+  tenant scoping and linear compatibility. No unresolved finding. Implementation
+  commit, push, GitHub CI and post-push review remain pending.
 
 When a future phase starts, add a record here using these fields:
 

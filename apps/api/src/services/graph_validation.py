@@ -287,6 +287,12 @@ def validate_graph_contract(graph: WorkflowGraph):
                 (*path, "config", "assign"),
             )
     bindings(graph.outputs, graph.output_schema, graph, nodes, ancestors, None, ("outputs",))
+    from src.services.parallel_graph import branch_paths
+
+    try:
+        branch_paths(graph)
+    except ValueError as error:
+        invalid(("nodes",), str(error))
     if graph.quality_revision:
         policy = graph.quality_revision
         region = set(policy.nodes)

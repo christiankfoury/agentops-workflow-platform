@@ -16,7 +16,14 @@ from src.models.workflow_execution import (
     StepRun,
     WorkflowExecution,
 )
-from src.services.durable_queue import Claim, finish_job, jobs, locked_claim, terminal_job_status
+from src.services.durable_queue import (
+    Claim,
+    finish_job,
+    jobs,
+    locked_claim,
+    terminal_job_status,
+    terminate_jobs,
+)
 from src.services.execution_records import execution, pinned_node
 from src.services.retry_runtime import retry_decision, runtime_now
 from src.services.tenancy import bind_tenant
@@ -143,6 +150,8 @@ def recover_claim(engine, claim):
                     select(StepRun).where(
                         StepRun.execution_id == run.id,
                         StepRun.status.not_in(TERMINAL),
+                        StepRun.node_id == row["node_id"] if row["node_id"] else True,
+                        StepRun.iteration == row["iteration"] if row["node_id"] else True,
                     )
                 ).all()
                 for step in active:
@@ -185,8 +194,13 @@ def recover_claim(engine, claim):
                 if not retry:
                     run.error_code = exhausted_code
                     run.error_message = "Worker recovery or pinned attempt budget exhausted"
+                    if run.checkpoint_json.get("parallel_mode"):
+                        from src.services.parallel_runtime import cancel_siblings
+
+                        cancel_siblings(db, run)
                     transition(db, run, run, "failed")
                     finish_job(db, run, claim, "failed", run.error_code, allow_expired=True)
+                    terminate_jobs(db, run, "cancelled", run.error_code)
                     return True
                 db.connection().execute(
                     update(jobs)

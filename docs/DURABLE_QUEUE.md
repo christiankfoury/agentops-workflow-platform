@@ -57,8 +57,8 @@ It exposes no public port. Production packaging follows in Phase 100.
 Unexpected worker exceptions are logged by class without copying sensitive
 exception text. Expired interrupted claims are recovered as described below.
 Phase 77 adds [engine retries, backoff and deadlines](RETRIES_AND_DEADLINES.md).
-Cancellation, waits, parallel execution,
-LLM calls and external side effects arrive in later phases.
+Phases 78–81 add cancellation, durable waits and parallel execution. LLM calls
+and external side effects arrive in later phases.
 
 The PostgreSQL tests in `tests/test_durable_queue.py` cover atomic acceptance,
 concurrent bounded claims, duplicate deliveries during and after execution,
@@ -105,3 +105,42 @@ expired renewal/result rejection, a delayed old result after reassignment,
 abandoned-attempt and pre-attempt exhaustion, and real process kills before,
 during and after a checkpoint. Tests also execute migrated old running jobs through
 recovery. They use deterministic local handlers, not providers or a hosted cluster.
+
+## Parallel regions and joins (Phase 81)
+
+Forks start up to eight named branches. Nested regions preserve paths such as
+`main/fork:left/inner:review` on steps and jobs; paths longer than 256 characters
+are rejected when validating the graph. Worker concurrency still bounds active
+executor slots. Waiting branches release their slot and keep a durable wait.
+The execution remains running while any sibling has runnable work, and becomes
+waiting when only waits remain.
+
+Parallel jobs target one node and iteration. Result commits acquire the current
+execution lock, then verify the job token and dispatched attempt. A sibling's
+newer run revision does not invalidate another live branch. Linear jobs retain
+the original revision fence. Recovery targets only the abandoned job's node and
+iteration, preserving successful sibling results and existing wait records.
+
+The scheduler records selected/skipped edges and schedules ready nodes under the
+execution lock. A join waits until every incoming route is resolved; unselected
+routes have skipped step records without attempts. Join input bindings assemble
+named branch outputs; the executor returns keys in sorted order and validates
+the declared output schema. Completion and scheduling the one join job commit
+together. Duplicate deliveries cannot enqueue a second join.
+
+A permanent branch failure fails the execution and cancels unfinished siblings,
+their approvals and active jobs. Cancellation stops all branches; the overall
+deadline fails unfinished work and expires pending approvals. Completed branch
+outputs remain in history. Late results cannot reopen cancelled or failed work.
+Infrastructure retries and human approval retries target their own branch.
+
+Stop old workers before applying `f081_parallel_jobs`, then restart upgraded
+workers. Existing linear receipts retain their identity and default target fields.
+Downgrade refuses to remove parallel history. Parallel graphs require durable
+workers; the local deterministic helper supports linear graphs only.
+
+`test_parallel_runtime.py` and `test_parallel_recovery.py` exercise out-of-order
+completion, nested regions, conditional skips, bounded worker concurrency,
+branch waits/retries, decisions during sibling I/O, failure/cancellation/deadlines,
+real worker-process death and recovery, and migration/history guards. These are
+local PostgreSQL fixtures; they do not claim external-provider or hosted execution.

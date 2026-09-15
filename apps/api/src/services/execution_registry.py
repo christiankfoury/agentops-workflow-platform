@@ -22,6 +22,7 @@ class ExecutorRegistry:
             "code": self.code,
             "transform": self.transform,
             "condition": self.condition,
+            "parallel": self.parallel,
         }
 
     def validate(self, graph):
@@ -64,6 +65,10 @@ class ExecutorRegistry:
         if executor is None:
             raise ExecutionError("unsupported_executor", "Step executor is unavailable")
         return executor(node, inputs, context, control)
+
+    def parallel(self, node, inputs, context, control=None):
+        # A join's declared bindings assemble named branch outputs in a stable order.
+        return NodeResult({key: deepcopy(inputs[key]) for key in sorted(inputs)})
 
 
 DEFAULT_REGISTRY = ExecutorRegistry()

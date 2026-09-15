@@ -105,7 +105,8 @@ def register_approval(db, run, step, attempt, node, now, retry=None):
     attempt.output_json = {"approval_id": str(item.id), "payload_hash": item.payload_hash}
     transition(db, run, attempt, "completed")
     transition(db, run, step, "waiting")
-    transition(db, run, run, "waiting")
+    if not run.checkpoint_json.get("parallel_mode"):
+        transition(db, run, run, "waiting")
     db.add(
         ExecutionEvent(
             execution_id=run.id,
@@ -148,6 +149,11 @@ def close_pending(db, run, status):
 def queue_resume(db, run):
     from src.services.durable_queue import enqueue, jobs, settle_local_checkpoint
 
+    if run.checkpoint_json.get("parallel_mode"):
+        from src.services.parallel_runtime import schedule_parallel
+
+        schedule_parallel(db, run)
+        return
     settle_local_checkpoint(db, run)
     sequence = db.connection().scalar(
         select(func.max(jobs.c.sequence)).where(
@@ -162,6 +168,12 @@ def terminate_wait(db, run, step, code, *, rejected=False):
     step.error_code = run.error_code = code
     step.error_message = run.error_message = code.replace("_", " ")
     transition(db, run, step, status)
+    if run.checkpoint_json.get("parallel_mode"):
+        from src.services.durable_queue import terminate_jobs
+        from src.services.parallel_runtime import cancel_siblings
+
+        cancel_siblings(db, run)
+        terminate_jobs(db, run, "cancelled", code)
     transition(db, run, run, status)
 
 
@@ -169,6 +181,9 @@ def expired(db, run, step, item, node, now):
     if run.deadline_at and now >= run.deadline_at:
         close_pending(db, run, "expired")
         expire_execution(db, run)
+        from src.services.durable_queue import terminate_jobs
+
+        terminate_jobs(db, run, "failed", "run_deadline")
         return True
     if item.expires_at and now >= item.expires_at:
         resolve(db, run, item, "expired")
@@ -215,7 +230,11 @@ def decide_approval(db, identity, body):
                 db.commit()
                 return item
             raise HTTPException(409, "Approval already resolved or superseded")
-        if run.status != "waiting" or step.status != "waiting" or run.cancel_requested:
+        if (
+            run.status not in {"running", "waiting"}
+            or step.status != "waiting"
+            or run.cancel_requested
+        ):
             raise HTTPException(409, "Execution is no longer awaiting this approval")
         if body.expected_payload_hash != item.payload_hash:
             raise HTTPException(409, "Reviewed payload changed; reload the approval")
@@ -297,22 +316,33 @@ def decide_approval(db, identity, body):
                         )
                         transition(db, run, step, "completed")
                         if body.action == "request_retry":
-                            run.checkpoint_json = {
-                                **run.checkpoint_json,
-                                "approval_retry": {
-                                    "node_id": step.node_id,
-                                    "iteration": step.iteration + 1,
-                                    "payload": item.payload_json,
-                                    "feedback": body.human_feedback,
-                                },
+                            retry = {
+                                "node_id": step.node_id,
+                                "iteration": step.iteration + 1,
+                                "payload": item.payload_json,
+                                "feedback": body.human_feedback,
                             }
+                            if run.checkpoint_json.get("parallel_mode"):
+                                run.checkpoint_json = {
+                                    **run.checkpoint_json,
+                                    "parallel_approval_retries": {
+                                        **run.checkpoint_json.get("parallel_approval_retries", {}),
+                                        step.node_id: retry,
+                                    },
+                                }
+                            else:
+                                run.checkpoint_json = {
+                                    **run.checkpoint_json,
+                                    "approval_retry": retry,
+                                }
                         else:
                             edges = dict(run.checkpoint_json.get("edges", {}))
                             for i, edge in enumerate(graph_for(db, run).edges):
                                 if edge.source == step.node_id:
                                     edges[str(i)] = "selected"
                             set_edges(run, edges)
-                        transition(db, run, run, "running")
+                        if run.status == "waiting":
+                            transition(db, run, run, "running")
                         queue_resume(db, run)
                 record_audit(
                     db,
@@ -342,7 +372,7 @@ def expire_approval_waits(engine, limit=32, *, now=None):
             .select_from(approvals.join(runs, approvals.c.execution_id == runs.c.id))
             .where(
                 approvals.c.status == "pending",
-                runs.c.status == "waiting",
+                runs.c.status.in_(["running", "waiting"]),
                 or_(
                     approvals.c.expires_at <= moment,
                     runs.c.deadline_at <= moment,
@@ -359,7 +389,7 @@ def expire_approval_waits(engine, limit=32, *, now=None):
             try:
                 with workflow_transaction(db, run):
                     item = db.get(ExecutionApproval, row.id)
-                    if run.status != "waiting" or item.status != "pending":
+                    if run.status not in {"running", "waiting"} or item.status != "pending":
                         raise StaleWorkflowError("Approval changed")
                     step = db.get(StepRun, item.step_run_id)
                     if not expired(

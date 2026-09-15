@@ -9,13 +9,14 @@ from pydantic import ValidationError
 from sqlalchemy import select
 
 from src.models.workflow_definition import WorkflowVersion
-from src.models.workflow_execution import TERMINAL, StepAttempt, StepRun
+from src.models.workflow_execution import TERMINAL, StepAttempt, StepRun, WorkflowExecution
 from src.schemas.workflow_graph import StepDefinition, WorkflowGraph
 from src.services.execution_control import AbortSignal
 from src.services.execution_records import add_attempt, add_step, execution
 from src.services.execution_registry import DEFAULT_REGISTRY, NodeResult
 from src.services.graph_expressions import ExecutionError, resolve_bindings
 from src.services.graph_validation import validate_data
+from src.services.parallel_graph import branch_paths, has_parallel
 from src.services.retry_runtime import expire_execution, fail_attempt, runtime_now
 from src.services.workflow_state import transition_execution_entity as transition
 from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
@@ -32,6 +33,7 @@ class WorkItem:
     context: tuple[dict, dict]
     deadline_at: datetime | None = None
     control: AbortSignal = field(default_factory=AbortSignal, compare=False, repr=False)
+    parallel: bool = False
 
 
 def graph_for(db, run):
@@ -41,12 +43,14 @@ def graph_for(db, run):
     return WorkflowGraph.model_validate(version.graph)
 
 
-def rows_for(db, run):
+def rows_for(db, run, graph=None):
     rows = db.scalars(
         select(StepRun).where(StepRun.execution_id == run.id).order_by(StepRun.iteration)
     ).all()
+    paths = branch_paths(graph or graph_for(db, run))
     if any(
-        row.branch != "main" or (row.iteration != 0 and row.step_type != "approval") for row in rows
+        row.branch != paths.get(row.node_id) or (row.iteration != 0 and row.step_type != "approval")
+        for row in rows
     ):
         raise ExecutionError("unsupported_checkpoint", "Branch/revision execution is unavailable")
     return {row.node_id: row for row in rows}
@@ -67,6 +71,10 @@ def fail_execution(db, run, error, step=None, attempt=None):
         attempt.error_classification = "permanent"
     for entity in [attempt, step, run]:
         if entity is not None:
+            if entity is run and run.checkpoint_json.get("parallel_mode"):
+                from src.services.parallel_runtime import cancel_siblings
+
+                cancel_siblings(db, run)
             entity.error_code = error.code
             entity.error_message = str(error)[:4000]
             transition(db, run, entity, "failed")
@@ -100,7 +108,15 @@ def next_node(db, run, graph, rows, edges):
     return None
 
 
-def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=None):
+def prepare_next(
+    db,
+    execution_id,
+    registry=DEFAULT_REGISTRY,
+    *,
+    on_checkpoint=None,
+    target_node=None,
+    target_iteration=0,
+):
     """Commit a prepared attempt before executor work; callers must not nest this."""
     if db.info.get("workflow_transaction"):
         raise ValueError("Prepare a checkpoint outside an existing workflow transaction")
@@ -108,11 +124,18 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
     if run.status in TERMINAL or run.status in {"waiting", "retrying"}:
         return None
     graph = graph_for(db, run)
+    parallel = has_parallel(graph)
     registry.validate(graph)
-    rows = rows_for(db, run)
-    resumable = [row for row in rows.values() if row.status == "retrying"]
-    if len(resumable) > 1 or any(
-        row.status not in TERMINAL | {"retrying"} for row in rows.values()
+    rows = rows_for(db, run, graph)
+    resumable = [
+        row
+        for row in rows.values()
+        if row.status == "retrying"
+        and (not parallel or target_node is None or row.node_id == target_node)
+    ]
+    if not parallel and (
+        len(resumable) > 1
+        or any(row.status not in TERMINAL | {"retrying"} for row in rows.values())
     ):
         return None
     observed_now = runtime_now(db)
@@ -133,11 +156,19 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
             return None
         if run.status == "pending":
             transition(db, run, run, "running")
+        if parallel:
+            run.checkpoint_json = {**run.checkpoint_json, "parallel_mode": True}
         edges = dict(run.checkpoint_json.get("edges", {}))
         try:
-            approval_retry = run.checkpoint_json.get("approval_retry")
+            approval_retry = (
+                run.checkpoint_json.get("parallel_approval_retries", {}).get(target_node)
+                if parallel
+                else run.checkpoint_json.get("approval_retry")
+            )
             node = (
-                next(node for node in graph.nodes if node.id == approval_retry["node_id"])
+                next(node for node in graph.nodes if node.id == target_node)
+                if parallel and target_node
+                else next(node for node in graph.nodes if node.id == approval_retry["node_id"])
                 if approval_retry
                 else next(node for node in graph.nodes if node.id == resumable[0].node_id)
                 if resumable
@@ -156,7 +187,10 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                         db,
                         run,
                         node.id,
-                        iteration=approval_retry["iteration"] if approval_retry else 0,
+                        iteration=target_iteration
+                        if parallel
+                        else (approval_retry["iteration"] if approval_retry else 0),
+                        branch=branch_paths(graph)[node.id],
                     )
                 )
                 attempt = add_attempt(db, run, step)
@@ -175,7 +209,18 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                         from src.services.approval_runtime import register_approval
 
                         register_approval(db, run, step, attempt, node, now, approval_retry)
-                        if approval_retry:
+                        if approval_retry and parallel:
+                            run.checkpoint_json = {
+                                **run.checkpoint_json,
+                                "parallel_approval_retries": {
+                                    key: value
+                                    for key, value in run.checkpoint_json.get(
+                                        "parallel_approval_retries", {}
+                                    ).items()
+                                    if key != target_node
+                                },
+                            }
+                        elif approval_retry:
                             run.checkpoint_json = {
                                 key: value
                                 for key, value in run.checkpoint_json.items()
@@ -191,6 +236,7 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                             inputs,
                             context,
                             attempt.deadline_at,
+                            parallel=parallel,
                         )
                 except (ExecutionError, ValidationError, ValueError) as error:
                     failure = (
@@ -242,22 +288,33 @@ def complete_work(
 ):
     """May share a caller-owned run transaction with later durable job scheduling."""
     run = execution(db, work.execution_id)
-    if run.state_revision != work.revision:
+    if work.parallel and not db.info.get("workflow_transaction"):
+        run = db.scalar(
+            select(WorkflowExecution)
+            .where(WorkflowExecution.id == run.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    if not work.parallel and run.state_revision != work.revision:
         raise StaleWorkflowError("Prepared execution changed before its result arrived")
-    with workflow_transaction(db, run, expected_revision=work.revision):
+    with workflow_transaction(db, run, expected_revision=None if work.parallel else work.revision):
         step = db.scalar(
-            select(StepRun).where(StepRun.id == work.step_id, StepRun.execution_id == run.id)
+            select(StepRun)
+            .where(StepRun.id == work.step_id, StepRun.execution_id == run.id)
+            .execution_options(populate_existing=True)
         )
         attempt = db.scalar(
-            select(StepAttempt).where(
-                StepAttempt.id == work.attempt_id, StepAttempt.step_run_id == work.step_id
-            )
+            select(StepAttempt)
+            .where(StepAttempt.id == work.attempt_id, StepAttempt.step_run_id == work.step_id)
+            .execution_options(populate_existing=True)
         )
         if (
             step is None
             or attempt is None
             or step.status != "running"
             or attempt.status != "running"
+            or run.status in TERMINAL
+            or run.cancel_requested
         ):
             raise StaleWorkflowError("Prepared step or attempt is no longer running")
         now = now or runtime_now(db)
@@ -283,10 +340,26 @@ def complete_work(
                         else "skipped"
                     )
             set_edges(run, edges)
+            if work.node.type == "parallel":
+                config = work.node.config
+                key = work.node.id if config.mode == "fork" else config.fork_node
+                regions = dict(run.checkpoint_json.get("parallel_regions", {}))
+                regions[key] = (
+                    {
+                        "status": "forked",
+                        "join_node": config.join_node,
+                        "branches": [branch.name for branch in config.branches],
+                    }
+                    if config.mode == "fork"
+                    else {**regions[key], "status": "joined"}
+                )
+                run.checkpoint_json = {**run.checkpoint_json, "parallel_regions": regions}
     return run
 
 
 def advance_checkpoint(db, execution_id, registry=DEFAULT_REGISTRY):
+    if has_parallel(graph_for(db, execution(db, execution_id))):
+        raise ExecutionError("durable_worker_required", "Parallel graphs require durable workers")
     work = prepare_next(db, execution_id, registry)
     if work is None:
         return execution(db, execution_id)

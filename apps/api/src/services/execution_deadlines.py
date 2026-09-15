@@ -4,7 +4,14 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from src.models.workflow_execution import TERMINAL, StepAttempt, StepRun, WorkflowExecution
-from src.services.durable_queue import Claim, commit_result, fail_queued_job, finish_job, jobs
+from src.services.durable_queue import (
+    Claim,
+    commit_result,
+    fail_queued_job,
+    finish_job,
+    jobs,
+    terminate_jobs,
+)
 from src.services.execution_records import execution, pinned_node
 from src.services.graph_expressions import ExecutionError
 from src.services.graph_interpreter import WorkItem
@@ -48,6 +55,7 @@ def enforce_job_deadline(engine, identity, owner, execution_id, *, now=None):
                         fail_queued_job(db, run, row, "run_deadline")
                     else:
                         finish_job(db, run, claim, "failed", "run_deadline", allow_expired=True)
+                    terminate_jobs(db, run, "failed", "run_deadline")
                     return True
                 attempt = db.get(StepAttempt, row["attempt_id"]) if row["attempt_id"] else None
                 if (
@@ -67,6 +75,7 @@ def enforce_job_deadline(engine, identity, owner, execution_id, *, now=None):
                     attempt.input_json,
                     ({}, {}),
                     attempt.deadline_at,
+                    parallel=bool(run.checkpoint_json.get("parallel_mode")),
                 )
                 commit_result(
                     db,

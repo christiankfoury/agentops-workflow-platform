@@ -42,8 +42,10 @@ class Claim:
     token: UUID
 
 
-def enqueue(db, run, sequence, *, due_at=None):
-    job = DurableJob(execution_id=run.id, sequence=sequence)
+def enqueue(db, run, sequence, *, due_at=None, node_id=None, iteration=0, branch="main"):
+    job = DurableJob(
+        execution_id=run.id, sequence=sequence, node_id=node_id, iteration=iteration, branch=branch
+    )
     if due_at is not None:
         job.due_at = due_at
     db.add(job)
@@ -230,6 +232,47 @@ def settle_local_checkpoint(db, run):
         )
 
 
+def terminate_jobs(db, run, status, code):
+    if db.info.get("workflow_transaction") != (WorkflowExecution, run.id):
+        raise ValueError("Job termination requires its execution transaction")
+    if status not in {"cancelled", "failed"}:
+        raise ValueError("Invalid terminal job status")
+    rows = (
+        db.connection()
+        .execute(
+            select(jobs)
+            .where(
+                jobs.c.execution_id == run.id,
+                jobs.c.organization_id == tenant_id(db),
+                jobs.c.status.in_(["queued", "running"]),
+            )
+            .with_for_update()
+        )
+        .mappings()
+        .all()
+    )
+    for row in rows:
+        db.connection().execute(
+            update(jobs)
+            .where(jobs.c.id == row["id"])
+            .values(
+                status=status,
+                error_code=code,
+                completed_at=func.clock_timestamp(),
+            )
+        )
+        db.add(
+            ExecutionEvent(
+                execution_id=run.id,
+                entity_type="durable_jobs",
+                entity_id=row["id"],
+                from_status=row["status"],
+                to_status=status,
+                details={"reason": code},
+            )
+        )
+
+
 def finish_job(db, run, claim, status, error_code=None, *, allow_expired=False):
     if run.id != claim.execution_id or db.info.get("workflow_transaction") != (
         WorkflowExecution,
@@ -271,7 +314,14 @@ def commit_result(db, claim, work, *, result=None, error=None, now=None, allow_e
     if work.execution_id != claim.execution_id:
         raise ValueError("Work does not belong to the claimed execution")
     run = execution(db, claim.execution_id)
-    with workflow_transaction(db, run, expected_revision=work.revision):
+    if work.parallel:
+        run = db.scalar(
+            select(WorkflowExecution)
+            .where(WorkflowExecution.id == run.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    with workflow_transaction(db, run, expected_revision=None if work.parallel else work.revision):
         row = locked_claim(db, claim, allow_expired=allow_expired)
         if row is None:
             raise LeaseLostError("Job lease expired or was reassigned")
@@ -288,7 +338,11 @@ def commit_result(db, claim, work, *, result=None, error=None, now=None, allow_e
             step.error_code if failed else None,
             allow_expired=allow_expired,
         )
-        if run.status not in TERMINAL:
+        if work.parallel:
+            from src.services.parallel_runtime import schedule_parallel
+
+            schedule_parallel(db, run)
+        elif run.status not in TERMINAL:
             enqueue(db, run, claim.sequence + 1, due_at=step.next_attempt_at)
     return True
 
@@ -327,12 +381,13 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
         bind_tenant(db, claim.organization_id)
         # Match completion/recovery lock order: execution first, then its job.
         run = execution(db, claim.execution_id)
-        db.execute(
-            select(WorkflowExecution.id)
+        run = db.scalar(
+            select(WorkflowExecution)
             .where(
                 WorkflowExecution.id == run.id,
             )
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         # Serialize dispatch, then commit this marker with the prepared checkpoint.
         row = locked_claim(db, claim)
@@ -363,11 +418,25 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                     db,
                     run,
                     claim,
-                    "completed" if run.status == "waiting" else terminal_job_status(run.status),
+                    "completed"
+                    if run.status == "waiting"
+                    or (run.status == "running" and run.checkpoint_json.get("parallel_mode"))
+                    else terminal_job_status(run.status),
                     run.error_code,
                 )
+                if run.checkpoint_json.get("parallel_mode"):
+                    from src.services.parallel_runtime import schedule_parallel
 
-        work = prepare_next(db, claim.execution_id, registry, on_checkpoint=record_preparation)
+                    schedule_parallel(db, run)
+
+        work = prepare_next(
+            db,
+            claim.execution_id,
+            registry,
+            on_checkpoint=record_preparation,
+            target_node=row["node_id"],
+            target_iteration=row["iteration"],
+        )
         if work is None:
             if not prepared:
                 run = execution(db, claim.execution_id)

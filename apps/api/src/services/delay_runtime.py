@@ -39,7 +39,8 @@ def schedule_delay(db, run, step, attempt, node, now):
     attempt.output_json = {}
     transition(db, run, attempt, "completed")
     transition(db, run, step, "waiting")
-    transition(db, run, run, "waiting")
+    if not run.checkpoint_json.get("parallel_mode"):
+        transition(db, run, run, "waiting")
     db.add(
         ExecutionEvent(
             execution_id=run.id,
@@ -74,17 +75,20 @@ def wake_delay(engine, identity, owner, execution_id, *, now=None):
                         StepRun.waiting_reason == "delay",
                     )
                 )
-                if run.status != "waiting" or run.cancel_requested or step is None:
+                if run.status not in {"running", "waiting"} or run.cancel_requested or step is None:
                     raise NoWake()
                 moment = now or runtime_now(db)
                 if run.deadline_at and moment >= run.deadline_at:
                     expire_execution(db, run)
+                    from src.services.durable_queue import terminate_jobs
+
+                    terminate_jobs(db, run, "failed", "run_deadline")
                     return True
                 if step.wake_at is None or moment < step.wake_at:
                     raise NoWake()
                 # Local deterministic runners can leave their original queue receipt pending.
                 # Let the queue consume it before resuming; never create two active jobs.
-                if (
+                if not run.checkpoint_json.get("parallel_mode") and (
                     db.connection()
                     .execute(
                         select(jobs.c.id).where(
@@ -102,7 +106,13 @@ def wake_delay(engine, identity, owner, execution_id, *, now=None):
                     if edge.source == step.node_id:
                         edges[str(i)] = "selected"
                 set_edges(run, edges)
-                transition(db, run, run, "running")
+                if run.status == "waiting":
+                    transition(db, run, run, "running")
+                if run.checkpoint_json.get("parallel_mode"):
+                    from src.services.parallel_runtime import schedule_parallel
+
+                    schedule_parallel(db, run)
+                    return True
                 sequence = db.connection().scalar(
                     select(func.max(jobs.c.sequence)).where(
                         jobs.c.execution_id == run.id,
@@ -130,7 +140,7 @@ def wake_due_delays(engine, limit=32, *, now=None):
             .where(
                 steps.c.status == "waiting",
                 steps.c.waiting_reason == "delay",
-                runs.c.status == "waiting",
+                runs.c.status.in_(["running", "waiting"]),
                 runs.c.cancel_requested.is_(False),
                 or_(steps.c.wake_at <= moment, runs.c.deadline_at <= moment),
             )

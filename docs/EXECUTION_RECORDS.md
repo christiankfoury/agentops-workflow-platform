@@ -120,6 +120,7 @@ handler exception details are not copied into stored user-visible errors.
 Unselected condition routes get skipped logical steps without fabricated attempts.
 Checkpoint migration rollback refuses to discard nonempty checkpoint data.
 
-Wait, parallel, LLM and tool executors and bounded quality revisions remain
-explicitly unavailable. Infrastructure retry metadata now schedules durable
-retries through Phase 77. The remaining capabilities follow in their respective phases.
+Durable delays, approvals and parallel regions are available through Phases 79–81.
+See [durable queue](DURABLE_QUEUE.md) for parallel ownership and joins.
+LLM/tool executors and bounded quality revisions remain unavailable until their
+respective phases. Infrastructure retries use the Phase 77 durable scheduler.

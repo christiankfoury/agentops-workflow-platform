@@ -9,6 +9,9 @@ class JobRead(BaseModel):
     id: uuid.UUID
     execution_id: uuid.UUID
     sequence: int
+    node_id: str | None
+    iteration: int
+    branch: str
     status: str
     attempt_id: uuid.UUID | None
     worker_id: str | None

@@ -1,7 +1,16 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Index, Integer, String, UniqueConstraint, event
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    event,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, Session, mapped_column
 from sqlalchemy.sql import func
@@ -22,6 +31,7 @@ class DurableJob(TenantOwned, Base):
         ),
         UniqueConstraint("execution_id", "sequence", name="uq_execution_job_sequence"),
         CheckConstraint("sequence >= 0"),
+        CheckConstraint("iteration >= 0"),
         CheckConstraint("recovery_count >= 0"),
         CheckConstraint("status != 'running' OR lease_expires_at IS NOT NULL"),
         CheckConstraint("status IN ('queued', 'running', 'completed', 'failed', 'cancelled')"),
@@ -35,6 +45,8 @@ class DurableJob(TenantOwned, Base):
         Index(
             "uq_execution_active_job",
             "execution_id",
+            text("COALESCE(node_id, '')"),
+            "iteration",
             unique=True,
             postgresql_where="status IN ('queued', 'running')",
         ),
@@ -42,6 +54,9 @@ class DurableJob(TenantOwned, Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(), primary_key=True, default=uuid.uuid4)
     execution_id: Mapped[uuid.UUID] = mapped_column(UUID())
     sequence: Mapped[int] = mapped_column(Integer)
+    node_id: Mapped[str | None] = mapped_column(String(64))
+    iteration: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    branch: Mapped[str] = mapped_column(String(256), default="main", server_default="main")
     status: Mapped[str] = mapped_column(String(20), default="queued")
     attempt_id: Mapped[uuid.UUID | None] = mapped_column(UUID())
     claim_token: Mapped[uuid.UUID | None] = mapped_column(UUID())

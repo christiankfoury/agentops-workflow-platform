@@ -75,10 +75,17 @@ def fail_attempt(db, run, step, attempt, error, now):
         transition(db, run, step, "failed")
         run.error_code = code
         run.error_message = step.error_message
+        if run.checkpoint_json.get("parallel_mode"):
+            from src.services.parallel_runtime import cancel_siblings
+
+            cancel_siblings(db, run)
         transition(db, run, run, "failed")
 
 
 def expire_execution(db, run):
+    from src.services.approval_runtime import close_pending
+
+    close_pending(db, run, "expired")
     for step in db.scalars(
         select(StepRun).where(
             StepRun.execution_id == run.id,
