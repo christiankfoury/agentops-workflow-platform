@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -62,6 +63,10 @@ class WorkflowExecution(ExecutionFields, TenantOwned, Base):
     state_revision: Mapped[int] = mapped_column(Integer, default=0)
     checkpoint_json: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancel_requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    cancel_reason: Mapped[str | None] = mapped_column(String(1000))
 
 
 class StepRun(ExecutionFields, TenantOwned, Base):

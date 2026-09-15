@@ -223,7 +223,7 @@ def test_queued_job_for_locally_completed_run_has_no_false_error(database):
     with Session(database) as db:
         run = start(db, {"entry_node": "start", "nodes": [code("start")]}, {})
         run_deterministic_execution(db, run.id)
-    assert queue.process_claim(database, queue.claim_jobs(database, "worker")[0])
+    assert queue.claim_jobs(database, "worker") == []
     with Session(database) as db:
         job = db.scalar(select(DurableJob))
         assert job.status == "completed" and job.error_code is None

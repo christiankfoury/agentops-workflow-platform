@@ -66,19 +66,65 @@ def claim_jobs(engine, worker_id, capacity=1):
     if not worker_id or len(worker_id) > 128:
         raise ValueError("Worker identity must be between 1 and 128 characters")
     claimed = []
-    # This is the sole cross-tenant scan: trusted infrastructure, never an API input.
+    runs = WorkflowExecution.__table__
+    # Trusted infrastructure. Lock executions first, matching cancellation/completion.
     with engine.begin() as conn:
         due = conn.execute(
-            select(jobs)
+            select(
+                jobs,
+                runs.c.status.label("run_status"),
+                runs.c.cancel_requested,
+                runs.c.error_code.label("run_error"),
+            )
+            .select_from(jobs.join(runs, jobs.c.execution_id == runs.c.id))
             .where(
                 jobs.c.status == "queued",
                 jobs.c.due_at <= func.now(),
             )
             .order_by(jobs.c.due_at, jobs.c.id)
             .limit(capacity)
-            .with_for_update(skip_locked=True)
+            .with_for_update(of=runs, skip_locked=True)
         )
         for row in due.mappings().all():
+            ready = conn.execute(
+                select(jobs.c.id)
+                .where(
+                    jobs.c.id == row["id"],
+                    jobs.c.status == "queued",
+                    jobs.c.due_at <= func.now(),
+                )
+                .with_for_update(skip_locked=True)
+            ).first()
+            if ready is None:
+                continue
+            if row["run_status"] in TERMINAL or row["cancel_requested"]:
+                status = (
+                    "cancelled"
+                    if row["cancel_requested"]
+                    else terminal_job_status(row["run_status"])
+                )
+                code = None if status == "completed" else row["run_error"] or status
+                conn.execute(
+                    update(jobs)
+                    .where(jobs.c.id == row["id"])
+                    .values(
+                        status=status,
+                        error_code=code,
+                        completed_at=func.clock_timestamp(),
+                    )
+                )
+                conn.execute(
+                    insert(ExecutionEvent.__table__).values(
+                        organization_id=row["organization_id"],
+                        execution_id=row["execution_id"],
+                        entity_type="durable_jobs",
+                        entity_id=row["id"],
+                        from_status="queued",
+                        to_status=status,
+                        details={"reason": "terminal_execution"},
+                    )
+                )
+                continue
             token = uuid4()
             conn.execute(
                 update(jobs)
@@ -138,6 +184,10 @@ def locked_claim(db, claim, *, allow_expired=False):
     return row
 
 
+def terminal_job_status(status):
+    return status if status in {"completed", "cancelled"} else "failed"
+
+
 def finish_job(db, run, claim, status, error_code=None, *, allow_expired=False):
     if run.id != claim.execution_id or db.info.get("workflow_transaction") != (
         WorkflowExecution,
@@ -145,7 +195,7 @@ def finish_job(db, run, claim, status, error_code=None, *, allow_expired=False):
     ):
         raise ValueError("Job completion requires its execution transaction")
     if (
-        status not in {"completed", "failed"}
+        status not in {"completed", "failed", "cancelled"}
         or locked_claim(
             db,
             claim,
@@ -271,7 +321,7 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                     db,
                     run,
                     claim,
-                    "completed" if run.status == "completed" else "failed",
+                    terminal_job_status(run.status),
                     run.error_code,
                 )
 
@@ -284,13 +334,13 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                         db,
                         run,
                         claim,
-                        "completed" if run.status == "completed" else "failed",
+                        terminal_job_status(run.status),
                         None
                         if run.status == "completed"
                         else (run.error_code or "checkpoint_not_ready"),
                     )
             return True
-        with maintain_lease(engine, claim):
+        with maintain_lease(engine, claim, work.control):
             try:
                 result = execute_work(work, registry)
             except ExecutionError as error:

@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     worker_lease_seconds: float = Field(default=30, ge=0.1, le=3600)
     worker_heartbeat_seconds: float = Field(default=10, ge=0.02, le=600)
     worker_max_recoveries: int = Field(default=3, ge=0, le=10)
+    worker_control_poll_seconds: float = Field(default=0.25, ge=0.02, le=10)
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = "gpt-4.1-mini"
     api_auth_enabled: bool = False

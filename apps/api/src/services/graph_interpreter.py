@@ -1,7 +1,7 @@
 """One deterministic checkpoint at a time, with fenced result commits."""
 
 from copy import deepcopy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from uuid import UUID
 
@@ -11,6 +11,7 @@ from sqlalchemy import select
 from src.models.workflow_definition import WorkflowVersion
 from src.models.workflow_execution import TERMINAL, StepAttempt, StepRun
 from src.schemas.workflow_graph import StepDefinition, WorkflowGraph
+from src.services.execution_control import AbortSignal
 from src.services.execution_records import add_attempt, add_step, execution
 from src.services.execution_registry import DEFAULT_REGISTRY, NodeResult
 from src.services.graph_expressions import ExecutionError, resolve_bindings
@@ -30,6 +31,7 @@ class WorkItem:
     inputs: dict
     context: tuple[dict, dict]
     deadline_at: datetime | None = None
+    control: AbortSignal = field(default_factory=AbortSignal, compare=False, repr=False)
 
 
 def graph_for(db, run):
@@ -181,7 +183,9 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
 def execute_work(work, registry=DEFAULT_REGISTRY):
     """No database session or lock crosses this boundary."""
     try:
-        result = registry.execute(work.node, work.inputs, work.context)
+        work.control.raise_if_aborted()
+        result = registry.execute(work.node, work.inputs, work.context, work.control)
+        work.control.raise_if_aborted()
         validate_data(result.output, work.node.output_schema)
         WorkflowGraph.payload_bounds({"output": result.output})
         if work.node.type == "condition" and result.route not in {

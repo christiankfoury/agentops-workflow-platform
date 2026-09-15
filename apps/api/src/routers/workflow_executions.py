@@ -10,6 +10,7 @@ from src.models.durable_job import DurableJob
 from src.models.workflow_execution import ExecutionEvent, StepAttempt, StepRun, WorkflowExecution
 from src.models.workflow_run import WorkflowRun
 from src.schemas.durable_job import JobRead
+from src.schemas.execution_cancel import ExecutionCancelRead, ExecutionCancelRequest
 from src.schemas.execution_start import ExecutionStartRead, ExecutionStartRequest
 from src.schemas.workflow_execution import (
     ExecutionEventRead,
@@ -18,6 +19,7 @@ from src.schemas.workflow_execution import (
     StepAttemptRead,
     StepRunRead,
 )
+from src.services.execution_cancellation import cancel_execution
 from src.services.execution_records import execution
 from src.services.execution_starts import start_execution
 
@@ -67,6 +69,11 @@ def legacy_trace(run_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.get("/{execution_id}", response_model=ExecutionRead)
 def detail(execution_id: uuid.UUID, db: Session = Depends(get_db)):
     return execution(db, execution_id)
+
+
+@router.post("/{execution_id}/cancel", response_model=ExecutionCancelRead)
+def cancel(execution_id: uuid.UUID, body: ExecutionCancelRequest, db: Session = Depends(get_db)):
+    return cancel_execution(db, execution_id, body.reason)
 
 
 @router.get("/{execution_id}/jobs", response_model=list[JobRead])

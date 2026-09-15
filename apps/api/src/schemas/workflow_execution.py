@@ -31,6 +31,10 @@ class ExecutionRead(ExecutionFieldsRead):
     state_revision: int
     checkpoint_json: dict
     deadline_at: datetime | None
+    cancel_requested: bool
+    cancel_requested_at: datetime | None
+    cancel_requested_by_user_id: uuid.UUID | None
+    cancel_reason: str | None
 
 
 class StepRunRead(ExecutionFieldsRead):

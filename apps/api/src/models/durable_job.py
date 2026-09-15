@@ -24,7 +24,7 @@ class DurableJob(TenantOwned, Base):
         CheckConstraint("sequence >= 0"),
         CheckConstraint("recovery_count >= 0"),
         CheckConstraint("status != 'running' OR lease_expires_at IS NOT NULL"),
-        CheckConstraint("status IN ('queued', 'running', 'completed', 'failed')"),
+        CheckConstraint("status IN ('queued', 'running', 'completed', 'failed', 'cancelled')"),
         Index("ix_durable_jobs_due", "status", "due_at", "id"),
         Index(
             "ix_durable_jobs_expired",

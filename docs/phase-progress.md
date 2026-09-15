@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–77 are complete; Phases 78–105 remain planned.
+Phases 66–77 are complete; Phase 78 is in progress; Phases 79–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -116,7 +116,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
 | 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
 | 77 | Complete | Durable backoff, attempt classification, deadlines and bounded watchdog enforcement. |
-| 78 | Planned — not started | Durable Cancellation |
+| 78 | In progress | Durable Cancellation |
 | 79 | Planned — not started | Durable Delay Steps |
 | 80 | Planned — not started | Durable Approval Steps and Resume |
 | 81 | Planned — not started | Parallel Branches and Joins |
@@ -820,6 +820,52 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 77 complete. Supported I/O abort and the actual cancel API
   remain Phase 78; no live provider or hosted deployment claimed. Final record is
   pushed separately; finish its CI before Phase 78.
+
+### Phase 78 — Durable Cancellation (2026-09-15)
+
+- Dependency gate: Phase 77 record `82a93907e63e2fc66dfa9ddb51e132fcc4abb030`
+  pushed; [CI run 35021674637](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35021674637)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected workflow-control permissions, minimal action acknowledgements, actor
+  audit, run/job locking, deadline/recovery paths and registered executor boundaries.
+- Plan: persist cancellation intent/time/actor/reason; atomically cancel active
+  attempts, logical work and queued/running jobs under the run fence. Return a
+  minimal idempotent acknowledgement, retain completed outputs, and serialize
+  claiming with cancellation through execution-first locks. Add a cooperative
+  abort signal and polling for controlled I/O handlers without fabricating remote
+  effect reversal or successful abort metadata.
+- Acceptance: queued/running/backoff/wait cancellation, repeated requests and
+  rollback, tenant/role/service-scope checks, claim/completion/recovery races,
+  preserved partial history, no late scheduling and controllable I/O abort.
+- Rollout: additive cancellation metadata and cancelled job state. Stop old
+  workers before migration/restart. Cancellation wins only when its transaction
+  precedes final success; accepted external effects may remain uncertain and need
+  later effect-ledger reconciliation. No live provider cancellation is claimed.
+- Implemented the minimal `POST /workflow-executions/{id}/cancel` control API,
+  persisted intent/actor/reason, and atomic cancellation of active attempts,
+  logical steps and jobs. Completed attempts/outputs remain unchanged. Claiming
+  now locks executions before jobs, and terminal queued work settles without
+  invocation. Registered controlled handlers receive an idempotent abort signal;
+  workers check ownership before I/O and poll during I/O with bounded lease renewal.
+- Validation: initial cancellation suite passed 11 tests. Pre-commit review added
+  the immediate pre-I/O ownership check and its regression. Final command
+  `uv run --directory apps/api pytest tests/test_execution_cancellation.py tests/test_durable_queue.py tests/test_worker_leases.py tests/test_retry_runtime.py tests/test_graph_interpreter.py tests/test_execution_records.py tests/test_execution_starts.py -q --tb=short`
+  passed **70 tests** against disposable PostgreSQL, including independent
+  cancellation/claim/completion/recovery sessions and existing process-kill tests.
+  `ruff check src tests alembic/versions/f078_execution_cancellation.py`,
+  `alembic upgrade head`, Compose config and `git diff --check` passed. Existing
+  upstream TestClient/httpx deprecation warning remains non-blocking.
+- Migration validation exercised empty downgrade/reapply, pre-existing execution
+  defaults, actual cancelled-job transitions, terminal immutability and history
+  retention guards. The API, migration, worker control and concurrency tests form
+  one phase-scoped delivery unit slightly above 700 changed lines.
+- Ordering/limitations: the first committed run transaction wins cancellation
+  versus final success; later cancel requests return the existing terminal state.
+  Logical cancellation never certifies physical abort or reversal. Accepted remote
+  actions can remain uncertain; later effect-ledger/tool adapters must reconcile
+  them rather than infer non-delivery from a cancelled attempt. Only controllable
+  fixture I/O was exercised; no live provider or hosted deployment claimed.
+- Implementation commit, pushed CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

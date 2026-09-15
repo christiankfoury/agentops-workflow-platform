@@ -350,7 +350,7 @@ def test_deadline_migration_backfills_active_records_and_guards_retention():
                 deadline = run.deadline_at
             scoped = engine.execution_options(schema_translate_map={None: schema})
             assert enforce_deadlines(scoped, now=deadline + timedelta(seconds=1)) == 1
-            with pytest.raises(RuntimeError, match="Retain execution retry/deadline history"):
+            with pytest.raises(RuntimeError, match="Retain execution"):
                 command.downgrade(config, "f076_worker_leases")
             conn.rollback()
     finally:

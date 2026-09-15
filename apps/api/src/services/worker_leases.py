@@ -3,13 +3,20 @@
 from contextlib import contextmanager
 from datetime import timedelta
 from threading import Event, Thread
+from time import monotonic
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from src.config import settings
-from src.models.workflow_execution import TERMINAL, ExecutionEvent, StepAttempt, StepRun
-from src.services.durable_queue import Claim, finish_job, jobs, locked_claim
+from src.models.workflow_execution import (
+    TERMINAL,
+    ExecutionEvent,
+    StepAttempt,
+    StepRun,
+    WorkflowExecution,
+)
+from src.services.durable_queue import Claim, finish_job, jobs, locked_claim, terminal_job_status
 from src.services.execution_records import execution, pinned_node
 from src.services.retry_runtime import retry_decision, runtime_now
 from src.services.tenancy import bind_tenant
@@ -41,17 +48,55 @@ def renew_lease(engine, claim):
 
 
 @contextmanager
-def maintain_lease(engine, claim):
+def maintain_lease(engine, claim, control=None):
     stop = Event()
 
+    def is_live():
+        with engine.connect() as conn:
+            runs = WorkflowExecution.__table__
+            return (
+                conn.execute(
+                    select(jobs.c.id)
+                    .select_from(jobs.join(runs, jobs.c.execution_id == runs.c.id))
+                    .where(
+                        jobs.c.id == claim.id,
+                        jobs.c.organization_id == claim.organization_id,
+                        jobs.c.claim_token == claim.token,
+                        jobs.c.status == "running",
+                        runs.c.status.not_in(TERMINAL),
+                        runs.c.cancel_requested.is_(False),
+                        jobs.c.lease_expires_at > func.clock_timestamp(),
+                    )
+                ).first()
+                is not None
+            )
+
+    # A committed cancel between preparation and dispatch must suppress I/O immediately.
+    # Read failure propagates before invocation; lease recovery retains the checkpoint.
+    if not is_live() and control:
+        control.abort()
+
     def heartbeat():
-        while not stop.wait(settings.worker_heartbeat_seconds):
+        last_renewal = monotonic()
+        interval = min(settings.worker_control_poll_seconds, settings.worker_heartbeat_seconds)
+        while not stop.wait(interval):
             try:
-                if not renew_lease(engine, claim):
+                if not is_live():
+                    if control:
+                        control.abort()
                     return
+                if monotonic() - last_renewal >= settings.worker_heartbeat_seconds:
+                    if not renew_lease(engine, claim):
+                        if control:
+                            control.abort()
+                        return
+                    last_renewal = monotonic()
             except Exception:
-                # A database failure cannot extend ownership. Completion still checks expiry.
-                return
+                # Retry transient reads, but never assume ownership beyond an unrenewed lease.
+                if monotonic() - last_renewal >= settings.worker_lease_seconds:
+                    if control:
+                        control.abort()
+                    return
 
     thread = Thread(target=heartbeat, daemon=True)
     thread.start()
@@ -82,7 +127,7 @@ def recover_claim(engine, claim):
                         db,
                         run,
                         claim,
-                        "completed" if run.status == "completed" else "failed",
+                        terminal_job_status(run.status),
                         run.error_code,
                         allow_expired=True,
                     )
