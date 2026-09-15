@@ -151,8 +151,8 @@ def seed_default_prompt_versions(db: Session) -> list[PromptVersion]:
             )
             db.add(prompt)
         else:
-            prompt.template = default["template"]
-            prompt.notes = default["notes"]
+            # Seeding is additive. Existing content may be pinned by an immutable
+            # workflow version; changed defaults must be authored as a new version.
             if not _has_active_prompt(db, prompt.agent_type):
                 prompt.is_active = True
 

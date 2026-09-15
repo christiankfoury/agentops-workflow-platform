@@ -270,10 +270,14 @@ def test_migration_immutability_prompt_retention_and_rollback_guard():
             with Session(conn) as db:
                 from src.models.agent_type import AgentType
                 from src.models.prompt_version import PromptVersion
+                from src.services.prompt_versions import (
+                    DEFAULT_PROMPTS,
+                    seed_default_prompt_versions,
+                )
 
                 prompt = PromptVersion(
                     agent_type=AgentType.analyst,
-                    name="Pinned",
+                    name=DEFAULT_PROMPTS[0]["name"],
                     version=1,
                     template="Original",
                     is_active=False,
@@ -298,6 +302,9 @@ def test_migration_immutability_prompt_retention_and_rollback_guard():
                 assert published.prompt_snapshots[str(prompt.id)]["template"] == "Original"
                 published_id = published.id
                 db.commit()
+                seed_default_prompt_versions(db)
+                db.refresh(prompt)
+                assert prompt.template == "Original"
             for statement in [
                 "UPDATE workflow_versions SET graph = '{}'",
                 "DELETE FROM workflow_versions",

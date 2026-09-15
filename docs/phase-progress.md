@@ -459,7 +459,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Local review: verified locked fresh revisions, publication/rollback atomicity,
   permission/tenant checks, retained prompt activation compatibility and immutable
   history. No unresolved local findings; no live provider or deployment claims.
-- Commit, push, CI and post-push review: pending.
+- Implementation commit: `f16425c09d799dd0ec4c55073bec5803620b04be`, pushed to main.
+  [CI run 35005533543](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35005533543)
+  passed API, Web and Docker Compose.
+- Post-push review finding: the existing default prompt seeder rewrote version-one
+  templates and could fail after publication froze a prompt. Reproduced against
+  the migrated PostgreSQL database with a failing regression. Reseeding now
+  preserves existing content/notes; changed defaults require a new version.
+  Fix validation: `pytest tests/test_workflow_definitions.py tests/test_prompt_seed.py
+  tests/test_prompt_versions_api.py -q` with PostgreSQL passed **19 tests**; API
+  lint and `git diff --check` passed. Fix commit/push/CI and review pending.
 
 When a future phase starts, add a record here using these fields:
 

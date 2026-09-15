@@ -87,6 +87,8 @@ cannot be updated or deleted through ORM or migrated database writes. Prompt
 activation remains allowed; a published prompt's template, name, type and version
 are frozen, and its foreign-key link prevents deletion. Snapshots retain the
 publication-time template and explicit model/configuration values.
+Default prompt reseeding also preserves existing templates and notes; changed
+defaults require a new prompt version.
 
 `POST /{id}/archive` archives a definition; the version-specific `/archive` path
 archives one version. Both require the current revision and admin permission.
