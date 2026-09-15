@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–74 are complete; Phases 75–105 remain planned.
+Phases 66–74 are complete; Phase 75 is in progress; Phases 76–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -113,7 +113,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 72 | Complete | Generic Step Runs and Attempts; fix, CI and review passed. |
 | 73 | Complete | Idempotent Generic Run Starts; fix, CI and review passed. |
 | 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
-| 75 | Planned — not started | Transactional Durable Job Queue |
+| 75 | In progress | Transactional Durable Job Queue |
 | 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
 | 77 | Planned — not started | Durable Retries Backoff and Deadlines |
 | 78 | Planned — not started | Durable Cancellation |
@@ -643,6 +643,48 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 74 complete. No generic queue, crash recovery, provider or
   deployment claimed. Final record is pushed separately; finish its CI before
   Phase 75.
+
+### Phase 75 — Transactional Durable Job Queue (2026-09-15)
+
+- Dependency gate: Phase 74 record `898a24b4c77fc0307dcc5c8a7cc7001468615ffd`
+  pushed; [CI run 35013557817](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35013557817)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected interpreter continuation, tenant isolation, transaction authority,
+  idempotent starts, execution read routes, PostgreSQL fixtures and local Compose.
+- Plan: durable tenant-owned checkpoint jobs; atomic initial enqueue with accepted
+  starts; bounded PostgreSQL SKIP LOCKED claims; one-time dispatch and atomic
+  completion/downstream scheduling. Add a local worker CLI/service with graceful
+  draining, and a paginated execution-jobs read API.
+- Acceptance: no executor in request handling; no orphan start/job on rollback;
+  independent-session concurrent claims; duplicate dispatch/completion suppression;
+  completion/enqueue rollback; real worker process restart with queued work;
+  tenant-scoped job reads and migration retention.
+- Rollout: additive job table with retained history and a pending-execution enqueue
+  backfill. Worker deployment is local only. Running jobs interrupted by process
+  death remain visible until Phase 76 adds leases/recovery; retries and waits are
+  not introduced early. No provider or external effect execution.
+- Implementation: tenant-owned durable checkpoint jobs, bounded SKIP LOCKED
+  claims, one-time dispatch markers linked to attempts, fenced result/job/next-job
+  commits and atomic final-output/job completion. Starts now return HTTP 202 after
+  atomic enqueue; identical replays do not enqueue again. Added worker CLI with
+  bounded concurrency and graceful draining, local Compose service, and scoped
+  paginated job reads without claim tokens.
+- Validation: `pytest tests/test_durable_queue.py tests/test_execution_starts.py
+  tests/test_graph_interpreter.py tests/test_execution_records.py
+  tests/test_workflow_definitions.py -q --tb=short` with PostgreSQL passed
+  **47 tests** (one upstream TestClient deprecation warning). Includes real
+  subprocess exit/restart, two-worker claims, duplicate dispatch while executing,
+  atomic rollback, typed failure, tenant reads and migrated-database execution.
+  Older start assertions were updated for the additional job creation event.
+- API/migration lint, `alembic upgrade head`, `docker compose --env-file
+  .env.example config --quiet` and diff checks passed. Migration tests covered
+  empty downgrade/reapply, existing pending-run backfill and history retention.
+- Local review checked tenant-bound claim consumption, attempt/job ownership,
+  execution transaction authority, bounded capacity, no database lock during
+  computation, and retained interrupted work. No provider/hosted deployment claim.
+  This phase exceeds 700 lines because queue persistence, migration, worker,
+  API contract and independent-process acceptance tests form one delivery unit.
+- Implementation commit, CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

@@ -272,7 +272,9 @@ def test_expression_overflow_persists_a_typed_failure(database, binding):
         assert db.get(WorkflowExecution, run.id).status == "failed"
 
 
-def test_checkpoint_migration_round_trip_and_nonempty_retention():
+def test_checkpoint_migration_round_trip_and_nonempty_retention(monkeypatch):
+    # Exercise checkpoint retention independently of the later job retention gate.
+    monkeypatch.setattr(execution_starts, "enqueue", lambda *_: None)
     url = os.environ.get("WORKFLOW_TEST_DATABASE_URL")
     if not url:
         pytest.skip("WORKFLOW_TEST_DATABASE_URL is required")

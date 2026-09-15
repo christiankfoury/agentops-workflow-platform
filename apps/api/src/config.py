@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     db_pool_size: int = Field(default=10, ge=1)
     db_max_overflow: int = Field(default=20, ge=0)
     db_pool_timeout_seconds: int = Field(default=5, ge=1)
+    worker_concurrency: int = Field(default=4, ge=1, le=32)
+    worker_poll_seconds: float = Field(default=1, gt=0, le=60)
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = "gpt-4.1-mini"
     api_auth_enabled: bool = False

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from alembic import command
 from src.models.audit_event import AuditEvent
+from src.models.durable_job import DurableJob
 from src.models.execution_start import ExecutionStart
 from src.models.workflow_execution import ExecutionEvent, WorkflowExecution
 from src.schemas.execution_start import ExecutionStartRequest
@@ -79,11 +80,9 @@ def test_retries_pin_original_version_and_survive_publication_and_archive(databa
                 db, request(item.id, key="new", version_id=original_version)
             )
         assert (
-            count(db, WorkflowExecution)
-            == count(db, ExecutionStart)
-            == count(db, ExecutionEvent)
-            == 1
+            count(db, WorkflowExecution) == count(db, ExecutionStart) == count(db, DurableJob) == 1
         )
+        assert count(db, ExecutionEvent) == 2
         assert (
             len(db.scalars(select(AuditEvent).where(AuditEvent.action == "workflow.start")).all())
             == 1
@@ -116,11 +115,9 @@ def test_concurrent_start_keys_have_one_atomic_winner(
         assert results[0] == results[1]
     with Session(database) as db:
         assert (
-            count(db, WorkflowExecution)
-            == count(db, ExecutionStart)
-            == count(db, ExecutionEvent)
-            == 1
+            count(db, WorkflowExecution) == count(db, ExecutionStart) == count(db, DurableJob) == 1
         )
+        assert count(db, ExecutionEvent) == 2
 
 
 def test_invalid_unavailable_missing_and_rollback_starts_leave_no_receipt(database, monkeypatch):
@@ -179,7 +176,7 @@ def test_start_api_permissions_tenant_key_scope_and_authenticated_actor(
     body = {"definition_id": item["id"], "input": {"value": 1}, "idempotency_key": "shared"}
     actor = prepare(database, tenants[0], "operator")
     response = client.post("/workflow-executions", json=body)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 202, response.text
     first_id = response.json()["id"]
     assert client.post("/workflow-executions", json=body).json()["id"] == first_id
     prepare(database, tenants[0], "viewer")
@@ -201,7 +198,9 @@ def test_start_api_permissions_tenant_key_scope_and_authenticated_actor(
         assert str(run.id) != first_id
 
 
-def test_start_receipt_migration_is_immutable_and_refuses_history_loss(available_code):
+def test_start_receipt_migration_is_immutable_and_refuses_history_loss(available_code, monkeypatch):
+    # Isolate receipt retention from the later durable queue migration's retention gate.
+    monkeypatch.setattr(execution_starts, "enqueue", lambda *_: None)
     url = os.environ.get("WORKFLOW_TEST_DATABASE_URL")
     if not url:
         pytest.skip("WORKFLOW_TEST_DATABASE_URL is required")
@@ -273,5 +272,5 @@ def test_start_only_service_receives_acknowledgement_without_execution_data(
         db.commit()
     assert client.get(f"/workflow-executions/{identity}").status_code == 403
     replay = client.post("/workflow-executions", json=body)
-    assert replay.status_code == 200 and replay.json()["id"] == identity
+    assert replay.status_code == 202 and replay.json()["id"] == identity
     assert "output_json" not in replay.json() and "input_json" not in replay.json()

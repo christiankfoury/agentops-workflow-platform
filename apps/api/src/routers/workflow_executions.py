@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.models.agent_step import AgentStep
+from src.models.durable_job import DurableJob
 from src.models.workflow_execution import ExecutionEvent, StepAttempt, StepRun, WorkflowExecution
 from src.models.workflow_run import WorkflowRun
+from src.schemas.durable_job import JobRead
 from src.schemas.execution_start import ExecutionStartRead, ExecutionStartRequest
 from src.schemas.workflow_execution import (
     ExecutionEventRead,
@@ -22,7 +24,7 @@ from src.services.execution_starts import start_execution
 router = APIRouter()
 
 
-@router.post("", response_model=ExecutionStartRead, status_code=200)
+@router.post("", response_model=ExecutionStartRead, status_code=202)
 def start(body: ExecutionStartRequest, db: Session = Depends(get_db)):
     return start_execution(db, body)
 
@@ -65,6 +67,25 @@ def legacy_trace(run_id: uuid.UUID, db: Session = Depends(get_db)):
 @router.get("/{execution_id}", response_model=ExecutionRead)
 def detail(execution_id: uuid.UUID, db: Session = Depends(get_db)):
     return execution(db, execution_id)
+
+
+@router.get("/{execution_id}/jobs", response_model=list[JobRead])
+def execution_jobs(
+    execution_id: uuid.UUID,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    execution(db, execution_id)
+    return db.scalars(
+        select(DurableJob)
+        .where(
+            DurableJob.execution_id == execution_id,
+        )
+        .order_by(DurableJob.sequence)
+        .offset(offset)
+        .limit(limit)
+    ).all()
 
 
 @router.get("/{execution_id}/steps", response_model=list[StepRunRead])

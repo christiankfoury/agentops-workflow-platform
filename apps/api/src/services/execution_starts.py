@@ -10,6 +10,7 @@ from src.models.execution_start import ExecutionStart
 from src.models.workflow_execution import ExecutionEvent, WorkflowExecution
 from src.schemas.workflow_graph import WorkflowGraph
 from src.services.audit import record_audit
+from src.services.durable_queue import enqueue
 from src.services.execution_records import execution
 from src.services.graph_validation import validate_data
 from src.services.permissions import authorize
@@ -38,7 +39,7 @@ def existing_start(db, key, digest):
 
 
 def start_execution(db, body):
-    """Persist a pending start only; no in-process dispatch or queue claim."""
+    """Atomically accept a pending execution and its first durable job."""
     try:
         principal = authorize(db, "workflow.start", lock=True)
         digest = fingerprint(body)
@@ -66,6 +67,7 @@ def start_execution(db, body):
         db.add(run)
         db.flush()
         db.add(ExecutionStart(key=body.idempotency_key, fingerprint=digest, execution_id=run.id))
+        enqueue(db, run, 0)
         db.add(
             ExecutionEvent(
                 execution_id=run.id,

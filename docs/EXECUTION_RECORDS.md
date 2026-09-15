@@ -2,7 +2,8 @@
 
 Phase 72 adds persistence, centralized lifecycle transitions and read APIs.
 Phase 73 adds the idempotent pending-start contract below. Phase 74 adds the
-deterministic interpreter; queueing and provider calls follow in later phases.
+deterministic interpreter; Phase 75 adds the [durable queue](DURABLE_QUEUE.md).
+Provider calls follow in later phases.
 
 ## Identity and history
 
@@ -69,7 +70,7 @@ pinning, tenant reads and complete historical-row preservation across migration.
 
 `POST /workflow-executions` accepts `definition_id`, optional `version_id`, object
 `input` and a required `idempotency_key` (1–128 ASCII letters/digits or `._:-`).
-Operators/admins with `workflow.start` permission may start. HTTP 200 acknowledges
+Operators/admins with `workflow.start` permission may start. HTTP 202 acknowledges
 the execution ID, version and status for first acceptance and identical retries.
 Execution input/output and other data require the separate `read` permission. Input
 must satisfy the pinned graph's strict schema and bounded JSON payload contract.
@@ -82,7 +83,7 @@ one key per intended start and retain it across network retries.
 
 The first acceptance resolves the published pointer while holding the definition
 lock, or uses an explicit version belonging to that definition. Receipt, execution,
-initial event and authenticated audit commit together. Duplicate attempts cannot
+initial job, events and authenticated audit commit together. Duplicate attempts cannot
 leave orphaned executions. A receipt retry returns its original execution even
 after a newer publication or archival; a new key cannot start an archived version.
 
@@ -92,7 +93,7 @@ could silently create another run. Different organizations may reuse the same ke
 Migration downgrade refuses to discard receipts once they exist.
 
 Start acceptance checks the server's executor registry. Phase 74 supports code,
-condition and transform nodes. Phase 75 adds atomic job enqueue and asynchronous
+condition and transform nodes. Phase 75 atomically enqueues a durable job with
 acceptance. No in-process background dispatch is used by this endpoint.
 
 ## Deterministic checkpoints (Phase 74)
@@ -110,7 +111,7 @@ a database session or lock; `complete_work` fences its result against the prepar
 execution revision and commits outputs, transitions and edge selections together.
 Final output binding and execution completion use another checkpoint. Workers
 can consume these operations; `run_deterministic_execution` is a bounded local
-runner. The start API itself only persists pending work in this phase.
+runner. The start API enqueues work for the Phase 75 worker.
 
 Continuation after a completed checkpoint does not repeat completed handlers.
 An interrupted running attempt remains running until the recovery phases add

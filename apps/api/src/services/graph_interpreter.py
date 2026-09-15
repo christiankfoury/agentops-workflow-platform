@@ -89,7 +89,7 @@ def next_node(db, run, graph, rows, edges):
     return None
 
 
-def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY):
+def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=None):
     """Commit a prepared attempt before executor work; callers must not nest this."""
     if db.info.get("workflow_transaction"):
         raise ValueError("Prepare a checkpoint outside an existing workflow transaction")
@@ -144,6 +144,8 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY):
                 )
             )
             fail_execution(db, run, failure)
+        if on_checkpoint is not None:
+            on_checkpoint(run, work)
     return replace(work, revision=run.state_revision) if work else None
 
 
