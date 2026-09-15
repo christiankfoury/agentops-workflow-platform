@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 68 — Tenant Ownership and Isolation**.
+Current next implementation phase: **Phase 69 — Role Permissions and Approval Audit**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–67 are complete; Phase 68 is in progress; Phases 69–105 remain planned.
+Phases 66–68 are complete; Phases 69–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -106,7 +106,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | --- | --- | --- |
 | 66 | Complete | State Transition Invariants |
 | 67 | Complete | User Identity and Organization Membership |
-| 68 | In progress | Tenant Ownership and Isolation |
+| 68 | Complete | Tenant Ownership and Isolation; migration, CI and review passed. |
 | 69 | Planned — not started | Role Permissions and Approval Audit |
 | 70 | Planned — not started | Typed Workflow Graph Schema |
 | 71 | Planned — not started | Workflow Definitions and Immutable Versions |
@@ -293,7 +293,17 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Scope size: the ten-model ownership contract, reversible migration and two-tenant
   API/database/export regression coverage exceed the preferred phase size; all
   changes are required by the Phase 68 isolation boundary.
-- Implementation commit, pushed CI and post-push review: pending.
+- Implementation commit: `9859b0592e3270750da69d8bf07ed8de7a85079b`, pushed to main.
+  [CI run 34939013134](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/34939013134)
+  passed all API, Web and Docker Compose jobs, including the fresh migration,
+  full test suite and dependency audits.
+- Post-push review: inspected the committed session hooks, all business ownership
+  constraints, nested/aggregate route access, prompt/settings uniqueness, exports,
+  demo seed isolation and rollback data preservation. No blocking findings;
+  no fix commit required. Database administration/raw SQL remains a privileged
+  boundary and must explicitly scope reads; this is not database row-level security.
+- Completion: Phase 68 complete. The final record is pushed separately and its CI
+  must finish before beginning Phase 69. No public deployment or live IdP claimed.
 
 When a future phase starts, add a record here using these fields:
 
