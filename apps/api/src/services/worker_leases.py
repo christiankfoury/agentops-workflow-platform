@@ -11,6 +11,7 @@ from src.config import settings
 from src.models.workflow_execution import TERMINAL, ExecutionEvent, StepAttempt, StepRun
 from src.services.durable_queue import Claim, finish_job, jobs, locked_claim
 from src.services.execution_records import execution, pinned_node
+from src.services.retry_runtime import retry_decision, runtime_now
 from src.services.tenancy import bind_tenant
 from src.services.workflow_state import transition_execution_entity as transition
 from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
@@ -86,7 +87,13 @@ def recover_claim(engine, claim):
                         allow_expired=True,
                     )
                     return True
+                now = runtime_now(db)
                 retry = row["recovery_count"] < settings.worker_max_recoveries
+                exhausted_code = "recovery_exhausted"
+                next_due = now
+                if run.deadline_at and now >= run.deadline_at:
+                    retry = False
+                    exhausted_code = "run_deadline"
                 active = db.scalars(
                     select(StepRun).where(
                         StepRun.execution_id == run.id,
@@ -103,29 +110,35 @@ def recover_claim(engine, claim):
                     ).all()
                     for attempt in attempts:
                         if attempt.status not in TERMINAL:
+                            attempt.error_classification = "retryable"
                             attempt.error_code = "worker_abandoned"
                             attempt.error_message = "Worker lease expired before completion"
                             transition(db, run, attempt, "failed")
-                    retry = (
-                        retry
-                        and len(attempts)
-                        < pinned_node(
-                            db,
-                            run,
-                            step.node_id,
-                        ).retry.max_attempts
-                        and step.status in {"running", "retrying"}
+                    _, due, code = retry_decision(
+                        pinned_node(db, run, step.node_id).retry,
+                        len(attempts),
+                        "worker_abandoned",
+                        now,
+                        run.deadline_at,
+                        abandoned=True,
                     )
+                    retry = retry and due is not None and step.status in {"running", "retrying"}
+                    if code == "run_deadline":
+                        exhausted_code = code
+                    if due is not None:
+                        next_due = max(next_due, due)
                 for step in active:
                     if retry:
+                        step.next_attempt_at = next_due
                         if step.status == "running":
                             transition(db, run, step, "retrying")
                     else:
-                        step.error_code = "recovery_exhausted"
+                        step.next_attempt_at = None
+                        step.error_code = exhausted_code
                         step.error_message = "Worker recovery or pinned attempt budget exhausted"
                         transition(db, run, step, "failed")
                 if not retry:
-                    run.error_code = "recovery_exhausted"
+                    run.error_code = exhausted_code
                     run.error_message = "Worker recovery or pinned attempt budget exhausted"
                     transition(db, run, run, "failed")
                     finish_job(db, run, claim, "failed", run.error_code, allow_expired=True)
@@ -143,7 +156,7 @@ def recover_claim(engine, claim):
                         lease_expires_at=None,
                         heartbeat_at=None,
                         recovery_count=row["recovery_count"] + 1,
-                        due_at=func.clock_timestamp(),
+                        due_at=next_due,
                     )
                 )
                 db.add(

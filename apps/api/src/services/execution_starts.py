@@ -1,9 +1,10 @@
 import hashlib
 import json
+from datetime import timedelta
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from src.models.execution_start import ExecutionStart
@@ -57,12 +58,19 @@ def start_execution(db, body):
         if selected_id is None:
             raise HTTPException(409, "Workflow definition has no published version")
         selected = require_runnable_version(db, item.id, selected_id)
+        graph = WorkflowGraph.model_validate(selected.graph)
         try:
-            validate_data(body.input, WorkflowGraph.model_validate(selected.graph).input_schema)
+            validate_data(body.input, graph.input_schema)
         except ValidationError as error:
             raise HTTPException(422, validation_errors(error)) from error
         run = WorkflowExecution(
-            version_id=selected.id, input_json=body.input, created_by_user_id=principal.user_id
+            version_id=selected.id,
+            input_json=body.input,
+            created_by_user_id=principal.user_id,
+            deadline_at=db.scalar(select(func.clock_timestamp()))
+            + timedelta(
+                seconds=graph.overall_timeout_seconds,
+            ),
         )
         db.add(run)
         db.flush()

@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
@@ -91,13 +92,20 @@ def add_attempt(db, run, step):
             )
             or 0
         ) + 1
-        if number > pinned_node(db, run, step.node_id).retry.max_attempts:
+        node = pinned_node(db, run, step.node_id)
+        if number > node.retry.max_attempts:
             raise ValueError("Step attempt limit reached")
+        deadline = db.scalar(select(func.clock_timestamp())) + timedelta(
+            seconds=node.timeout_seconds
+        )
+        if run.deadline_at:
+            deadline = min(deadline, run.deadline_at)
         attempt = StepAttempt(
             step_run_id=step.id,
             number=number,
             input_json=step.input_json,
             idempotency_key=step.idempotency_key,
+            deadline_at=deadline,
         )
         db.add(attempt)
         db.flush()

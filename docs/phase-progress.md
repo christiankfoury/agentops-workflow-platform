@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–76 are complete; Phases 77–105 remain planned.
+Phases 66–76 are complete; Phase 77 is in progress; Phases 78–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -115,7 +115,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
 | 75 | Complete | Atomic durable queue, bounded worker dispatch, job reads and process restart evidence. |
 | 76 | Complete | Live leases, heartbeat renewal, fenced bounded recovery and process-kill evidence. |
-| 77 | Planned — not started | Durable Retries Backoff and Deadlines |
+| 77 | In progress | Durable Retries Backoff and Deadlines |
 | 78 | Planned — not started | Durable Cancellation |
 | 79 | Planned — not started | Durable Delay Steps |
 | 80 | Planned — not started | Durable Approval Steps and Resume |
@@ -762,6 +762,54 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Completion: Phase 76 complete. At-least-once handler invocation is documented;
   no remote exactly-once effects, provider or hosted deployment claimed. Final
   record is pushed separately; finish its CI before Phase 77.
+
+### Phase 77 — Durable Retries Backoff and Deadlines (2026-09-15)
+
+- Dependency gate: Phase 76 record `50c2db229a9b73f26fd141fcbc8cb204ccd546e8`
+  pushed; [CI run 35018801384](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35018801384)
+  passed API, Web and Docker Compose. Working tree clean.
+- Inspected pinned retry/timeout metadata, numbered attempts, lease recovery,
+  atomic job scheduling, interpreter failures and legacy SDK retry behavior.
+- Plan: persist run/attempt deadlines, error classification and next-attempt time;
+  reuse immutable version retry policies and numbered attempt history. Apply
+  bounded exponential jitter/backoff, atomically schedule retries, enforce deadlines
+  in the worker control loop and reject late results. Keep quality iterations
+  separate and document engine-owned retry policy for later provider adapters.
+- Acceptance: fake-clock delay/deadline decisions, permanent versus retryable
+  errors, exhaustion, durable due times through worker restart, duplicate failure
+  delivery, timeout/completion/recovery/terminal-state races and no worker sleep
+  during backoff. Use real PostgreSQL for transition/scheduling uniqueness.
+- Rollout: additive deadline/retry fields with active-record backfill. Long-running
+  synchronous handlers may continue until they return, while their late results
+  are fenced; they retain their worker slot to keep physical concurrency bounded.
+  Supported I/O abort arrives in Phase 78. No provider or quality-revision execution.
+- Implementation: run/attempt deadlines, failed-attempt classification and durable
+  next-attempt timestamps. Retry decisions use pinned policies, exponential capped
+  jitter, recorded attempt numbers and separate quality iterations. Failure and
+  retry enqueue are atomic; watchdog/completion deadline checks share the run/job
+  fence. Recovery backoff preserves abandoned attempts. Graceful and max-job drains
+  keep watchdog enforcement active while physical handler slots remain bounded.
+- Validation: `pytest tests/test_graph_interpreter.py tests/test_durable_queue.py
+  tests/test_worker_leases.py -q --tb=short` passed **31 PostgreSQL tests**. A broader
+  retry/start/record run passed **24 tests** and exposed a SQL bind-parsing error
+  in the new migration fixture's JSON literal; that fixture was corrected.
+  The corrected retry suite passed **9 tests** before adding both drain variants.
+- Final validation: `pytest tests/test_retry_runtime.py tests/test_graph_interpreter.py
+  -q --tb=short` passed **22 tests**, including fake-clock decisions, process restart
+  with queued backoff, duplicate failures, permanent/exhausted outcomes, active and
+  queued deadlines, terminal-cancellation fencing, physical concurrency bounds and
+  watchdog behavior during normal/max-job/graceful draining.
+- API/migration lint, Compose configuration and diff checks passed. Fresh/active
+  deadline backfill and guarded downgrade/reapply passed. The disposable database
+  was synchronized with the final uncommitted classification constraint before its
+  empty round trip; no execution history was discarded. Earlier migration fixtures
+  now seed old execution columns directly and accept the earliest retention gate.
+- Local review covered retry/deadline ordering, duplicate scheduling, stale results,
+  pinned budgets, retention and worker capacity. The local interpreter's checkpoint
+  bound now includes allowed infrastructure attempts. No live provider or deployment
+  claimed. Migration, watchdog, retry service and process tests exceed 700 lines
+  together and remain one Phase 77 delivery unit.
+- Implementation commit, CI and post-push review: pending.
 
 When a future phase starts, add a record here using these fields:
 

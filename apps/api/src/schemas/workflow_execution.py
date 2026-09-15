@@ -30,6 +30,7 @@ class ExecutionRead(ExecutionFieldsRead):
     created_by_user_id: uuid.UUID | None
     state_revision: int
     checkpoint_json: dict
+    deadline_at: datetime | None
 
 
 class StepRunRead(ExecutionFieldsRead):
@@ -39,6 +40,7 @@ class StepRunRead(ExecutionFieldsRead):
     branch: str
     iteration: int
     idempotency_key: str
+    next_attempt_at: datetime | None
 
 
 class StepAttemptRead(ExecutionFieldsRead):
@@ -46,6 +48,8 @@ class StepAttemptRead(ExecutionFieldsRead):
     number: int
     idempotency_key: str
     llm_metadata: dict | None
+    deadline_at: datetime | None
+    error_classification: str | None
 
 
 class LegacyTraceRead(BaseModel):

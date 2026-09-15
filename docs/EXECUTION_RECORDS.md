@@ -28,7 +28,7 @@ PostgreSQL; ORM guards reject updates outside the matching run's shared authorit
 including output changes and writes made while holding a different run's lock.
 Execution/attempt heartbeat fields remain storage; Phase 76 renews ownership on
 the durable job's heartbeat/lease fields. Attempt allocation uses the pinned node's bounded retry policy, but durable
-retry scheduling/backoff remains Phase 77.
+retry scheduling/backoff is implemented in [Phase 77](RETRIES_AND_DEADLINES.md).
 
 ## Transitions and transactions
 
@@ -121,5 +121,5 @@ Unselected condition routes get skipped logical steps without fabricated attempt
 Checkpoint migration rollback refuses to discard nonempty checkpoint data.
 
 Wait, parallel, LLM and tool executors and bounded quality revisions remain
-explicitly unavailable. Retry policy metadata does not schedule infrastructure
-retries yet. These capabilities are enabled by their respective later phases.
+explicitly unavailable. Infrastructure retry metadata now schedules durable
+retries through Phase 77. The remaining capabilities follow in their respective phases.

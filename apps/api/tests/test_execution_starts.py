@@ -229,7 +229,7 @@ def test_start_receipt_migration_is_immutable_and_refuses_history_loss(available
                 with pytest.raises(DBAPIError, match="immutable"):
                     conn.execute(text(statement))
                 conn.rollback()
-            with pytest.raises(RuntimeError, match="Retain execution start receipts"):
+            with pytest.raises(RuntimeError, match="Retain execution"):
                 command.downgrade(config, "f072_execution_records")
             conn.rollback()
     finally:

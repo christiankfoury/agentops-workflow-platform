@@ -10,7 +10,7 @@ from sqlalchemy.sql import func
 
 from src.config import settings
 from src.models.durable_job import DurableJob
-from src.models.workflow_execution import TERMINAL, ExecutionEvent, WorkflowExecution
+from src.models.workflow_execution import TERMINAL, ExecutionEvent, StepRun, WorkflowExecution
 from src.services.execution_records import execution
 from src.services.execution_registry import DEFAULT_REGISTRY
 from src.services.graph_expressions import ExecutionError
@@ -19,6 +19,14 @@ from src.services.tenancy import bind_tenant, tenant_id
 from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
 
 jobs = DurableJob.__table__
+
+
+def has_queued_jobs(engine):
+    with engine.connect() as conn:
+        return (
+            conn.execute(select(jobs.c.id).where(jobs.c.status == "queued").limit(1)).first()
+            is not None
+        )
 
 
 class LeaseLostError(StaleWorkflowError):
@@ -34,8 +42,10 @@ class Claim:
     token: UUID
 
 
-def enqueue(db, run, sequence):
+def enqueue(db, run, sequence, *, due_at=None):
     job = DurableJob(execution_id=run.id, sequence=sequence)
+    if due_at is not None:
+        job.due_at = due_at
     db.add(job)
     db.flush()
     db.add(
@@ -165,23 +175,57 @@ def finish_job(db, run, claim, status, error_code=None, *, allow_expired=False):
     )
 
 
-def commit_result(db, claim, work, *, result=None, error=None):
+def commit_result(db, claim, work, *, result=None, error=None, now=None, allow_expired=False):
     if work.execution_id != claim.execution_id:
         raise ValueError("Work does not belong to the claimed execution")
     run = execution(db, claim.execution_id)
     with workflow_transaction(db, run, expected_revision=work.revision):
-        row = locked_claim(db, claim)
+        row = locked_claim(db, claim, allow_expired=allow_expired)
         if row is None:
             raise LeaseLostError("Job lease expired or was reassigned")
         if row["attempt_id"] != work.attempt_id or row["dispatched_at"] is None:
             raise ValueError("Work does not belong to the dispatched job")
-        complete_work(db, work, result=result, error=error)
+        complete_work(db, work, result=result, error=error, now=now)
+        step = db.get(StepRun, work.step_id)
+        failed = step.status != "completed"
         finish_job(
-            db, run, claim, "failed" if error else "completed", error.code if error else None
+            db,
+            run,
+            claim,
+            "failed" if failed else "completed",
+            step.error_code if failed else None,
+            allow_expired=allow_expired,
         )
         if run.status not in TERMINAL:
-            enqueue(db, run, claim.sequence + 1)
+            enqueue(db, run, claim.sequence + 1, due_at=step.next_attempt_at)
     return True
+
+
+def fail_queued_job(db, run, row, code):
+    if db.info.get("workflow_transaction") != (WorkflowExecution, run.id):
+        raise ValueError("Queued failure requires the execution transaction")
+    changed = db.connection().execute(
+        update(jobs)
+        .where(
+            jobs.c.id == row["id"],
+            jobs.c.execution_id == run.id,
+            jobs.c.organization_id == tenant_id(db),
+            jobs.c.status == "queued",
+        )
+        .values(status="failed", completed_at=func.clock_timestamp(), error_code=code)
+    )
+    if changed.rowcount != 1:
+        raise StaleWorkflowError("Queued job changed")
+    db.add(
+        ExecutionEvent(
+            execution_id=run.id,
+            entity_type="durable_jobs",
+            entity_id=row["id"],
+            from_status="queued",
+            to_status="failed",
+            details={"error_code": code},
+        )
+    )
 
 
 def process_claim(engine, claim, registry=DEFAULT_REGISTRY):

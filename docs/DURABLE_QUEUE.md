@@ -56,7 +56,8 @@ It exposes no public port. Production packaging follows in Phase 100.
 
 Unexpected worker exceptions are logged by class without copying sensitive
 exception text. Expired interrupted claims are recovered as described below.
-Engine retries/backoff/deadlines, cancellation, waits, parallel execution,
+Phase 77 adds [engine retries, backoff and deadlines](RETRIES_AND_DEADLINES.md).
+Cancellation, waits, parallel execution,
 LLM calls and external side effects arrive in later phases.
 
 The PostgreSQL tests in `tests/test_durable_queue.py` cover atomic acceptance,
@@ -83,7 +84,8 @@ Completed graph checkpoints remain complete and are not executed again.
 
 Expired active attempts finish as failed with `worker_abandoned`, preserving
 their input and logical idempotency key. A logical step resumes only within its
-pinned `retry.max_attempts` budget. The default is **one attempt**, so an abandoned
+pinned `retry.max_attempts` budget and, from Phase 77, its durable backoff.
+The default is **one attempt**, so an abandoned
 in-flight attempt fails explicitly unless the definition allows more attempts.
 `WORKER_MAX_RECOVERIES` defaults to 3 (0–10) and also bounds repeated crashes before
 attempt preparation. Exhaustion fails the execution/job with `recovery_exhausted`;

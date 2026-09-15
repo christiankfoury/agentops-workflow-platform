@@ -61,6 +61,7 @@ class WorkflowExecution(ExecutionFields, TenantOwned, Base):
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     state_revision: Mapped[int] = mapped_column(Integer, default=0)
     checkpoint_json: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+    deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class StepRun(ExecutionFields, TenantOwned, Base):
@@ -88,6 +89,7 @@ class StepRun(ExecutionFields, TenantOwned, Base):
     branch: Mapped[str] = mapped_column(String(256), default="main")
     iteration: Mapped[int] = mapped_column(Integer, default=0)
     idempotency_key: Mapped[str] = mapped_column(String(64))
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class StepAttempt(ExecutionFields, TenantOwned, Base):
@@ -96,12 +98,17 @@ class StepAttempt(ExecutionFields, TenantOwned, Base):
         *tenant_constraints(__tablename__, {"step_run_id": "step_runs"}),
         UniqueConstraint("step_run_id", "number", name="uq_step_attempt_number"),
         CheckConstraint("number >= 1"),
+        CheckConstraint(
+            "error_classification IS NULL OR error_classification IN ('retryable','permanent')"
+        ),
         status_constraint(["pending", "running", "completed", "failed", "cancelled"]),
     )
     step_run_id: Mapped[uuid.UUID] = mapped_column(UUID())
     number: Mapped[int] = mapped_column(Integer)
     idempotency_key: Mapped[str] = mapped_column(String(64))
     llm_metadata: Mapped[dict | None] = mapped_column(JSONB)
+    deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_classification: Mapped[str | None] = mapped_column(String(20))
 
 
 class ExecutionEvent(TenantOwned, Base):

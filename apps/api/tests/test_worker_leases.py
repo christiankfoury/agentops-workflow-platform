@@ -17,11 +17,11 @@ from src.config import settings
 from src.models.durable_job import DurableJob
 from src.models.workflow_execution import StepAttempt, StepRun, WorkflowExecution
 from src.services import durable_queue as queue
-from src.services import execution_starts
 from src.services import worker_leases as leases
 from src.services.execution_registry import ExecutorRegistry
 from src.services.workflow_transactions import StaleWorkflowError
 from src.worker import run_worker
+from tests.generic_migration_fixtures import pre_deadline_execution
 from tests.test_graph_interpreter import branching_graph, start
 from tests.test_workflow_transactions_postgres import database as database
 
@@ -245,7 +245,7 @@ time.sleep(60)
         assert db.scalar(select(func.count()).select_from(DurableJob)) == 5
 
 
-def test_lease_migration_recovers_old_running_jobs_and_retains_history(monkeypatch):
+def test_lease_migration_recovers_old_running_jobs_and_retains_history():
     url = os.environ.get("WORKFLOW_TEST_DATABASE_URL")
     if not url:
         pytest.skip("WORKFLOW_TEST_DATABASE_URL is required")
@@ -261,11 +261,8 @@ def test_lease_migration_recovers_old_running_jobs_and_retains_history(monkeypat
             config.attributes["connection"] = conn
             command.upgrade(config, "head")
             command.downgrade(config, "f075_durable_jobs")
-            with monkeypatch.context() as patch:
-                patch.setattr(execution_starts, "enqueue", lambda *_: None)
-                with Session(conn) as db:
-                    identity = start(db).id
-                    db.commit()
+            with Session(conn) as db:
+                identity = pre_deadline_execution(db)
             conn.execute(
                 text("""
                 INSERT INTO durable_jobs
@@ -284,7 +281,7 @@ def test_lease_migration_recovers_old_running_jobs_and_retains_history(monkeypat
                 conn.execute(text("SELECT status FROM workflow_executions")).scalar() == "completed"
             )
             conn.rollback()
-            with pytest.raises(RuntimeError, match="Retain job lease history"):
+            with pytest.raises(RuntimeError, match="Retain (execution|job)"):
                 command.downgrade(config, "f075_durable_jobs")
             conn.rollback()
     finally:

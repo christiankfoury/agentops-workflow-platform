@@ -275,7 +275,7 @@ def test_execution_migration_preserves_legacy_data_and_fences_identity():
                     {"version": uuid.uuid4(), "id": run_id},
                 )
             conn.rollback()
-            with pytest.raises(RuntimeError, match="Retain execution history"):
+            with pytest.raises(RuntimeError, match="Retain execution"):
                 command.downgrade(config, "f071_workflow_definitions")
             conn.rollback()
     finally:

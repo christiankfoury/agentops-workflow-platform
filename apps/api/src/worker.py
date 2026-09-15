@@ -10,8 +10,10 @@ from uuid import uuid4
 
 from src.config import settings
 from src.database import engine
-from src.services.durable_queue import claim_jobs, process_claim
+from src.services.durable_queue import claim_jobs, has_queued_jobs, process_claim
+from src.services.execution_deadlines import enforce_deadlines
 from src.services.worker_leases import recover_expired
+from src.services.workflow_transactions import StaleWorkflowError
 
 log = logging.getLogger(__name__)
 
@@ -33,9 +35,12 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
                     active.remove(future)
                     try:
                         future.result()
+                    except StaleWorkflowError:
+                        log.info("Checkpoint ownership changed; late result discarded")
                     except Exception as error:
                         failures += 1
                         log.error("Worker checkpoint interrupted: %s", type(error).__name__)
+            enforce_deadlines(database)
             if stop.is_set() or (max_jobs is not None and dispatched >= max_jobs):
                 if not active:
                     break
@@ -49,7 +54,7 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
             for claim in claimed:
                 active.add(pool.submit(process_claim, database, claim))
             dispatched += len(claimed)
-            if drain and not active and not claimed:
+            if drain and not active and not claimed and not has_queued_jobs(database):
                 break
             stop.wait(poll_seconds)
     return failures

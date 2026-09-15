@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, replace
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -14,6 +15,7 @@ from src.services.execution_records import add_attempt, add_step, execution
 from src.services.execution_registry import DEFAULT_REGISTRY, NodeResult
 from src.services.graph_expressions import ExecutionError, resolve_bindings
 from src.services.graph_validation import validate_data
+from src.services.retry_runtime import expire_execution, fail_attempt, runtime_now
 from src.services.workflow_state import transition_execution_entity as transition
 from src.services.workflow_transactions import StaleWorkflowError, workflow_transaction
 
@@ -27,6 +29,7 @@ class WorkItem:
     node: StepDefinition
     inputs: dict
     context: tuple[dict, dict]
+    deadline_at: datetime | None = None
 
 
 def graph_for(db, run):
@@ -54,6 +57,8 @@ def set_edges(run, edges):
 
 
 def fail_execution(db, run, error, step=None, attempt=None):
+    if attempt is not None:
+        attempt.error_classification = "permanent"
     for entity in [attempt, step, run]:
         if entity is not None:
             entity.error_code = error.code
@@ -104,8 +109,22 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
         row.status not in TERMINAL | {"retrying"} for row in rows.values()
     ):
         return None
+    observed_now = runtime_now(db)
+    if (
+        resumable
+        and resumable[0].next_attempt_at
+        and observed_now < resumable[0].next_attempt_at
+        and (run.deadline_at is None or observed_now < run.deadline_at)
+    ):
+        return None
     work = None
     with workflow_transaction(db, run):
+        now = runtime_now(db)
+        if run.deadline_at and now >= run.deadline_at:
+            expire_execution(db, run)
+            if on_checkpoint:
+                on_checkpoint(run, None)
+            return None
         if run.status == "pending":
             transition(db, run, run, "running")
         edges = dict(run.checkpoint_json.get("edges", {}))
@@ -122,8 +141,9 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                 transition(db, run, run, "completed")
             else:
                 step = resumable[0] if resumable else add_step(db, run, node.id)
-                step.error_code = step.error_message = None
                 attempt = add_attempt(db, run, step)
+                step.error_code = step.error_message = None
+                step.next_attempt_at = None
                 transition(db, run, step, "running")
                 transition(db, run, attempt, "running")
                 try:
@@ -140,7 +160,9 @@ def prepare_next(db, execution_id, registry=DEFAULT_REGISTRY, *, on_checkpoint=N
                     fail_execution(db, run, failure, step, attempt)
                 else:
                     step.input_json = attempt.input_json = inputs
-                    work = WorkItem(run.id, step.id, attempt.id, 0, node, inputs, context)
+                    work = WorkItem(
+                        run.id, step.id, attempt.id, 0, node, inputs, context, attempt.deadline_at
+                    )
         except (ExecutionError, ValidationError, ValueError) as error:
             failure = (
                 error
@@ -174,7 +196,9 @@ def execute_work(work, registry=DEFAULT_REGISTRY):
         raise ExecutionError("output_invalid", "Node output violates its data contract") from error
 
 
-def complete_work(db, work, result: NodeResult | None = None, error: ExecutionError | None = None):
+def complete_work(
+    db, work, result: NodeResult | None = None, error: ExecutionError | None = None, *, now=None
+):
     """May share a caller-owned run transaction with later durable job scheduling."""
     run = execution(db, work.execution_id)
     if run.state_revision != work.revision:
@@ -195,8 +219,13 @@ def complete_work(db, work, result: NodeResult | None = None, error: ExecutionEr
             or attempt.status != "running"
         ):
             raise StaleWorkflowError("Prepared step or attempt is no longer running")
+        now = now or runtime_now(db)
+        if run.deadline_at and now >= run.deadline_at:
+            error = ExecutionError("run_deadline", "Workflow deadline expired")
+        elif attempt.deadline_at and now >= attempt.deadline_at:
+            error = ExecutionError("attempt_timeout", "Step attempt deadline expired")
         if error:
-            fail_execution(db, run, error, step, attempt)
+            fail_attempt(db, run, step, attempt, error, now)
         else:
             if result is None:
                 raise ValueError("A result or typed failure is required")
@@ -229,7 +258,8 @@ def advance_checkpoint(db, execution_id, registry=DEFAULT_REGISTRY):
 
 def run_deterministic_execution(db, execution_id, registry=DEFAULT_REGISTRY):
     """Bounded local runner; durable workers will consume individual checkpoints."""
-    for _ in range(101):
+    graph = graph_for(db, execution(db, execution_id))
+    for _ in range(sum(node.retry.max_attempts for node in graph.nodes) + 1):
         run = execution(db, execution_id)
         before = run.state_revision
         run = advance_checkpoint(db, execution_id, registry)

@@ -296,7 +296,7 @@ def test_checkpoint_migration_round_trip_and_nonempty_retention(monkeypatch):
                 assert run.checkpoint_json == {}
                 run_deterministic_execution(db, run.id)
                 db.commit()
-            with pytest.raises(RuntimeError, match="Retain execution checkpoints"):
+            with pytest.raises(RuntimeError, match="Retain execution"):
                 command.downgrade(config, "f073_execution_starts")
             conn.rollback()
     finally:

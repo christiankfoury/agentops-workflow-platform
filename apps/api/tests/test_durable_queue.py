@@ -21,6 +21,7 @@ from src.services.graph_interpreter import execute_work, run_deterministic_execu
 from src.services.identity import Principal
 from src.services.tenancy import bind_tenant
 from src.worker import run_worker
+from tests.generic_migration_fixtures import pre_deadline_execution
 from tests.test_graph_interpreter import start
 from tests.test_identity import auth_config as auth_config
 from tests.test_identity import signing_key as signing_key
@@ -43,8 +44,8 @@ def test_acceptance_is_atomic_and_does_not_execute(database, monkeypatch):
         assert db.scalar(select(func.count()).select_from(StepAttempt)) == 0
     original = execution_starts.enqueue
 
-    def interrupted(*args):
-        original(*args)
+    def interrupted(*args, **kwargs):
+        original(*args, **kwargs)
         raise RuntimeError("injected enqueue failure")
 
     monkeypatch.setattr(execution_starts, "enqueue", interrupted)
@@ -109,8 +110,8 @@ def test_completion_and_downstream_enqueue_roll_back_together(database, monkeypa
     captured = []
     original = queue.enqueue
 
-    def interrupted(*args):
-        original(*args)
+    def interrupted(*args, **kwargs):
+        original(*args, **kwargs)
         raise RuntimeError("injected next job failure")
 
     def capture(work, registry):
@@ -182,8 +183,8 @@ def test_final_output_and_job_completion_are_atomic(database, monkeypatch):
     claim = queue.claim_jobs(database, "worker")[0]
     original = queue.finish_job
 
-    def interrupted(*args):
-        original(*args)
+    def interrupted(*args, **kwargs):
+        original(*args, **kwargs)
         raise RuntimeError("injected finalization failure")
 
     with monkeypatch.context() as patch:
@@ -265,7 +266,7 @@ def test_job_reads_are_scoped_and_do_not_expose_claim_tokens(tenant_client, tena
     assert client.get(f"/workflow-executions/{foreign}/jobs").status_code == 404
 
 
-def test_job_migration_backfill_and_history_retention(monkeypatch):
+def test_job_migration_backfill_and_history_retention():
     url = os.environ.get("WORKFLOW_TEST_DATABASE_URL")
     if not url:
         pytest.skip("WORKFLOW_TEST_DATABASE_URL is required")
@@ -281,16 +282,13 @@ def test_job_migration_backfill_and_history_retention(monkeypatch):
             config.attributes["connection"] = conn
             command.upgrade(config, "head")
             command.downgrade(config, "f074_execution_checkpoints")
-            with monkeypatch.context() as patch:
-                patch.setattr(execution_starts, "enqueue", lambda *_: None)
-                with Session(conn) as db:
-                    identity = start(db).id
-                    db.commit()
+            with Session(conn) as db:
+                identity = pre_deadline_execution(db)
             command.upgrade(config, "head")
             row = conn.execute(text("SELECT execution_id,status FROM durable_jobs")).one()
             assert row.execution_id == identity and row.status == "queued"
             conn.commit()
-            with pytest.raises(RuntimeError, match="Retain .*job"):
+            with pytest.raises(RuntimeError, match="Retain (execution|.*job)"):
                 command.downgrade(config, "f074_execution_checkpoints")
             conn.rollback()
             scoped = engine.execution_options(schema_translate_map={None: schema})
