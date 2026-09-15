@@ -122,6 +122,27 @@ def test_transition_failure_rolls_back_state_output_events_and_revision(database
         assert db.scalar(select(func.count()).select_from(ExecutionEvent)) == 0
 
 
+def test_children_cannot_start_before_parents_and_terminal_output_stays_frozen(database):
+    with Session(database) as db:
+        run = fixture_execution(db)
+        step = add_step(db, run, "start")
+        with pytest.raises(ValueError, match="parent execution"):
+            transition(db, run, step, "running")
+        transition(db, run, run, "running")
+        attempt = add_attempt(db, run, step)
+        with pytest.raises(ValueError, match="logical step"):
+            transition(db, run, attempt, "running")
+        transition(db, run, step, "running")
+        transition(db, run, attempt, "running")
+        transition(db, run, attempt, "completed")
+        transition(db, run, step, "completed")
+        transition(db, run, run, "completed")
+        with pytest.raises(ValueError, match="Terminal"):
+            with workflow_transaction(db, run):
+                run.output_json = {"late_result": True}
+        assert run.output_json is None
+
+
 def test_duplicate_attempt_race_is_fenced(database):
     with Session(database) as db:
         run = fixture_execution(db)

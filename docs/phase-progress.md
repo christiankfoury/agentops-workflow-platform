@@ -518,7 +518,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   -q --tb=short` (**27 tests**). API/migration lint and staged diff checks passed.
   Fresh migration, downgrade/reapply, nonempty rollback refusal and complete
   legacy trace/cost/evaluation-row preservation passed in isolated schemas.
-- Commit, CI and post-push review pending. No runtime/provider/deployment claim.
+- Implementation commit: `226cf553b18ec42bb124d753be125028762be8ad`, pushed to main.
+  [CI run 35008069264](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35008069264)
+  passed API, Web and Docker Compose. No runtime/provider/deployment claim.
+- Post-push review reproduced a child entering running before its execution.
+  Added execution/step parent-state guards for child starts and protected terminal
+  output/history from updates even inside a later authorized run transaction.
+  Fix validation: `pytest tests/test_execution_records.py
+  tests/test_workflow_transactions_postgres.py -q --tb=short` with PostgreSQL
+  passed **28 tests**; API lint and diff checks passed. Fix commit/push/CI and
+  follow-up review pending.
 
 When a future phase starts, add a record here using these fields:
 

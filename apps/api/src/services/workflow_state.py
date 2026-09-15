@@ -189,6 +189,14 @@ def transition_execution_entity(db, run, entity, new_status):
             raise ValueError("An attempt cannot wait, retry or skip; use logical step state")
         if entity is not run and run.status in TERMINAL:
             raise ValueError("Terminal executions cannot change child state")
+        if entity is not run and new_status == "running" and run.status != "running":
+            raise ValueError("Start the parent execution before running child work")
+        if isinstance(entity, StepAttempt) and new_status == "running":
+            parent_status = db.scalar(select(StepRun.status).where(
+                StepRun.id == entity.step_run_id,
+            ))
+            if parent_status != "running":
+                raise ValueError("Start the logical step before running an attempt")
         if isinstance(entity, StepRun) and new_status in TERMINAL | {"retrying", "waiting"}:
             active = db.scalar(select(StepAttempt.id).where(
                 StepAttempt.step_run_id == entity.id, StepAttempt.status.not_in(TERMINAL),

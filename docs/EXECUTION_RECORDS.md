@@ -36,6 +36,8 @@ retry scheduling/backoff remains Phase 77.
 and status, commits output/events together, and increments its revision once.
 Nested operations share one transaction. Rollback removes all related changes.
 Stale writers cannot adopt a newer revision implicitly or reopen terminal records.
+Child starts require running parents, and terminal I/O/history remains frozen
+even inside a later transaction that has acquired the current run revision.
 
 Logical steps may wait/retry; individual attempts finish before a logical step
 waits, retries or terminates. An execution cannot terminate with active steps, and

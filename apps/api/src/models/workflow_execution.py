@@ -155,3 +155,9 @@ def preserve_execution_identity(db, _context, _instances):
         )
         if db.info.get("workflow_transaction") != (WorkflowExecution, owner):
             raise ValueError("Execution changes require their run's transition authority")
+        status_history = state.attrs.status.history
+        previous_status = status_history.deleted[0] if status_history.deleted else item.status
+        if previous_status in TERMINAL and any(
+            attr.history.has_changes() for attr in state.attrs if attr.key != "state_revision"
+        ):
+            raise ValueError("Terminal execution records cannot change")
