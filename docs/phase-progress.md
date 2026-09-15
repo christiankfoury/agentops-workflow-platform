@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 74 — Deterministic Graph Interpreter**.
+Current next implementation phase: **Phase 75 — Transactional Durable Job Queue**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–73 are complete; Phase 74 is in progress; Phases 75–105 remain planned.
+Phases 66–74 are complete; Phases 75–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -112,7 +112,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 71 | Complete | Workflow Definitions and Immutable Versions; fix, CI and review passed. |
 | 72 | Complete | Generic Step Runs and Attempts; fix, CI and review passed. |
 | 73 | Complete | Idempotent Generic Run Starts; fix, CI and review passed. |
-| 74 | In progress | Deterministic Graph Interpreter |
+| 74 | Complete | Deterministic interpreter, persisted checkpoints, typed bindings/failures and fenced continuation. |
 | 75 | Planned — not started | Transactional Durable Job Queue |
 | 76 | Planned — not started | Leases Heartbeats and Crash Recovery |
 | 77 | Planned — not started | Durable Retries Backoff and Deadlines |
@@ -634,7 +634,15 @@ This is a status index; implementation details live only in `docs/phases.md`.
   overflow to a retained `expression_range` failure at every binding boundary.
   Both regressions failed before the fix. `pytest tests/test_graph_interpreter.py
   tests/test_workflow_graph.py -q --tb=short` with PostgreSQL passed **49 tests**;
-  API lint and diff checks passed. Fix commit/CI and follow-up review: pending.
+  API lint and diff checks passed.
+- Fix commit: `d3b6e60c57eb06ee98d64b738a908a418f132414`, pushed to main.
+  [CI run 35013176751](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35013176751)
+  passed API, Web and Docker Compose. Follow-up review checked typed errors at
+  every binding boundary, transaction rollback/commit behavior and unchanged
+  checkpoint fencing. No unresolved blocking findings remain.
+- Completion: Phase 74 complete. No generic queue, crash recovery, provider or
+  deployment claimed. Final record is pushed separately; finish its CI before
+  Phase 75.
 
 When a future phase starts, add a record here using these fields:
 
