@@ -84,7 +84,10 @@ def evaluate(expr, inputs, outputs):
         "subtract": lambda: first - second,
         "multiply": lambda: first * second,
     }
-    result = operations[expr.op]()
+    try:
+        result = operations[expr.op]()
+    except OverflowError as error:
+        raise ExecutionError("expression_range", "Expression exceeded numeric range") from error
     if isinstance(result, float) and not isfinite(result):
         raise ExecutionError("expression_range", "Expression produced a non-finite number")
     return result

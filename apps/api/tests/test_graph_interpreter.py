@@ -243,6 +243,35 @@ def test_registry_rejects_unregistered_handlers_unsupported_types_and_quality_re
         registry.validate(WorkflowGraph.model_validate(payload))
 
 
+@pytest.mark.parametrize("binding", ["input", "output"])
+def test_expression_overflow_persists_a_typed_failure(database, binding):
+    payload = {
+        "entry_node": "start",
+        "input_schema": obj(value=NUMBER),
+        "output_schema": obj(value=NUMBER),
+        "outputs": {"value": ref("value", "start")},
+        "nodes": [
+            code(
+                "start",
+                input_schema=obj(value=NUMBER),
+                output_schema=obj(value=NUMBER),
+                inputs={"value": ref("value")},
+            )
+        ],
+    }
+    expression = {"op": "add", "args": [ref("value"), literal(0.5)]}
+    if binding == "input":
+        payload["nodes"][0]["inputs"]["value"] = expression
+    else:
+        payload["outputs"]["value"] = expression
+    with Session(database) as db:
+        run = start(db, payload, {"value": 10**400})
+        run = run_deterministic_execution(db, run.id)
+        assert run.status == "failed" and run.error_code == "expression_range"
+        db.expire_all()
+        assert db.get(WorkflowExecution, run.id).status == "failed"
+
+
 def test_checkpoint_migration_round_trip_and_nonempty_retention():
     url = os.environ.get("WORKFLOW_TEST_DATABASE_URL")
     if not url:

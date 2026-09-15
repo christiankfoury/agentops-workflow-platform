@@ -626,7 +626,15 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Scope size: interpreter, expression evaluator, registry and PostgreSQL acceptance
   coverage require more than 700 changed lines together; all changes belong to
   Phase 74. No queue, live provider or deployment claim.
-- Implementation commit, CI and post-push review: pending.
+- Implementation commit: `99ba1abaef2c45919bb9955353b2b5129bd1c45d`, pushed to main.
+  [CI run 35012920535](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35012920535)
+  passed API, Web and Docker Compose.
+- Post-push review reproduced uncaught numeric overflow in input/final-output
+  bindings using large valid JSON integers. The evaluator now converts numeric
+  overflow to a retained `expression_range` failure at every binding boundary.
+  Both regressions failed before the fix. `pytest tests/test_graph_interpreter.py
+  tests/test_workflow_graph.py -q --tb=short` with PostgreSQL passed **49 tests**;
+  API lint and diff checks passed. Fix commit/CI and follow-up review: pending.
 
 When a future phase starts, add a record here using these fields:
 
