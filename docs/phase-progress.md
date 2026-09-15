@@ -399,7 +399,15 @@ This is a status index; implementation details live only in `docs/phases.md`.
   defaults, limits, missing/null handling and unavailable executor rejection.
   Scope exceeds the preferred size because typed configurations, validation and
   rejection fixtures form one graph contract. No provider calls or deployment.
-- Commit, push, CI and post-push review: pending.
+- Implementation commit: `ad323ff231ea1a4f6d9c87cc1d9ce7f3819e4651`, pushed to main.
+  [CI run 35003178420](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35003178420)
+  passed API, Web and Docker Compose.
+- Post-push review reproduced a valid graph rejected after a parallel join:
+  internal conditional routes were incorrectly retained as separate downstream
+  activations. The join now restores its matching fork's incoming route context;
+  closed-region validation still checks all branch boundaries. Added a failing
+  regression before the fix. Fix validation: **38 graph tests**, API lint and
+  `git diff --check` passed. Fix push/CI and completion pending.
 
 When a future phase starts, add a record here using these fields:
 

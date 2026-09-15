@@ -359,3 +359,35 @@ def test_revision_region_cannot_omit_intermediate_nodes():
         WorkflowGraph.model_validate(payload)
     payload["quality_revision"]["nodes"].append("middle")
     WorkflowGraph.model_validate(payload)
+
+
+def test_parallel_join_discards_internal_route_choices_before_later_merge():
+    def choice(name):
+        return {
+            "id": name, "type": "condition",
+            "config": {"cases": [{"label": "yes", "when": literal(True)}]},
+        }
+
+    payload = {
+        "entry_node": "fork",
+        "nodes": [
+            {"id": "fork", "type": "parallel", "config": {
+                "mode": "fork", "join_node": "join", "branches": [
+                    {"name": "left", "entry_node": "choice"},
+                    {"name": "right", "entry_node": "other"},
+                ],
+            }},
+            choice("choice"), code("yes"), code("no"), code("other"),
+            {"id": "join", "type": "parallel",
+             "config": {"mode": "join", "fork_node": "fork"}},
+            choice("later"), code("end", merge="exclusive"),
+        ],
+        "edges": [
+            edge("fork", "choice", "left"), edge("fork", "other", "right"),
+            edge("choice", "yes", "yes"), edge("choice", "no", "default"),
+            edge("yes", "join"), edge("no", "join"), edge("other", "join"),
+            edge("join", "later"), edge("later", "end", "yes"),
+            edge("later", "end", "default"),
+        ],
+    }
+    WorkflowGraph.model_validate(payload)

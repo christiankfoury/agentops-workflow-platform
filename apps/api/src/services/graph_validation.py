@@ -220,7 +220,10 @@ def validate_graph_contract(graph: WorkflowGraph):
         key = ready.popleft()
         order.append(key)
         if nodes[key].type == "parallel" and nodes[key].config.mode == "join":
-            signatures[key] = list(dict.fromkeys(signatures[key]))
+            # A closed all-selected region completes once for each activation of
+            # its fork. Internal branch choices are no longer alternative routes
+            # into downstream merges. Region matching is checked below.
+            signatures[key] = list(signatures[nodes[key].config.fork_node])
         for edge in outgoing[key]:
             ancestors[edge.target] |= ancestors[key] | {key}
             extra = {(key, edge.label)} if nodes[key].type == "condition" else set()
