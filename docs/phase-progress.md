@@ -571,7 +571,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   with PostgreSQL passed **57 tests**. The final rollback refinement separately
   passed all **7 start tests**. API/migration lint, upgrade head and staged diff
   checks passed; fresh/downgrade/reapply and receipt retention checks passed.
-- Commit, push, CI and post-push review pending.
+- Implementation commit: `da95f9c8cf43da1defae91b0303fe2485791c671`, pushed to main.
+  [CI run 35010056731](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35010056731)
+  passed API, Web and Docker Compose.
+- Post-push review reproduced a service-scope leak: replay returned full execution
+  data to a start-only service whose read request was denied. The start API now
+  returns only ID/version/status; stored I/O remains behind the read API. Added
+  a failing authenticated service regression before the response projection fix.
+  Fix validation: `pytest tests/test_execution_starts.py -q --tb=short` with
+  PostgreSQL passed **8 tests**; API lint and diff checks passed. Fix commit/push/CI
+  and follow-up review pending.
 
 When a future phase starts, add a record here using these fields:
 

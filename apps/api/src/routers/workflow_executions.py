@@ -8,7 +8,7 @@ from src.database import get_db
 from src.models.agent_step import AgentStep
 from src.models.workflow_execution import ExecutionEvent, StepAttempt, StepRun, WorkflowExecution
 from src.models.workflow_run import WorkflowRun
-from src.schemas.execution_start import ExecutionStartRequest
+from src.schemas.execution_start import ExecutionStartRead, ExecutionStartRequest
 from src.schemas.workflow_execution import (
     ExecutionEventRead,
     ExecutionRead,
@@ -22,7 +22,7 @@ from src.services.execution_starts import start_execution
 router = APIRouter()
 
 
-@router.post("", response_model=ExecutionRead, status_code=200)
+@router.post("", response_model=ExecutionStartRead, status_code=200)
 def start(body: ExecutionStartRequest, db: Session = Depends(get_db)):
     return start_execution(db, body)
 

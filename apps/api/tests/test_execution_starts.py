@@ -178,7 +178,6 @@ def test_start_api_permissions_tenant_key_scope_and_authenticated_actor(
     actor = prepare(database, tenants[0], "operator")
     response = client.post("/workflow-executions", json=body)
     assert response.status_code == 200, response.text
-    assert response.json()["created_by_user_id"] == str(actor)
     first_id = response.json()["id"]
     assert client.post("/workflow-executions", json=body).json()["id"] == first_id
     prepare(database, tenants[0], "viewer")
@@ -186,6 +185,10 @@ def test_start_api_permissions_tenant_key_scope_and_authenticated_actor(
     # Independent tenant service calls use the same key and receive a different run.
     from src.services.identity import Principal
     from src.services.tenancy import bind_tenant
+
+    with Session(database) as db:
+        bind_tenant(db, tenants[0]["org"])
+        assert db.get(WorkflowExecution, uuid.UUID(first_id)).created_by_user_id == actor
 
     actor = prepare(database, tenants[1])
     with Session(database) as db:
@@ -232,3 +235,41 @@ def test_start_receipt_migration_is_immutable_and_refuses_history_loss(available
         with engine.begin() as admin:
             admin.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
         engine.dispose()
+
+
+def test_start_only_service_receives_acknowledgement_without_execution_data(
+    database,
+    tenants,
+    tenant_client,
+    available_code,
+):
+    from src.models.identity import ServicePrincipal, User
+    from src.services.tenancy import bind_tenant
+    from src.services.workflow_transactions import workflow_transaction
+
+    client = tenant_client
+    item = client.post("/workflow-definitions", json={"name": "Scoped", "graph": graph()}).json()
+    client.post(f"/workflow-definitions/{item['id']}/publish", json={"expected_revision": 1})
+    body = {"definition_id": item["id"], "input": {"value": 1}, "idempotency_key": "scope"}
+    identity = client.post("/workflow-executions", json=body).json()["id"]
+    actor = prepare(database, tenants[0])
+    with Session(database) as db:
+        bind_tenant(db, tenants[0]["org"])
+        run = db.get(WorkflowExecution, uuid.UUID(identity))
+        # Persist a result fixture to test the response boundary; no executor ran.
+        with workflow_transaction(db, run):
+            run.output_json = {"private_result": "must require read permission"}
+        db.get(User, actor).kind = "service"
+        db.add(
+            ServicePrincipal(
+                user_id=actor,
+                organization_id=tenants[0]["org"],
+                role="operator",
+                scopes=["workflow.start"],
+            )
+        )
+        db.commit()
+    assert client.get(f"/workflow-executions/{identity}").status_code == 403
+    replay = client.post("/workflow-executions", json=body)
+    assert replay.status_code == 200 and replay.json()["id"] == identity
+    assert "output_json" not in replay.json() and "input_json" not in replay.json()

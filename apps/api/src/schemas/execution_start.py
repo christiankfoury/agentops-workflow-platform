@@ -16,3 +16,10 @@ class ExecutionStartRequest(BaseModel):
     def bounded_input(self):
         WorkflowGraph.payload_bounds({"input": self.input})
         return self
+
+
+class ExecutionStartRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    version_id: uuid.UUID
+    status: str

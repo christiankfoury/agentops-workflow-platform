@@ -69,8 +69,9 @@ pinning, tenant reads and complete historical-row preservation across migration.
 
 `POST /workflow-executions` accepts `definition_id`, optional `version_id`, object
 `input` and a required `idempotency_key` (1–128 ASCII letters/digits or `._:-`).
-Operators/admins with `workflow.start` permission may start. HTTP 200 returns the
-same execution for both first acceptance and identical request retries. Input
+Operators/admins with `workflow.start` permission may start. HTTP 200 acknowledges
+the execution ID, version and status for first acceptance and identical retries.
+Execution input/output and other data require the separate `read` permission. Input
 must satisfy the pinned graph's strict schema and bounded JSON payload contract.
 
 The server fingerprints the canonical JSON of the requested definition, version
