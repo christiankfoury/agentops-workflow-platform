@@ -1417,7 +1417,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   because the shared security/recovery foundation, migration, API and real-database
   acceptance tests must be delivered together. Concrete external adapters remain
   unimplemented here, and no live external service/deployment claim is made.
-  Implementation push, all CI checks and post-push review remain pending.
+  Implementation `12b9759bf06691ce40ce463f4242bc184028c77d` is pushed to main;
+  [CI 35048012543](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35048012543)
+  passed API, Web and Docker Compose, including fresh migration and dependency audits.
+- Post-push review found a second-crash recovery gap: reserving an uncertain effect
+  previously changed it to pending before reconciliation, losing the original
+  uncertainty if the replacement worker died before dispatch. The fix retains
+  unknown status through recovery reservation and blocks concurrent manual resolution
+  while that reservation is live. A regression uses real lease recovery twice and
+  proves the accepted write is reconciled without invoking it again. All **18 effect
+  tests**, Ruff and fix diff checks passed. The fix and its CI/review are pending.
 
 When a future phase starts, add a record here using these fields:
 

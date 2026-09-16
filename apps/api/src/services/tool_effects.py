@@ -196,7 +196,11 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
             raise ExecutionError("tool_input_conflict", "Logical tool input changed")
         if effect.status in {"succeeded", "reconciled"}:
             return effect.id, None, contract, adapter, False
-        if effect.status == "pending" and effect.claim_token == claim.token:
+        if (
+            effect.status in {"pending", "unknown"}
+            and effect.claim_token == claim.token
+            and effect.reservation_token is not None
+        ):
             raise ExecutionError("tool_in_progress", "Logical tool call is already in progress")
         uncertain = effect.status == "unknown" or (effect.dispatched and effect.status == "pending")
         blocked = (
@@ -208,7 +212,8 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
             if uncertain:
                 effect.status = "unknown"
             return effect.id, None, contract, adapter, False
-        effect.status = "pending"
+        # Retain prior ambiguity if recovery itself dies before its next dispatch.
+        effect.status = "unknown" if uncertain else "pending"
         effect.claim_token, effect.reservation_token = claim.token, uuid.uuid4()
         effect.dispatched = False
         effect.error_code = None
@@ -469,6 +474,8 @@ def resolve(db, identity, body):
         effect.status = "unknown"
     if effect.status != "unknown":
         raise HTTPException(409, "Only uncertain effects require explicit resolution")
+    if effect.reservation_token is not None and live_effect_owner(db, effect):
+        raise HTTPException(409, "Tool recovery is still in progress")
     contract = ToolContract.model_validate(get(db, ToolVersion, effect.version_id).contract)
     result = redact(body.result)
     if body.succeeded:

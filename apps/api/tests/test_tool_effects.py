@@ -458,3 +458,45 @@ def test_adapter_timeout_is_bounded_by_the_pinned_attempt_deadline(database, mon
         return kwargs["arguments"]
 
     assert invoke(database, fixture, effects.ToolAdapter(remote)) == {"value": "one"}
+
+
+def test_second_crash_before_reconciliation_retains_original_ambiguity(database, monkeypatch):
+    from fastapi import HTTPException
+
+    fixture = setup(database, monkeypatch)
+    accepted = {}
+
+    def remote(**kwargs):
+        assert not accepted, "Recovery must reconcile the original accepted write"
+        accepted[kwargs["effect_key"]] = kwargs["arguments"]
+        raise SystemExit("First response lost")
+
+    adapter = effects.ToolAdapter(
+        remote,
+        "reconcile",
+        lambda **kw: effects.Reconciliation("succeeded", accepted[kw["effect_key"]]),
+    )
+    with pytest.raises(SystemExit):
+        invoke(database, fixture, adapter)
+    replacement = restart(database, fixture)
+    claim, attempt, version, _ = replacement
+    with Session(database) as db:
+        identity, _, _, _, uncertain = effects.reserve(
+            db, claim, attempt, version, {"value": "one"}, "tool", {"http": adapter}
+        )
+        assert uncertain and db.get(ToolExecution, identity).status == "unknown"
+        with pytest.raises(HTTPException) as error:
+            effects.resolve(
+                db,
+                identity,
+                EffectResolution(
+                    succeeded=True, result={"value": "one"}, evidence="Concurrent manual decision"
+                ),
+            )
+        assert error.value.status_code == 409
+    with pytest.raises(ExecutionError, match="already in progress"):
+        invoke(database, replacement, adapter)
+    # Replacement worker dies before it can perform its reconciliation lookup.
+    final_owner = restart(database, replacement)
+    assert invoke(database, final_owner, adapter) == {"value": "one"}
+    assert len(accepted) == 1

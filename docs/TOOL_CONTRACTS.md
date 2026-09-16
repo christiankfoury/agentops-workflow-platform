@@ -69,7 +69,7 @@ an existing logical call.
 | `pending` | Reserved; the `dispatched` marker distinguishes the I/O boundary. |
 | `succeeded` | A validated, redacted provider result was recorded. |
 | `failed` | No uncertain write remains from this attempt; retry still requires policy and budget. |
-| `unknown` | A write may have been accepted; blind replay is forbidden. |
+| `unknown` | Dispatch outcome is uncertain; writes require safe recovery before replay. |
 | `reconciled` | An adapter or authorized administrator recorded the verified outcome. |
 
 Concurrent requests serialize on the execution/effect record. Only one reservation
@@ -77,6 +77,9 @@ can dispatch; duplicates reuse a confirmed result or report an in-progress call.
 The dispatch marker commits before external I/O. No database lock spans provider
 I/O. A crash before that marker is safe to resume. A crash after it is conservatively
 uncertain, even if the provider may not have received the request.
+Prior uncertainty remains recorded while a replacement worker reserves recovery,
+including if that replacement crashes before its reconciliation lookup. Concurrent
+manual resolution waits until an active recovery reservation has ended.
 
 The worker also marks abandoned dispatches unknown after lease loss, including
 when the workflow's recovery budget is exhausted. Confirmed late receipts can still
