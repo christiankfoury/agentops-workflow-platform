@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 89 — GitHub SaaS Tool (next)**.
+Current implementation phase: **Phase 89 — GitHub SaaS Tool (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–88 are complete; Phases 89–105 remain planned.
+Phases 66–88 are complete; Phase 89 is in progress; Phases 90–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -127,7 +127,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 86 | Complete | Versioned tenant tools, worker credentials, fenced effects and explicit reconciliation; implementation and fix CI passed. |
 | 87 | Complete | Governed HTTP tool, pinned destination policy, bounded transport and safe effect recovery; fix CI passed. |
 | 88 | Complete | Registered tenant data queries, restricted read-only roles, bounded async transport, worker receipts and fixture evidence. |
-| 89 | Planned — not started | GitHub SaaS Tool |
+| 89 | In progress | GitHub SaaS Tool |
 | 90 | Planned — not started | Governed LLM Tool Calling |
 | 91 | Planned — not started | Webhook Triggers |
 | 92 | Planned — not started | Scheduled and Cron Triggers |
@@ -1571,6 +1571,61 @@ This is a status index; implementation details live only in `docs/phases.md`.
   deployment or production TLS endpoint was exercised. Operator-owned queries and
   grants remain part of the trust boundary, and server resource sizing/OS-dependent
   disconnect detection are documented. Phase 89 follows this record's push and CI.
+
+### Phase 89 — GitHub SaaS Tool
+
+- Authorized scope: Phases 66–105. Phase 88 evidence record
+  `4365780aa4d0028bde3e08f9cfa20d984a1413a5` is pushed and all checks in
+  [CI 35126478047](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35126478047)
+  passed before this phase began. The worktree was clean.
+- Plan: reuse the bounded HTTP transport, tenant catalog, credential resolution,
+  exact human approval and effect ledger for configured GitHub repositories. Add
+  bounded issue reads and approved creation; bind repository/operation policy and
+  expected author. Persist a credential-bound correlation marker before dispatch,
+  reconcile uncertain creation through bounded reads, and require operator resolution
+  when no unique matching receipt can be established. Never replay an ambiguous POST.
+- Preserve provider rate-limit delays in effect metadata and durable retry timing,
+  including worker recovery. Keep response headers/errors private and retain only
+  validated issue fields and safe execution metadata. Use server-owned HTTP hooks;
+  workflow inputs cannot alter endpoints, headers, credentials or marker identity.
+- Acceptance: local provider fixtures and real PostgreSQL worker tests cover reads,
+  pagination/limits, approved and denied creation, credentials, tenant policy,
+  rate limits, redaction, lost responses, restart and ambiguous reconciliation.
+  Broaden HTTP/effect/retry/approval regressions and review the pushed change.
+- Rollout: empty repository configuration denies GitHub calls. Reuse existing JSON
+  effect metadata without a schema migration. Document an optional live sandbox
+  check and its credential/authorization prerequisites; only fixture evidence is
+  planned. LLM tool calling and later triggers remain out of scope.
+- Implemented configured repository/operation/author policies, bounded issue reads
+  and approved creation over the existing HTTP transport. Creation commits a stable
+  credential-bound HMAC marker before POST; recovery only reads and validates exact
+  receipts. Missing/forged/ambiguous matches retain unknown effects for operators.
+  Marker and provider backoff survive retry, worker loss and manual resolution.
+- Rate-limit handling uses safe provider headers/messages, provider Date for reset
+  durations, database-based retry timestamps and a retained pre-dispatch guard.
+  The shared retry scheduler honors that floor and workflow deadlines. Read/write
+  argument validation, closed result fields, redaction, cancellation and page/byte
+  limits remain enforced. Added operator configuration and optional live-check docs.
+- Local validation: `uv run --directory apps/api pytest tests/test_github_tool.py
+  tests/test_github_tool_runtime.py tests/test_http_tool.py
+  tests/test_http_tool_runtime.py tests/test_postgres_tool_runtime.py
+  tests/test_tool_effects.py tests/test_retry_runtime.py tests/test_durable_queue.py
+  -q --tb=short` passed **142 tests** in 478.34s (`.phase89-regression.log`).
+  Final contract tests passed **30 tests** (`.phase89-contract-final-2.log`);
+  a final targeted manual-resolution regression passed **1 test**
+  (`.phase89-resolution.log`). Ruff, Compose configuration and staged diff checks
+  passed. Existing TestClient deprecation warning is unchanged.
+- Initial contract tests passed 23 tests. Initial worker tests had 9 passed and
+  1 failed because the early-recovery fixture attempted a prohibited ORM bulk write.
+  The fixture now uses scoped Core writes against its disposable schema; the
+  corrected worker suite passed 11 tests, and the broader run verifies actual
+  queued retry timing without an extra provider request. Local review also added
+  explicit reconciliation-read permission, malformed timing/state validation and
+  marker retention without stale outcome metadata during manual resolution.
+- Scope exceeds the usual line target because the provider contract, durable
+  correlation/backoff integration and extensive HTTP/PostgreSQL fixture coverage
+  form one deployable integration. No live GitHub issue or external credential was
+  used. Implementation commit/push, GitHub CI and post-push review remain required.
 
 When a future phase starts, add a record here using these fields:
 

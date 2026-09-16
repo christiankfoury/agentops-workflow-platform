@@ -41,7 +41,17 @@ def runtime_now(db):
     return db.scalar(select(func.clock_timestamp()))
 
 
-def retry_decision(policy, number, code, now, deadline=None, *, sample=None, abandoned=False):
+def retry_decision(
+    policy,
+    number,
+    code,
+    now,
+    deadline=None,
+    *,
+    sample=None,
+    abandoned=False,
+    retry_not_before=None,
+):
     retryable = code not in PERMANENT_ERRORS and (
         code in policy.retryable_errors or (abandoned and code == "worker_abandoned")
     )
@@ -64,6 +74,8 @@ def retry_decision(policy, number, code, now, deadline=None, *, sample=None, aba
         base * (1 - policy.jitter_fraction + 2 * policy.jitter_fraction * sample),
     )
     due = now + timedelta(seconds=delay)
+    if retry_not_before is not None:
+        due = max(due, retry_not_before)
     if deadline is not None and due >= deadline:
         return classification, None, "run_deadline"
     return classification, due, code
@@ -77,6 +89,7 @@ def fail_attempt(db, run, step, attempt, error, now):
         error.code,
         now,
         run.deadline_at,
+        retry_not_before=error.retry_not_before,
     )
     attempt.error_classification = classification
     attempt.error_code = error.code

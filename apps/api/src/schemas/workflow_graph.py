@@ -169,7 +169,7 @@ class CodeConfig(GraphModel):
 class ToolConfig(GraphModel):
     tool_id: uuid.UUID
     version: int = Field(ge=1)
-    adapter: Literal["http", "postgresql"] = "http"
+    adapter: Literal["http", "postgresql", "github"] = "http"
     approval_node: NodeID | None = None
     policy_fingerprint: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 

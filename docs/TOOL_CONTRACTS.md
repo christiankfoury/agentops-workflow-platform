@@ -4,7 +4,9 @@ Phase 86 provides the shared tool catalog, credential references and effect ledg
 Phase 87 adds the [HTTP adapter and durable graph dispatch](HTTP_TOOL.md).
 Destination configuration defaults to empty, so network dispatch is denied until
 an operator configures a tenant destination. Phase 88 adds the
-[PostgreSQL read adapter](POSTGRESQL_TOOL.md); GitHub follows in Phase 89.
+[PostgreSQL read adapter](POSTGRESQL_TOOL.md); Phase 89 adds the
+[GitHub issue adapter](GITHUB_TOOL.md), persisted correlation markers and provider
+backoff guards. LLM-requested tool calling follows in Phase 90.
 Tests use local network fixtures and real PostgreSQL worker claims.
 
 ## Catalog and authorization

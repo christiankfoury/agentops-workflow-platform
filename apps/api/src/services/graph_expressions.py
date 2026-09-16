@@ -10,8 +10,9 @@ MISSING = object()
 
 
 class ExecutionError(Exception):
-    def __init__(self, code, message):
+    def __init__(self, code, message, *, retry_not_before=None):
         self.code = code
+        self.retry_not_before = retry_not_before
         super().__init__(message)
 
 

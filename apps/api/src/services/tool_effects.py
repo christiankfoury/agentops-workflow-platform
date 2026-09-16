@@ -7,6 +7,8 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from math import isfinite
 from time import monotonic
 from typing import Literal
 
@@ -46,6 +48,7 @@ class ToolAdapter:
     side_effecting: bool | Callable = True
     requires_approval: bool = False
     policy_identity: str = ""
+    correlation_marker: Callable | None = None
 
     def __post_init__(self):
         if self.recovery not in {"none", "idempotent", "reconcile"}:
@@ -64,8 +67,18 @@ def postgres_adapter(contract, organization_id, credential):
     return adapter(contract, organization_id, credential)
 
 
+def github_adapter(contract, organization_id, credential):
+    from src.services.github_tool import adapter
+
+    return adapter(contract, organization_id, credential)
+
+
 # Registration is server code, never graph/API input. Factories bind server policy.
-ADAPTERS: dict[str, ToolAdapter | Callable] = {"http": http_adapter, "postgresql": postgres_adapter}
+ADAPTERS: dict[str, ToolAdapter | Callable] = {
+    "http": http_adapter,
+    "postgresql": postgres_adapter,
+    "github": github_adapter,
+}
 ERROR_CODES = {
     "tool_timeout",
     "tool_unavailable",
@@ -86,9 +99,16 @@ ERROR_CODES = {
 
 
 class ToolFailure(Exception):
-    def __init__(self, code="tool_failed", *, uncertain=True):
+    def __init__(self, code="tool_failed", *, uncertain=True, retry_after_seconds=None):
         self.code = code if code in ERROR_CODES else "tool_failed"
         self.uncertain = uncertain
+        self.retry_after_seconds = (
+            retry_after_seconds
+            if isinstance(retry_after_seconds, (int, float))
+            and isfinite(retry_after_seconds)
+            and 0 <= retry_after_seconds <= 86400
+            else None
+        )
         super().__init__(self.code)
 
 
@@ -239,6 +259,13 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
             if uncertain:
                 effect.status = "unknown"
             return effect.id, None, contract, adapter, False
+        retry_at = (effect.reconciliation or {}).get("retry_not_before")
+        if retry_at and runtime_now(db) < datetime.fromisoformat(retry_at):
+            raise ExecutionError(
+                "tool_rate_limit",
+                "Provider backoff has not elapsed",
+                retry_not_before=datetime.fromisoformat(retry_at),
+            )
         # Retain prior ambiguity if recovery itself dies before its next dispatch.
         effect.status = "unknown" if uncertain else "pending"
         effect.claim_token, effect.reservation_token = claim.token, uuid.uuid4()
@@ -294,6 +321,18 @@ def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None,
                 credential.id,
                 effect_key=effect.effect_key,
             )
+        if adapter and adapter.correlation_marker:
+            marker = adapter.correlation_marker(effect.effect_key, secret)
+            if (
+                not isinstance(marker, str)
+                or len(marker) != 64
+                or any(char not in "0123456789abcdef" for char in marker)
+            ):
+                raise ExecutionError("tool_contract_mismatch", "Invalid provider marker")
+            metadata = effect.reconciliation or {}
+            if metadata.get("marker", marker) != marker:
+                raise ExecutionError("tool_contract_mismatch", "Provider marker changed")
+            effect.reconciliation = {**metadata, "marker": marker}
         effect.dispatched = True
         effect.attempts += 1
         now = runtime_now(db)
@@ -312,7 +351,18 @@ def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None,
         return secret, effect.effect_key, remaining, (now - effect.created_at).total_seconds()
 
 
-def finish(engine, claim, effect_id, token, status, *, result=None, error=None, latency=None):
+def finish(
+    engine,
+    claim,
+    effect_id,
+    token,
+    status,
+    *,
+    result=None,
+    error=None,
+    latency=None,
+    retry_after_seconds=None,
+):
     with Session(engine) as db:
         bind_tenant(db, claim.organization_id)
         effect = get(db, ToolExecution, effect_id, lock=True)
@@ -322,8 +372,19 @@ def finish(engine, claim, effect_id, token, status, *, result=None, error=None, 
         # This records an effect only; the workflow's own fence controls its output.
         effect.status, effect.result_json, effect.error_code = status, result, error
         effect.latency_ms, effect.reservation_token = latency, None
+        retry_at = None
+        if retry_after_seconds is not None:
+            retry_at = runtime_now(db) + timedelta(seconds=retry_after_seconds)
+            effect.reconciliation = {
+                **(effect.reconciliation or {}),
+                "retry_not_before": retry_at.isoformat(),
+            }
         if status == "reconciled":
-            effect.reconciliation = {"method": "adapter", "outcome": "succeeded"}
+            effect.reconciliation = {
+                **(effect.reconciliation or {}),
+                "method": "adapter",
+                "outcome": "succeeded",
+            }
         record_audit(
             db,
             Principal("worker"),
@@ -334,6 +395,7 @@ def finish(engine, claim, effect_id, token, status, *, result=None, error=None, 
             error_code=error,
         )
         db.commit()
+        return retry_at
 
 
 def record_reconciliation(engine, claim, effect_id, token, outcome):
@@ -344,7 +406,11 @@ def record_reconciliation(engine, claim, effect_id, token, outcome):
         effect = get(db, ToolExecution, effect_id, lock=True)
         if effect.reservation_token != token:
             raise ExecutionError("tool_owner_lost", "Tool reconciliation was superseded")
-        effect.reconciliation = {"method": "adapter", "outcome": outcome}
+        effect.reconciliation = {
+            **(effect.reconciliation or {}),
+            "method": "adapter",
+            "outcome": outcome,
+        }
         record_audit(
             db, Principal("worker"), "tool.reconcile", "tool_execution", effect.id, outcome=outcome
         )
@@ -492,7 +558,7 @@ def execute_tool(
             if isinstance(error, (ToolFailure, ExecutionError)) and error.code in ERROR_CODES
             else "tool_failed"
         )
-        finish(
+        retry_at = finish(
             engine,
             claim,
             identity,
@@ -500,8 +566,17 @@ def execute_tool(
             "unknown" if possible else "failed",
             error=code,
             latency=int((monotonic() - started) * 1000),
+            **(
+                {"retry_after_seconds": error.retry_after_seconds}
+                if isinstance(error, ToolFailure) and error.retry_after_seconds is not None
+                else {}
+            ),
         )
-        raise ExecutionError(code, "Tool failed; consult its redacted effect record") from None
+        raise ExecutionError(
+            code,
+            "Tool failed; consult its redacted effect record",
+            retry_not_before=retry_at,
+        ) from None
     finish(
         engine,
         claim,
@@ -538,6 +613,11 @@ def resolve(db, identity, body):
     effect.error_code = None if body.succeeded else "tool_resolved_failed"
     effect.reservation_token = None
     effect.reconciliation = {
+        **{
+            key: value
+            for key, value in (effect.reconciliation or {}).items()
+            if key in {"marker", "retry_not_before"}
+        },
         "method": "operator",
         "succeeded": body.succeeded,
         "evidence": body.evidence,

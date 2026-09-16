@@ -153,7 +153,19 @@ def connection(url, policy, budget):
     return conn
 
 
-def request(policy, options, *, arguments, secret, effect_key, timeout_seconds, control, **_):
+def request(
+    policy,
+    options,
+    *,
+    arguments,
+    secret,
+    effect_key,
+    timeout_seconds,
+    control,
+    protocol_headers=None,
+    response_error=None,
+    **_,
+):
     bounded(arguments)
     body = None
     target = policy.origin + options.path
@@ -169,6 +181,9 @@ def request(policy, options, *, arguments, secret, effect_key, timeout_seconds, 
     ):
         raise ToolFailure("tool_input_invalid", uncertain=False)
     headers = {"Accept": "application/json", "Accept-Encoding": "identity", "Connection": "close"}
+    if protocol_headers:
+        # Internal adapter code only. Graph options/arguments never populate this.
+        headers.update(protocol_headers)
     if body is not None:
         headers["Content-Type"] = "application/json"
     if secret:
@@ -211,6 +226,8 @@ def request(policy, options, *, arguments, secret, effect_key, timeout_seconds, 
                 conn.close()
                 continue
             if response.status >= 400:
+                if response_error:
+                    raise response_error(response, budget)
                 code = (
                     "tool_rate_limit"
                     if response.status == 429
