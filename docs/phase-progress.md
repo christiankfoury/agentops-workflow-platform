@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 92 — Scheduled and Cron Triggers (complete; delivery record verification)**.
+Current implementation phase: **Phase 93 — Generic Workflow Builder Editor (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–92 are complete; Phases 93–105 remain planned.
+Phases 66–92 are complete; Phase 93 is in progress; Phases 94–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -1898,6 +1898,60 @@ This is a status index; implementation details live only in `docs/phases.md`.
   that exact record on `origin/main`. No Actions run or check run appeared for it.
   This follow-up record uses a normal fast-forward push to obtain CI verification;
   no branch history is rewritten and Phase 93 remains gated on successful CI.
+
+### Phase 93 — Generic Workflow Builder Editor (2026-09-16)
+
+- Authorized scope: Phases 66–105. Phase 92 record `d65b295a46f6e63e6005cbc0e298b69190cf8934`
+  is pushed and verified: CI [35146614924](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35146614924)
+  passed API, Web and Compose; 839 API tests passed in 958.02s and both dependency
+  audits were clean. All commit check runs were separately verified successful.
+- Plan: reuse tenant-authenticated definition draft APIs and revision checks. Add
+  listing/creation, accessible graph and edge editing, typed forms for all eight
+  node types, bindings/schema/retry/deadline/quality settings, and save/reopen.
+  Preserve incomplete drafts and unsaved edits on errors/conflicts. Recheck the
+  organization at server-action boundaries and use backend permissions for editing.
+- Acceptance: deterministic non-business graph creation/save/reopen; interactions
+  across every node form, malformed JSON, read-only access, stale revisions and
+  organization changes. Run frontend lint, typecheck, interaction/smoke tests and
+  build, then pushed CI and review. No migration; additive frontend rollout only.
+  Publication, server validation UI and trigger UI remain Phase 94.
+- Implementation: definition listing/pagination and creation; SVG connection view
+  plus keyboard controls; all eight node forms; prompt/tool catalog choices with
+  unavailable values retained; bindings, schemas, retry, approval, delay, parallel
+  and bounded revision settings. Unknown structural drafts retain a raw repair
+  editor. Local diagnostics include node/field paths, missing endpoints, cycles
+  and missing bindings. Incomplete drafts remain saveable; malformed JSON does not.
+- Revision-aware server actions recheck current organization and draft permission,
+  preserve edits on failure and invalidate the listing after successful saves.
+  Archived/read-only drafts remain inspectable. Pending saves synchronously freeze
+  controls and reject duplicate submissions. [Builder guide](WORKFLOW_BUILDER.md)
+  documents authoring, conflicts and the boundary between draft hints and runtime
+  validation. No backend schema/API behavior or published version is changed.
+- Local validation: `pnpm --dir apps/web test:smoke`: **24 passed**, 4.25s
+  (`.phase93-smoke.log`). Tests cover every node form, deterministic save/reopen,
+  common schema/binding/retry/revision fields, malformed JSON retained across node
+  switches, conflict retries, pending/network failures, read-only/archive access,
+  structural repair, deletion diagnostics, tenant/permission guards and API error
+  mapping. Initial harness navigator/label issues and a transition-priority pending
+  control issue were corrected and the final suite passed.
+- Browser acceptance used a fresh owned PostgreSQL schema `phase93_ui`, migrated
+  through f092; API on localhost:8007 and frontend on localhost:3107, with identity
+  and model calls disabled for this local fixture. Created **Dispatch confirmation**
+  via the UI, added a zero-duration delay, connected it to the starter transform,
+  saved revision 1, reopened equivalent node/edge values and saved revision 2.
+  Existing backend validation returned `valid: true`, `executable: true`, no errors
+  (`.phase93-ui-validation.log`). Mobile overflow inspection reported equal client
+  and scroll widths; browser logs contained no warnings/errors. No deployment or
+  external provider call is claimed. The temporary dev server was stopped and its
+  generated instruction files removed; existing repository instructions are intact.
+- Final local checks: `pnpm --dir apps/web lint`, `typecheck`, `build` and `audit`
+  all passed (`.phase93-lint.log`, `.phase93-typecheck.log`, `.phase93-build.log`,
+  `.phase93-audit.log`); audit reports no known vulnerabilities. `git diff --check`
+  passed. Local review covered phase scope, tenant authority, revision conflicts,
+  retained JSON buffers, unsupported drafts, catalog failures, read-only inspection
+  and no mutation of published workflows. Implementation exceeds the suggested
+  size because it includes the editor, eight forms, routes, interaction harness,
+  dependency lockfile and guide as one coherent UI phase. Pushed CI/review pending.
 
 When a future phase starts, add a record here using these fields:
 

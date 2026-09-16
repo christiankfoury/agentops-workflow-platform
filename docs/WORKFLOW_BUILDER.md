@@ -1,0 +1,67 @@
+# Workflow draft builder
+
+Open **Workflow builder → New definition**. Operators and administrators can
+edit drafts; viewers and reviewers can inspect them. All requests use the current
+organization and the API rechecks authority. Archived definitions are read-only.
+
+## First deterministic workflow
+
+1. Name the draft. The starter `message` transform emits `{ "text": "Ready" }`.
+2. Choose **delay** under **New step type**, then **Add node**. Set **Delay seconds**
+   to `0`; leave **Wake at** empty.
+3. Connect `message` to the new delay node using **From node**, **To node**, and
+   **Add connection**. Leave the outcome label empty for this linear connection.
+4. Save. Open the saved draft link or return through the definition list, select
+   the delay in **Inspect node**, and verify its duration and connection.
+
+This example uses no model or external tool. Draft saving does not execute,
+publish, or change existing published versions.
+
+## Editing
+
+The diagram shows connection direction; node buttons and **Inspect node** select
+the form. Every operation has a keyboard-accessible control. IDs stay stable.
+Removing a node also removes incident edges; remaining bindings are retained and
+reported as missing references so their meaning is not silently changed.
+
+The eight forms expose LLM, code, tool, condition, approval, transform, parallel,
+and delay settings. Select registered tools and prompt versions from the catalog;
+unavailable current IDs remain visible. Tool versions must be specified explicitly.
+Schemas, bindings, retry policy, condition cases, LLM tool aliases, branches and
+quality revision settings use labeled JSON editors. These preserve malformed text
+across node selection and prevent saving until the JSON parses.
+
+Examples:
+
+```json
+{"result":{"op":"literal","value":"Ready"}}
+```
+
+```json
+{"result":{"op":"ref","ref":{"source":"node","node_id":"message","path":["text"]}}}
+```
+
+Conditions use cases such as `[{"label":"yes","when":{"op":"literal","value":true}}]`.
+Use matching outcome labels on their connections. Parallel forks need at least two
+named branch entries and a join node; joins specify their fork and wait for every
+selected branch. Delays accept exactly one duration or an ISO wake time including
+a UTC offset. Quality revision settings name an entry/review pair, member nodes,
+one to five revisions and optional approval/score/severity rules.
+
+## Saving and recovery
+
+Local diagnostics identify node/field paths and connection problems. They are
+authoring hints, not a guarantee of executable behavior. Incomplete configurations
+can be saved for later repair. Unsupported structural drafts use a raw Graph JSON
+repair view and retain their original data. Published-runtime validation is a
+separate delivery gate.
+
+Saves include the loaded revision. A conflict retains all local edits and never
+overwrites newer work automatically. Use **Open saved draft in a new tab** to
+compare before manually reapplying changes. Network and permission errors also
+retain edits. Changing organization blocks submission from an older editor; return
+to the original organization before saving. Editing controls are frozen during a
+save so its response cannot replace newer local changes. The browser warns before
+unloading a dirty draft; save before using application navigation links.
+
+No migration is required. This interface uses existing definition draft APIs.

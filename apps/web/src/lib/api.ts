@@ -53,6 +53,24 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
   });
 }
 
+export async function builderRequest<T>(path: string, body?: unknown, method = "GET"): Promise<T> {
+  const res = await apiFetch(path, { method, cache: "no-store",
+    ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }) });
+  if (!res.ok) {
+    const error = new Error(res.status === 409 ? "This draft changed on the server. Your edits are retained. Open the saved draft in a new tab to compare before reloading."
+      : res.status === 403 ? "You no longer have permission for this action. Your edits are retained."
+      : res.status === 404 ? "This workflow is unavailable in the current organization."
+      : `Request failed (${res.status}). Your edits are retained.`);
+    if (res.status === 422) {
+      const data = await res.json().catch(() => ({}));
+      const detail = Array.isArray(data.detail) ? data.detail : [];
+      Object.assign(error, { fields: detail.map((item: { loc?: unknown[]; msg?: string }) => `${item.loc?.join(" · ") ?? "Draft"}: ${item.msg ?? "Invalid value"}`) });
+    }
+    throw error;
+  }
+  return res.json() as Promise<T>;
+}
+
 export async function getAccessPermissions(): Promise<string[]> {
   const res = await apiFetch("/access/permissions", { cache: "no-store" });
   if (!res.ok) return [];
