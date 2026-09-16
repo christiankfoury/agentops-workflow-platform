@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 89 — GitHub SaaS Tool (in progress)**.
+Current implementation phase: **Phase 90 — Governed LLM Tool Calling (next)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–88 are complete; Phase 89 is in progress; Phases 90–105 remain planned.
+Phases 66–89 are complete; Phases 90–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -127,7 +127,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 86 | Complete | Versioned tenant tools, worker credentials, fenced effects and explicit reconciliation; implementation and fix CI passed. |
 | 87 | Complete | Governed HTTP tool, pinned destination policy, bounded transport and safe effect recovery; fix CI passed. |
 | 88 | Complete | Registered tenant data queries, restricted read-only roles, bounded async transport, worker receipts and fixture evidence. |
-| 89 | In progress | GitHub SaaS Tool |
+| 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
 | 90 | Planned — not started | Governed LLM Tool Calling |
 | 91 | Planned — not started | Webhook Triggers |
 | 92 | Planned — not started | Scheduled and Cron Triggers |
@@ -1625,7 +1625,21 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Scope exceeds the usual line target because the provider contract, durable
   correlation/backoff integration and extensive HTTP/PostgreSQL fixture coverage
   form one deployable integration. No live GitHub issue or external credential was
-  used. Implementation commit/push, GitHub CI and post-push review remain required.
+  used. Implementation `47399d7a0bdcb10576d08bab8d1fcbd671886d6a` is pushed to main
+  (1,262 changed lines, including 603 new test lines).
+  [CI 35129735975](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35129735975)
+  and all commit checks passed: API (**746 tests**, existing TestClient warning),
+  Web and Docker Compose, including fresh migration and dependency audits.
+- Post-push review verified repository/operation/credential boundaries, exact human
+  approval, marker commit before POST, credential identity, recovery without a second
+  create, retained rate-limit deadlines, cancellation and safe receipts/errors.
+  Existing HTTP/PostgreSQL, lifecycle and retry behavior remain compatible. No
+  blocking findings or separate fix commit were needed.
+- Phase 89 is complete. No live issue creation, real token or deployment was tested.
+  Bounded reconciliation can require operator resolution on busy/edited repositories;
+  provider backoff is per effect rather than a token-wide limiter. These limitations
+  and the optional authorized sandbox check are documented. Phase 90 follows this
+  record's push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
