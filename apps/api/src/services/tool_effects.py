@@ -44,14 +44,22 @@ class ToolAdapter:
     recovery: Literal["none", "idempotent", "reconcile"] = "none"
     reconcile: Callable | None = None
     side_effecting: bool | Callable = True
+    requires_approval: bool = False
+    policy_identity: str = ""
 
     def __post_init__(self):
         if self.recovery not in {"none", "idempotent", "reconcile"}:
             raise ValueError("Adapter recovery guarantee is invalid")
 
 
-# Registration is server code, never graph/API input. Concrete adapters follow in 87–89.
-ADAPTERS: dict[str, ToolAdapter] = {}
+def http_adapter(contract, organization_id, credential):
+    from src.services.http_tool import adapter
+
+    return adapter(contract, organization_id, credential)
+
+
+# Registration is server code, never graph/API input. Factories bind server policy.
+ADAPTERS: dict[str, ToolAdapter | Callable] = {"http": http_adapter}
 ERROR_CODES = {
     "tool_timeout",
     "tool_unavailable",
@@ -66,6 +74,8 @@ ERROR_CODES = {
     "tool_credential_changed",
     "tool_credential_unavailable",
     "tool_credential_revoked",
+    "tool_input_invalid",
+    "tool_approval_required",
 }
 
 
@@ -160,10 +170,14 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
             raise ExecutionError("tool_input_invalid", "Invalid logical tool call identity")
         bounded(arguments)
         validate_data(arguments, contract.input_schema)
-        active_credential(db, contract)
+        credential = active_credential(db, contract)
         adapter = adapters.get(contract.adapter)
         if adapter is None:
             raise ExecutionError("tool_adapter_unavailable", "Tool adapter is not registered")
+        if not isinstance(adapter, ToolAdapter):
+            adapter = adapter(contract, claim.organization_id, credential)
+        if adapter.policy_identity and node.config.policy_fingerprint != adapter.policy_identity:
+            raise ExecutionError("tool_contract_mismatch", "Pinned server policy changed")
         actual_effect = (
             adapter.side_effecting(contract.options)
             if callable(adapter.side_effecting)
@@ -171,8 +185,15 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
         )
         if actual_effect != contract.side_effecting:
             raise ExecutionError("tool_contract_mismatch", "Adapter effect policy does not match")
+        if contract.side_effecting and adapter.requires_approval:
+            from src.services.tool_runtime import require_approval
+
+            require_approval(db, run, step, node, arguments)
         key = digest([str(step.id), call_id])
-        fingerprint = digest([str(version.id), arguments])
+        fingerprint = digest(
+            [str(version.id), arguments]
+            + ([adapter.policy_identity] if adapter.policy_identity else [])
+        )
         effect = db.scalar(
             select(ToolExecution)
             .where(ToolExecution.effect_key == key)
@@ -220,9 +241,9 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
         return effect.id, effect.reservation_token, contract, adapter, uncertain
 
 
-def dispatch(db, claim, attempt_id, effect_id, token, contract):
+def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None, arguments=None):
     with serialized_claim(db, claim) as run:
-        worker_attempt(db, claim, attempt_id)
+        step = worker_attempt(db, claim, attempt_id)
         effect = get(db, ToolExecution, effect_id, lock=True)
         if effect.reservation_token != token or effect.dispatched:
             raise ExecutionError("tool_owner_lost", "Tool reservation changed")
@@ -238,6 +259,10 @@ def dispatch(db, claim, attempt_id, effect_id, token, contract):
         )
         if not definition.active:
             raise ExecutionError("tool_disabled", "Tool is disabled")
+        if contract.side_effecting and adapter and adapter.requires_approval:
+            from src.services.tool_runtime import require_approval
+
+            require_approval(db, run, step, pinned_node(db, run, step.node_id), arguments)
         credential = active_credential(db, contract)
         secret = ""
         if credential:
@@ -384,6 +409,7 @@ def execute_tool(
         identity, token, contract, adapter, uncertain = reserve(
             db, claim, attempt_id, version_id, arguments, call_id, adapters
         )
+        created_at = get(db, ToolExecution, identity).created_at
         if token is None:
             effect = get(db, ToolExecution, identity)
             if effect.status in {"succeeded", "reconciled"} and not effect.error_code:
@@ -397,8 +423,23 @@ def execute_tool(
         control.raise_if_aborted()
         with Session(engine) as db:
             bind_tenant(db, claim.organization_id)
-            secret, key, budget = dispatch(db, claim, attempt_id, identity, token, contract)
+            secret, key, budget = dispatch(
+                db,
+                claim,
+                attempt_id,
+                identity,
+                token,
+                contract,
+                adapter=adapter,
+                arguments=arguments,
+            )
         dispatched = True
+        # Conservatively charge credential resolution/commit time against the
+        # deadline calculated in dispatch before beginning any network I/O.
+        budget -= monotonic() - started
+        if budget <= 0:
+            raise ToolFailure("tool_timeout", uncertain=False)
+        io_started = monotonic()
         kwargs = dict(
             arguments=arguments,
             options=deepcopy(contract.options),
@@ -406,6 +447,7 @@ def execute_tool(
             effect_key=key,
             timeout_seconds=budget,
             control=control,
+            effect_created_at=created_at,
         )
         status = "succeeded"
         control.raise_if_aborted()
@@ -421,13 +463,13 @@ def execute_tool(
             else:
                 uncertain = False  # Adapter proved that no prior or pending effect exists.
                 control.raise_if_aborted()
-                kwargs["timeout_seconds"] = budget - (monotonic() - started)
+                kwargs["timeout_seconds"] = budget - (monotonic() - io_started)
                 if kwargs["timeout_seconds"] <= 0:
                     raise ToolFailure("tool_timeout")
                 result = adapter.invoke(**kwargs)
         else:
             result = adapter.invoke(**kwargs)
-        if monotonic() - started > budget:
+        if monotonic() - io_started > budget:
             raise ToolFailure("tool_timeout")
         try:
             bounded(result)

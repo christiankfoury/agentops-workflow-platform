@@ -56,7 +56,9 @@ class ExecutorRegistry:
         # Delay checkpoints are registered transactionally, without an I/O executor.
         from src.services.quality_revisions import validate_policy
 
-        validate_types(graph, {*self.executors, "delay", "approval", "llm"}, quality_revisions=True)
+        validate_types(
+            graph, {*self.executors, "delay", "approval", "llm", "tool"}, quality_revisions=True
+        )
         validate_policy(graph)
         for index, node in enumerate(graph.nodes):
             if (

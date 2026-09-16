@@ -25,6 +25,15 @@ PERMANENT_ERRORS = {
     "unsupported_executor",
     "graph_stalled",
     "run_deadline",
+    "tool_approval_required",
+    "tool_denied",
+    "tool_input_invalid",
+    "tool_response_invalid",
+    "tool_contract_mismatch",
+    "tool_input_conflict",
+    "tool_credential_changed",
+    "tool_credential_revoked",
+    "tool_resolution_required",
 }
 
 

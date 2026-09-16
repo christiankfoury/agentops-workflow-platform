@@ -31,10 +31,12 @@ def definition(db, identity, *, lock=False):
 
 def version(db, definition_id, identity):
     item = db.scalar(
-        select(WorkflowVersion).where(
+        select(WorkflowVersion)
+        .where(
             WorkflowVersion.id == identity,
             WorkflowVersion.definition_id == definition_id,
-        ).execution_options(populate_existing=True)
+        )
+        .execution_options(populate_existing=True)
     )
     if item is None:
         raise HTTPException(404, "Workflow version not found")
@@ -52,13 +54,17 @@ def validation_errors(error):
     return error.errors(include_url=False, include_context=False, include_input=False)
 
 
-def validate_draft(graph):
+def validate_draft(graph, db=None):
     try:
         parsed = WorkflowGraph.model_validate(graph)
     except ValidationError as error:
         return ValidationResult(valid=False, errors=validation_errors(error))
     try:
         ensure_executable(parsed)
+        if db is not None:
+            from src.services.tool_runtime import validate_references
+
+            validate_references(db, parsed)
     except ValidationError as error:
         return ValidationResult(valid=True, runtime_errors=validation_errors(error))
     return ValidationResult(valid=True, executable=True)
@@ -103,6 +109,9 @@ def publish(db, identity, expected_revision):
     check_revision(item, expected_revision)
     try:
         graph = WorkflowGraph.model_validate(item.draft_graph)
+        from src.services.tool_runtime import validate_references
+
+        validate_references(db, graph, bind_policy=True)
     except ValidationError as error:
         raise HTTPException(422, validation_errors(error)) from error
     snapshots = {}
@@ -189,7 +198,11 @@ def require_runnable_version(db, definition_id, version_id):
     if item.archived or selected.archived_at:
         raise HTTPException(409, "Workflow definition or version is archived")
     try:
-        ensure_executable(WorkflowGraph.model_validate(selected.graph))
+        graph = WorkflowGraph.model_validate(selected.graph)
+        ensure_executable(graph)
+        from src.services.tool_runtime import validate_references
+
+        validate_references(db, graph, require_bound=True)
     except ValidationError as error:
         raise HTTPException(409, validation_errors(error)) from error
     return selected

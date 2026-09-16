@@ -42,8 +42,11 @@ def prepare(database, claim):
 
 
 def setup(database, monkeypatch, *, side_effecting=True, credential=False, timeout=30):
-    # Fixture-only executor registration makes the graph runnable for the ledger
-    # contract tests. Production HTTP dispatch is delivered in Phase 87.
+    # Ledger tests supply isolated fixture adapters; production catalog-policy
+    # validation and HTTP dispatch are covered by test_http_tool_runtime.
+    from src.services import tool_runtime
+
+    monkeypatch.setattr(tool_runtime, "validate_references", lambda *_, **__: None)
     monkeypatch.setitem(DEFAULT_REGISTRY.executors, "tool", lambda *_: None)
     monkeypatch.setattr(settings, "worker_lease_seconds", 120)
     with Session(database) as db:

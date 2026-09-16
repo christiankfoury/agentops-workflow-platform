@@ -76,7 +76,7 @@ def update(definition_id: uuid.UUID, body: DefinitionUpdate, db: Session = Depen
 
 @router.post("/{definition_id}/validate", response_model=ValidationResult)
 def validate(definition_id: uuid.UUID, db: Session = Depends(get_db)):
-    return service.validate_draft(service.definition(db, definition_id).draft_graph)
+    return service.validate_draft(service.definition(db, definition_id).draft_graph, db)
 
 
 @router.post("/{definition_id}/publish", response_model=VersionRead, status_code=201)
@@ -115,7 +115,7 @@ def version(definition_id: uuid.UUID, version_id: uuid.UUID, db: Session = Depen
 
 @router.get("/{definition_id}/versions/{version_id}/capabilities", response_model=ValidationResult)
 def capabilities(definition_id: uuid.UUID, version_id: uuid.UUID, db: Session = Depends(get_db)):
-    return service.validate_draft(service.version(db, definition_id, version_id).graph)
+    return service.validate_draft(service.version(db, definition_id, version_id).graph, db)
 
 
 @router.post("/{definition_id}/versions/{version_id}/archive", response_model=DefinitionRead)

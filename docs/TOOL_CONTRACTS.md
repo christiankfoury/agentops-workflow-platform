@@ -1,9 +1,10 @@
 # Tool contracts and effect history
 
 Phase 86 provides the shared tool catalog, credential references and effect ledger.
-Production adapters and graph dispatch arrive in Phases 87–89. The default adapter
-registry is empty; recognizing a `tool` graph node does not make it executable.
-The tests register fixture adapters and exercise real PostgreSQL worker claims.
+Phase 87 adds the [HTTP adapter and durable graph dispatch](HTTP_TOOL.md).
+Destination configuration defaults to empty, so network dispatch is denied until
+an operator configures a tenant destination. PostgreSQL and GitHub adapters follow
+in Phases 88–89. Tests use local network fixtures and real PostgreSQL worker claims.
 
 ## Catalog and authorization
 
@@ -61,8 +62,9 @@ or transformed credentials. Redaction is not permission to embed secrets in inpu
 The effect key comes from the persisted logical step and call ID. It is stable
 across attempts and worker restarts. New branches/iterations have distinct step
 identities and therefore distinct effects. The request fingerprint also binds the
-immutable tool version and canonical arguments. Changed arguments conflict with
-an existing logical call.
+immutable tool version, canonical arguments and the adapter's server policy
+fingerprint. Changed arguments or destination policy conflict with an existing
+logical call; they cannot silently redirect an uncertain retry.
 
 | State | Meaning |
 | --- | --- |

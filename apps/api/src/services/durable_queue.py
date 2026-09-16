@@ -453,7 +453,11 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
             return True
         with maintain_lease(engine, claim, work.control):
             try:
-                result = execute_work(work, registry)
+                from src.services.tool_runtime import execute_node
+
+                result = execute_work(
+                    work, registry, tool_executor=lambda item: execute_node(engine, claim, item)
+                )
             except ExecutionError as error:
                 return commit_result(db, claim, work, error=error)
             return commit_result(db, claim, work, result=result)

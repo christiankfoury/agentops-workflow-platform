@@ -226,8 +226,9 @@ def test_registry_rejects_unregistered_handlers_unsupported_types_and_quality_re
     }
     with pytest.raises(ValidationError, match="handler/version"):
         registry.validate(WorkflowGraph.model_validate(payload))
-    with pytest.raises(ValidationError, match="Executor is not available"):
-        registry.validate(WorkflowGraph.model_validate(all_primitives()))
+    # Every primitive now has a dispatch path. Catalog and policy availability
+    # are checked separately at publication/start, and tools require workers.
+    registry.validate(WorkflowGraph.model_validate(all_primitives()))
     payload = {
         "entry_node": "start",
         "nodes": [code("start"), code("review")],

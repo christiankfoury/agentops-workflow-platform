@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 87 — HTTP REST Tool (next)**.
+Current implementation phase: **Phase 87 — HTTP REST Tool**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–86 are complete; Phases 87–105 remain planned.
+Phases 66–86 are complete; Phase 87 is in progress; Phases 88–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -125,7 +125,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 84 | Complete | Customer Feedback Template Migration |
 | 85 | Complete | Incident templates and durable evaluations; 577 API tests, all CI and review passed. |
 | 86 | Complete | Versioned tenant tools, worker credentials, fenced effects and explicit reconciliation; implementation and fix CI passed. |
-| 87 | Planned — not started | HTTP REST Tool |
+| 87 | In progress | HTTP REST Tool |
 | 88 | Planned — not started | PostgreSQL Query Tool |
 | 89 | Planned — not started | GitHub SaaS Tool |
 | 90 | Planned — not started | Governed LLM Tool Calling |
@@ -1436,6 +1436,56 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Phase 86 is complete. The implementation changed 1,963 lines, including 667 new
   test lines, followed by the scoped recovery fix. No external provider or hosted
   deployment was tested. Phase 87 follows this record's push and successful CI.
+
+### Phase 87 — HTTP REST Tool (authorized 66–105)
+
+- Dependency: Phase 86 completion record `e7479e94f25a5f27462684d86ad9f6373f617329`
+  is pushed; CI 35048993851 and all commit checks passed.
+- Inspected the effect ledger, durable dispatch/lease/cancellation boundary,
+  publication and start validation, immutable approval snapshots and retry taxonomy.
+  Reviewed Python HTTP/socket/TLS documentation and OWASP SSRF guidance.
+- Plan: add a deny-by-default, tenant-scoped server destination policy and a
+  schema-bound HTTP adapter. Restrict methods, paths, credentials, body/response
+  bytes, DNS/connect/read time and redirects; validate all DNS addresses and connect
+  directly to a vetted address with original-host TLS verification. Explicit private
+  network exceptions cannot permit metadata/link-local addresses. No proxy or cookies.
+- Integrate pinned tool contracts into publication/start validation and worker-only
+  dispatch. Writes require an approved envelope naming the consumer node, tool,
+  version and exact arguments. Recheck approval, revocation, ownership and deadlines
+  before I/O. Bind effects to server policy as well as arguments and credentials;
+  only configured provider guarantees permit ambiguous replay within retention.
+- Acceptance: local HTTP fixtures for reads/writes, errors/rate limits, limits,
+  redirects, DNS bypasses, TLS, cancellation and lost-response recovery. Real
+  PostgreSQL tests exercise approval binding, tenant isolation, duplicate effects
+  and durable worker integration. Broaden lifecycle/catalog/approval regressions.
+- Rollout: no database migration; empty destination configuration disables all HTTP
+  access. Existing contracts/history remain readable. No live external credential
+  or hosted deployment is needed or claimed; later integrations stay out of scope.
+- Implemented a tenant destination allowlist, fixed method/path contracts, protected
+  credential headers, bounded DNS/connect/TLS/streaming transport, vetted-IP sockets,
+  metadata/transition-address denial and bounded same-origin read redirects. Provider
+  errors map to the shared retry taxonomy without retaining bodies or exception text.
+  Absolute timeouts and cancellation close sockets; resolver concurrency is bounded.
+- Connected catalog validation, immutable publication, starts and durable workers.
+  Publication binds each tool node to the server policy fingerprint; changed policy
+  requires republication and fresh approval. Writes recheck the exact approved node,
+  version, arguments, source hash, expiry and current human reviewer authorization.
+  Effect recovery pins policy/credentials and respects provider idempotency retention.
+- Final local validation: `uv run --directory apps/api pytest tests/test_http_tool.py
+  tests/test_http_tool_runtime.py tests/test_tool_effects.py -q --tb=short` passed
+  **75 tests** against local HTTP/TLS fixtures and disposable PostgreSQL. Evidence:
+  `.phase87-final-tests-2.log` (local ignored log). The cancellation test plus
+  `test_tool_effects.py test_graph_interpreter.py test_workflow_definitions.py` passed
+  **41 tests** (`.phase87-regression.log`). Earlier fixtures passed 36 transport tests
+  and 13 worker tests; a cancellation fixture timing assumption was corrected to
+  hold the response open. A later test-only missing import was fixed before the
+  final 75-test pass. Existing TestClient deprecation warning is unchanged.
+- Ruff, Compose configuration and the full staged diff check passed. Reviewed tenant
+  boundaries, approval/policy binding, response ambiguity, DNS/TLS/redirect behavior,
+  lifecycle fences and retained history. No frontend change or migration is needed.
+  Scope exceeds the usual line target because the security transport, worker/catalog
+  integration and 843 new fixture-test lines form one deployable adapter phase.
+  Implementation commit, push, CI and post-push review are pending.
 
 When a future phase starts, add a record here using these fields:
 

@@ -278,11 +278,17 @@ def prepare_next(
     return replace(work, revision=run.state_revision) if work else None
 
 
-def execute_work(work, registry=DEFAULT_REGISTRY):
+def execute_work(work, registry=DEFAULT_REGISTRY, *, tool_executor=None):
     """No database session or lock crosses this boundary."""
     try:
         work.control.raise_if_aborted()
-        if work.node.type == "llm":
+        if work.node.type == "tool":
+            if tool_executor is None:
+                raise ExecutionError(
+                    "durable_worker_required", "Tools require an owned durable worker"
+                )
+            result = tool_executor(work)
+        elif work.node.type == "llm":
             from src.services.llm_execution import execute_llm
 
             result = execute_llm(work, registry.llm_factory, registry.output_validators)
