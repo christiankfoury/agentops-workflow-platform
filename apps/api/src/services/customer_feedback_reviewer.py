@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
@@ -13,7 +13,7 @@ from src.models.agent_type import AgentType
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
-from src.schemas.customer_feedback import ProductInsightOutput
+from src.schemas.customer_feedback import CustomerFeedbackReviewOutput, ProductInsightOutput
 from src.services.agent_settings import (
     AgentRuntimeConfig,
     AgentSettingsError,
@@ -23,7 +23,6 @@ from src.services.cost_tracking import record_agent_cost, update_workflow_cost_t
 from src.services.human_approvals import create_pending_human_approval
 from src.services.llm_client import StructuredResponse
 from src.services.permissions import requires_permission
-from src.services.sales_reviewer import ReviewIssue
 from src.services.structured_output_guardrails import validate_or_repair_structured_response
 from src.services.workflow_events import (
     log_agent_completed,
@@ -83,25 +82,6 @@ CUSTOMER_FEEDBACK_REVIEW_SCHEMA: dict[str, Any] = {
 
 class CustomerFeedbackReviewerRunError(Exception):
     pass
-
-
-class CustomerFeedbackReviewCheck(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    name: str = Field(min_length=1)
-    status: str = Field(pattern="^(passed|needs_review)$")
-    rationale: str = Field(min_length=1)
-
-
-class CustomerFeedbackReviewOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    approved: bool
-    quality_score: float = Field(ge=0, le=1)
-    approval_rationale: str = Field(min_length=1)
-    passed_checks: list[CustomerFeedbackReviewCheck]
-    issues: list[ReviewIssue]
-    retry_recommended: bool
 
 
 class LLMClientLike(Protocol):
@@ -212,7 +192,6 @@ def run_customer_feedback_reviewer(
             )
             return step
     with workflow_transaction(db, run, expected_revision=execution_revision):
-
         latency_ms = int((time.perf_counter() - started) * 1000)
         transition_step(step, AgentStepStatus.completed)
         step.output_json = output.model_dump()
@@ -260,9 +239,7 @@ def _validate_run_and_get_input(db: Session, run: WorkflowRun) -> UploadedInput:
     if run.status != WorkflowStatus.reviewer_running:
         raise CustomerFeedbackReviewerRunError("Reviewer can only run after insight completion")
     if run.workflow_type != WorkflowType.customer_feedback:
-        raise CustomerFeedbackReviewerRunError(
-            "Reviewer only supports customer feedback workflows"
-        )
+        raise CustomerFeedbackReviewerRunError("Reviewer only supports customer feedback workflows")
     if run.run_mode != RunMode.multi_agent:
         raise CustomerFeedbackReviewerRunError("Reviewer only runs for multi-agent workflows")
     if run.input_id is None:
@@ -316,9 +293,9 @@ def _ensure_no_reviewer_for_insight(
     for step in reviewer_steps:
         if step.status == AgentStepStatus.running:
             raise CustomerFeedbackReviewerRunError("Reviewer already running for workflow run")
-        if step.status == AgentStepStatus.completed and (
-            step.input_json or {}
-        ).get("insight_step_id") == str(insight_step_id):
+        if step.status == AgentStepStatus.completed and (step.input_json or {}).get(
+            "insight_step_id"
+        ) == str(insight_step_id):
             raise CustomerFeedbackReviewerRunError("Reviewer already completed for insight step")
 
 

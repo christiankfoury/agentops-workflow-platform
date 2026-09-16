@@ -30,6 +30,35 @@ and resumes after an authorized decision.
   owns revision and infrastructure attempt limits; changing a legacy SDK retry
   setting does not change those graph limits.
 
+## Customer feedback rollout (Phase 84)
+
+As an organization administrator, call
+`POST /workflow-definitions/templates/customer-feedback/install`. New feedback
+starts require an uploaded feedback input and use the durable runtime. CSV upload
+normalization is unchanged; the graph receives the stored normalized text and notes.
+Selected classifier, insight, reviewer and writer prompts are pinned on publication.
+Task guidance and supporting-example structures are preserved in the graph.
+
+- Multi-agent: classifier → insight → reviewer → mandatory human approval → writer.
+- Baseline: one LLM step with the existing feedback baseline system prompt.
+- Revisions repeat classifier, insight and reviewer together, up to two times.
+  Every insight consumes its own iteration's classification. Reviewer feedback,
+  human feedback and edited payloads remain in revision context. Exhausted revisions
+  still require human review. The former feedback path always stopped for a human;
+  the published template adds the bounded automatic quality loop required by the plan.
+- Registered semantic validators reuse the existing classification, insight and
+  review models. They retain count, category, severity and example constraints
+  beyond the graph's type subset. Invalid generated output uses bounded repair;
+  invalid human edits return 422 without superseding the pending approval.
+- The writer consumes the approved insight payload, including human edits.
+  Feedback uses the same compatibility projections and control protections as sales.
+
+Set `FEEDBACK_TEMPLATE_ENABLED=false` to select legacy starts for future feedback
+runs. Already accepted durable runs retain their owner and continue on workers.
+No database migration is required for Phase 84. Fixture validation compares legacy
+and durable outputs, approval decisions and observed usage; it does not claim
+live-provider equality. Shared evaluation/demo orchestration remains Phase 85.
+
 ## Compatibility and control ownership
 
 The existing immutable `legacy_run_id` link has a unique constraint: a business

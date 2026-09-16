@@ -186,6 +186,7 @@ def test_failed_decision_rolls_back_its_audit(tenant_client, tenants, database, 
 def test_scoped_service_cannot_invent_roles_or_approval_scope(tenant_client, tenants, database):
     owner = tenants[0]
     actor = prepare(database, owner)
+    assert tenant_client.post("/workflow-definitions/templates/sales/install").status_code == 200
     with Session(database) as db:
         db.get(User, actor).kind = "service"
         db.add(
@@ -200,10 +201,12 @@ def test_scoped_service_cannot_invent_roles_or_approval_scope(tenant_client, ten
     tenant_client.headers["x-agentops-role"] = "admin"
     assert tenant_client.get("/workflow-runs").status_code == 200
     assert tenant_client.post(f"/human-approvals/{owner['approval']}/approve").status_code == 403
-    start = tenant_client.post("/workflow-runs", json={"workflow_type": "customer_feedback"})
+    start = tenant_client.post(
+        "/workflow-runs", json={"workflow_type": "sales_report", "input_id": str(owner["input"])}
+    )
     assert start.status_code == 201
     assert tenant_client.get("/evaluation-results/export/json").status_code == 403
-    event = audits(database, owner["org"])[0]
+    event = next(item for item in audits(database, owner["org"]) if item.action == "workflow.start")
     assert event.actor_kind == "service" and event.service_principal_id is not None
 
 

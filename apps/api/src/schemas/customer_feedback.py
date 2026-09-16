@@ -81,3 +81,29 @@ class ProductInsightOutput(BaseModel):
     risks: list[str]
     recommendations: list[ProductRecommendation]
     supporting_examples: list[FeedbackExample]
+
+
+class FeedbackReviewIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    claim: str
+    problem: str
+    severity: Literal["low", "medium", "high"]
+
+
+class CustomerFeedbackReviewCheck(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    status: str = Field(pattern="^(passed|needs_review)$")
+    rationale: str = Field(min_length=1)
+
+
+class CustomerFeedbackReviewOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    approved: bool
+    quality_score: float = Field(ge=0, le=1)
+    approval_rationale: str = Field(min_length=1)
+    passed_checks: list[CustomerFeedbackReviewCheck]
+    issues: list[FeedbackReviewIssue]
+    retry_recommended: bool

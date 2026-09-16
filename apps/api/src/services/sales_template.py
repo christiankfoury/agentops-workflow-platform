@@ -1,73 +1,23 @@
-"""Sales control flow is published graph data; existing schemas/prompts remain reusable."""
+"""Published sales workflow graphs."""
 
-import uuid
 from copy import deepcopy
 
-from fastapi import HTTPException
-from sqlalchemy import select
-
 from src.config import settings
-from src.models.agent_type import AgentType
-from src.models.identity import Organization
-from src.models.prompt_version import PromptVersion
-from src.models.workflow_definition import WorkflowDefinition
-from src.models.workflow_run import RunMode, WorkflowRun, WorkflowType
-from src.schemas.execution_start import ExecutionStartRequest
+from src.models.workflow_run import RunMode, WorkflowType
 from src.schemas.workflow_graph import WorkflowGraph
-from src.services.agent_settings import AgentSettingsError, get_agent_runtime_config
+from src.services import business_templates
+from src.services.business_schemas import REPORT, SOURCE, graph_schema, obj, reference
 from src.services.execution_registry import ensure_executable
-from src.services.execution_starts import start_execution
-from src.services.permissions import authorize
-from src.services.prompt_versions import DEFAULT_PROMPTS
 from src.services.sales_analyst import SALES_ANALYSIS_SCHEMA
 from src.services.sales_baseline import SALES_BASELINE_SYSTEM_PROMPT
 from src.services.sales_reviewer import SALES_REVIEW_SCHEMA
-from src.services.tenancy import tenant_id
-from src.services.workflow_definitions import publish
 
 
 def template_id(organization_id, mode):
-    return uuid.uuid5(organization_id, f"builtin.sales_report.{mode}")
-
-
-def obj(**properties):
-    return {"type": "object", "properties": properties, "required": list(properties)}
-
-
-STRING = {"type": "string"}
-SOURCE = obj(title=STRING, raw_text=STRING, notes=STRING)
-REPORT = obj(final_output=STRING)
-
-
-def graph_schema(schema):
-    # The graph type system is deliberately smaller than provider JSON Schema.
-    # Reviewer score/severity constraints are enforced by the LLM review validator.
-    result = {
-        key: deepcopy(value)
-        for key, value in schema.items()
-        if key in {"type", "required", "additionalProperties"}
-    }
-    if "properties" in schema:
-        result["properties"] = {
-            key: graph_schema(value) for key, value in schema["properties"].items()
-        }
-    if "items" in schema:
-        result["items"] = graph_schema(schema["items"])
-    return result
+    return business_templates.template_id(organization_id, WorkflowType.sales_report, mode)
 
 
 REVIEW = graph_schema(SALES_REVIEW_SCHEMA)
-
-
-def reference(node=None, path=()):
-    return {
-        "op": "ref",
-        "ref": {
-            "source": "node" if node else "input",
-            **({"node_id": node} if node else {}),
-            "path": list(path),
-        },
-    }
 
 
 def graph(prompts, mode):
@@ -167,91 +117,18 @@ def graph(prompts, mode):
 
 
 def install(db):
-    """Admin-only, idempotent installation; never overwrite an edited published template."""
-    installed = []
-    for mode in [RunMode.multi_agent, RunMode.baseline]:
-        authorize(db, "workflow.publish")
-        db.scalar(select(Organization).where(Organization.id == tenant_id(db)).with_for_update())
-        principal = authorize(db, "workflow.publish", lock=True)
-        identity = template_id(tenant_id(db), mode)
-        item = db.get(WorkflowDefinition, identity)
-        if item and item.published_version_id:
-            installed.append(item)
-            db.commit()
-            continue
-        prompts = {}
-        for kind in ["baseline"] if mode == RunMode.baseline else ["analyst", "reviewer", "writer"]:
-            agent_type = AgentType.writer if kind == "baseline" else AgentType(kind)
-            try:
-                if kind == "baseline":
-                    raise AgentSettingsError("Dedicated baseline prompt")
-                prompts[kind] = get_agent_runtime_config(db, agent_type).prompt
-            except AgentSettingsError as error:
-                if kind != "baseline" and not str(error).startswith("Active "):
-                    raise HTTPException(409, str(error)) from error
-                name = f"Sales template {kind}"
-                prompt = db.scalar(
-                    select(PromptVersion).where(
-                        PromptVersion.name == name,
-                        PromptVersion.agent_type == agent_type,
-                        PromptVersion.version == 1,
-                    )
-                )
-                if prompt is None:
-                    template = (
-                        SALES_BASELINE_SYSTEM_PROMPT
-                        if kind == "baseline"
-                        else next(
-                            entry["template"]
-                            for entry in DEFAULT_PROMPTS
-                            if entry["agent_type"] == agent_type
-                        )
-                    )
-                    prompt = PromptVersion(
-                        agent_type=agent_type,
-                        name=name,
-                        version=1,
-                        template=template,
-                        is_active=False,
-                        created_by_user_id=principal.user_id,
-                    )
-                    db.add(prompt)
-                    db.flush()
-                prompts[kind] = prompt
-        if item is None:
-            item = WorkflowDefinition(
-                id=identity,
-                name=f"Sales report — {mode.value}",
-                description="Published sales workflow template.",
-                draft_graph=graph(prompts, mode),
-                created_by_user_id=principal.user_id,
-            )
-            db.add(item)
-            db.flush()
-        publish(db, item.id, item.draft_revision)
-        installed.append(item)
-    return installed
+    return business_templates.install_templates(
+        db,
+        WorkflowType.sales_report,
+        "Sales report",
+        ["analyst", "reviewer", "writer"],
+        SALES_BASELINE_SYSTEM_PROMPT,
+        graph,
+        prompt_label="Sales",
+    )
 
 
 def start_sales(db, source, mode):
-    authorize(db, "workflow.start", lock=True)
-    if source is None or source.input_type.value != WorkflowType.sales_report.value:
-        raise HTTPException(422, "A sales input is required")
-    definition_id = template_id(tenant_id(db), mode)
-    if db.get(WorkflowDefinition, definition_id) is None:
-        raise HTTPException(
-            409, "An administrator must install the sales templates before starting"
-        )
-    legacy = WorkflowRun(
-        id=uuid.uuid4(), workflow_type=WorkflowType.sales_report, run_mode=mode, input_id=source.id
+    return business_templates.start_business(
+        db, source, mode, WorkflowType.sales_report, "sales", "sales"
     )
-    start_execution(
-        db,
-        ExecutionStartRequest(
-            definition_id=definition_id,
-            idempotency_key=f"sales:{legacy.id}",
-            input={"title": source.title, "raw_text": source.raw_text, "notes": source.notes or ""},
-        ),
-        legacy_run=legacy,
-    )
-    return legacy

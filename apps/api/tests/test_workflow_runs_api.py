@@ -17,6 +17,7 @@ from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, Workfl
 def legacy_start_backout(monkeypatch):
     """These domain doubles cover the retained backout path; durable starts use PostgreSQL tests."""
     monkeypatch.setattr(settings, "sales_template_enabled", False)
+    monkeypatch.setattr(settings, "feedback_template_enabled", False)
 
 
 class FakeQuery:

@@ -44,6 +44,16 @@ def source_hash(run, step):
     )
 
 
+def validate_payload(value, node):
+    validate_data(value, node.output_schema)
+    if node.config.output_validator:
+        from src.services.execution_registry import DEFAULT_REGISTRY
+
+        value = DEFAULT_REGISTRY.output_validators[node.config.output_validator](deepcopy(value))
+        validate_data(value, node.output_schema)
+    return value
+
+
 def new_approval(
     db, run, step, node, *, candidate=None, feedback=None, expires_at=None, identity=None
 ):
@@ -51,7 +61,7 @@ def new_approval(
         inputs = step.input_json or {}
         payload = deepcopy(inputs["payload"] if candidate is None else candidate)
         review = ApprovalReview.model_validate(inputs["review"]).model_dump(mode="json")
-        validate_data(payload, node.output_schema)
+        payload = validate_payload(payload, node)
     except (KeyError, ValueError, TypeError) as error:
         raise ExecutionError(
             "approval_input_invalid", "Approval requires a valid payload and structured review"
@@ -273,8 +283,8 @@ def decide_approval(db, identity, body):
                     )
                 if body.action == "edit":
                     try:
-                        validate_data(body.edited_payload, node.output_schema)
-                    except ValidationError as error:
+                        validate_payload(body.edited_payload, node)
+                    except (ValidationError, ValueError, TypeError) as error:
                         raise HTTPException(
                             422, "Edited payload violates the pinned output schema"
                         ) from error

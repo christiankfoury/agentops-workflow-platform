@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–83 are complete; Phases 84–105 remain planned.
+Phases 66–83 are complete; Phase 84 is in progress; Phases 85–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -122,7 +122,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 81 | Complete | Parallel Branches and Joins |
 | 82 | Complete | Immutable LLM settings, bounded schema repair, usage accounting and quality revisions; implementation/fix CI and review passed. |
 | 83 | Complete | Published sales/baseline templates, durable starts, compatibility reads and delegated controls; fix CI/review passed. |
-| 84 | Planned — not started | Customer Feedback Template Migration |
+| 84 | In progress | Customer Feedback Template Migration |
 | 85 | Planned — not started | Incident Template and Evaluation Compatibility |
 | 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
 | 87 | Planned — not started | HTTP REST Tool |
@@ -1211,6 +1211,51 @@ This is a status index; implementation details live only in `docs/phases.md`.
   existing durable runs retain their owner during backout. Shared evaluation/demo
   orchestration migration remains Phase 85 scope. No live-provider parity or hosted
   deployment is claimed. Phase 84 follows this final record's push and successful CI.
+
+### Phase 84 — Customer Feedback Template Migration (authorized 66–105)
+
+- Dependency gate: Phase 83 record `47efc47b5cc2115dac7ea4152bc6a5be39ac241d`
+  is pushed; CI 35039507488 and all commit checks passed (API, Web, Docker Compose).
+- Plan: reuse the sales template installation/start and compatibility mechanisms;
+  publish feedback classifier → insight → reviewer → approval → writer plus a
+  single-step baseline. Keep existing normalization, prompts, output models and
+  supporting evidence. Repeat classifier/insight/reviewer together on bounded
+  quality revisions; consume only current-iteration outputs. Validate generated
+  output and human edits against existing semantic models before acceptance.
+- Acceptance: provider-fixture success/edit/rejection/retry/baseline parity,
+  fresh worker resumption, current classifier-to-insight bindings, invalid edits,
+  CSV API starts, duplicate legacy controls, historical reads and evaluation checks.
+- Rollout: per-organization admin installation; new feedback starts use the
+  durable owner by default, with a future-start backout flag. Existing rows remain
+  readable and retain their owner. No schema migration or live provider is needed.
+  Shared evaluation/demo orchestration remains Phase 85.
+- Implemented published feedback graphs, shared tenant-serialized installation and
+  start helpers, default durable feedback starts and a documented backout flag.
+  Sales keeps its template IDs and fallback prompt names. Reused feedback models
+  as registered output/approval validators; pinned task instructions preserve
+  evidence and report guidance. Added old/new provider-fixture parity and worker
+  resumption coverage. No schema migration or frontend component change is needed.
+- `uv run --directory apps/api pytest tests/test_feedback_template.py -q --tb=short`
+  passed **9 tests**. The initial run passed 6 and failed one new retry assertion
+  that named the existing context field incorrectly; it was corrected. Coverage
+  includes equal old/new outputs, decisions and observed usage; revised classifier
+  dependencies, bounded quality exhaustion, human feedback, invalid edit rollback,
+  strict nullable provider schemas, CSV starts, cancellation and legacy backout.
+- `uv run --directory apps/api pytest tests/test_customer_feedback_schemas.py tests/test_customer_feedback_classifier_api.py tests/test_customer_feedback_insight_api.py tests/test_customer_feedback_reviewer_writer_api.py tests/test_uploaded_inputs_api.py tests/test_human_approvals_api.py tests/test_evaluation_runner.py tests/test_evaluation_comparisons_api.py tests/test_evaluation_promotion_api.py tests/test_quality_revisions.py tests/test_workflow_graph.py -q --tb=short`
+  passed **112 tests**. Existing TestClient deprecation warning remains.
+- Web typecheck and **11 smoke tests**, Ruff, Compose configuration and diff checks
+  passed. Constructing both modes of both published graph types passed after moving
+  the unchanged reference helper into the shared schema module.
+- `uv run --directory apps/api pytest tests/test_feedback_template.py tests/test_sales_template.py tests/test_execution_approvals.py tests/test_permissions_audit.py tests/test_workflow_runs_api.py -q --tb=short`
+  passed **86 tests** (overlaps the feedback run above). This run used the original
+  seven feedback cases; the final nine-case run includes the subsequent quality
+  exhaustion and provider schema assertions. No test process remains running.
+- Pre-push review checked graph dependencies, retained schema semantics, mandatory
+  approval, invalid edit atomicity, source normalization, compatibility ownership,
+  and preserved sales installation behavior. Corrected feedback definition labels
+  in the shared installer and added a regression assertion. Provider schemas require
+  every property, including nullable source fields. No live-provider or hosted
+  rollout claim. Implementation commit, push, CI and post-push review pending.
 
 When a future phase starts, add a record here using these fields:
 

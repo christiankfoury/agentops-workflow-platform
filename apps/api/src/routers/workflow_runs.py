@@ -294,6 +294,11 @@ def create_workflow_run(
 
         run = start_sales(db, uploaded_input, body.run_mode)
         return _workflow_run_payload(run, uploaded_input.title)
+    if body.workflow_type == WorkflowType.customer_feedback and settings.feedback_template_enabled:
+        from src.services.feedback_template import start_feedback
+
+        run = start_feedback(db, uploaded_input, body.run_mode)
+        return _workflow_run_payload(run, uploaded_input.title)
     run = WorkflowRun(
         workflow_type=body.workflow_type,
         run_mode=body.run_mode,

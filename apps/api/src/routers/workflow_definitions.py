@@ -21,6 +21,13 @@ from src.services import workflow_definitions as service
 router = APIRouter()
 
 
+@router.post("/templates/customer-feedback/install", response_model=list[DefinitionRead])
+def install_feedback_templates(db: Session = Depends(get_db)):
+    from src.services.feedback_template import install
+
+    return install(db)
+
+
 @router.post("/templates/sales/install", response_model=list[DefinitionRead])
 def install_sales_templates(db: Session = Depends(get_db)):
     from src.services.sales_template import install
