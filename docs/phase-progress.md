@@ -1893,6 +1893,11 @@ This is a status index; implementation details live only in `docs/phases.md`.
   Phase 93. No live model/provider call or deployment was performed. The documented
   schedule policy supports one active run and one coalesced catch-up decision, with
   bounded cron search and retained rejection/skip history.
+- Delivery-record push note: GitHub reported `fatal error in commit_refs` for
+  `de86ed824adaf6b4cfc2a4bfada27c2b28dae8b9`, but `git ls-remote` and a fetch confirmed
+  that exact record on `origin/main`. No Actions run or check run appeared for it.
+  This follow-up record uses a normal fast-forward push to obtain CI verification;
+  no branch history is rewritten and Phase 93 remains gated on successful CI.
 
 When a future phase starts, add a record here using these fields:
 
