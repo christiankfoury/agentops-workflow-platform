@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 94 — Builder Validation Publication and Version History (in progress)**.
+Current implementation phase: **Phase 94 complete; Phase 95 — Generic Graph Run Debugger is next**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,8 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–93 are complete; Phase 94 is in progress; Phases 95–105 remain planned.
+Phases 66–94 are complete; Phases 95–105 remain planned. The Phase 94 completion
+record must pass CI before Phase 95 implementation begins.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -132,7 +133,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 91 | Complete | Signed, scoped webhook triggers; atomic replay-safe starts, rotation and retained delivery history. |
 | 92 | Complete | Scoped cron schedules, explicit DST rules, atomic replica-safe firing, bounded catch-up and crash recovery. |
 | 93 | Complete | Generic workflow draft builder, typed node forms and conflict-safe editing. |
-| 94 | In progress | Builder validation, publication, version history, manual starts and trigger controls. |
+| 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
 | 95 | Planned — not started | Generic Graph Run Debugger |
 | 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
 | 97 | Planned — not started | Worker Observability and Live Updates |
@@ -2047,8 +2048,24 @@ This is a status index; implementation details live only in `docs/phases.md`.
   533.97s; `ruff check src tests` passed. The test output was buffered until
   completion; active database work was observed and the run was not interrupted.
   `.phase94-final-api.log` and `.phase94-final-ruff.log` retain these results.
-  Staged diff review and `git diff --cached --check` passed. Commit/push, CI and
-  post-push review remain pending; this phase is not complete.
+  Staged diff review and `git diff --cached --check` passed before committing.
+- Implementation commit: `56a6ed56bba4f7203a467af87fa8425ad79ecc67`, pushed to
+  main (22 files, 693 changed lines). CI
+  [35158016397](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35158016397)
+  passed API, Web and Docker Compose. API passed 840 tests in 435.06s; frontend
+  passed all 40 smoke/interaction checks. Both dependency audits were clean.
+  The commit's complete set of check runs was independently verified successful.
+- Post-push review: checked current backend permission mappings and tenant guards,
+  exact-revision validation/publication, immutable version selection, duplicate
+  click suppression, frozen retry payloads, archive rejection, trigger revision
+  conflicts, alias masking, pagination and partial history failures. No unresolved
+  blocking findings. The schedule response and historical selection findings were
+  corrected and validated before the implementation commit. No fix commit needed.
+- Completion decision: Phase 94 is complete. Limits: start request keys are retained
+  for the open page lifetime; compare versions within one history page; service
+  principal UUIDs and signing aliases must already be provisioned. No provider
+  requests, real signing keys or production deployment were used. Phase 95 may
+  begin after this completion-record commit is pushed and all its CI checks pass.
 
 When a future phase starts, add a record here using these fields:
 
