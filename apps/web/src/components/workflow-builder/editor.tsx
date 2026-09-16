@@ -46,7 +46,11 @@ export function WorkflowBuilder({ initial, scope, canEdit, save, tools = [], pro
     try {
       const result = await save(definition?.id ?? null, scope, { name, description, graph,
         ...(definition ? { expected_revision: definition.draft_revision } : {}) });
-      if (result.definition) { setDefinition(result.definition); setDirty(false); setNotice(`Saved draft revision ${result.definition.draft_revision}.`); }
+      if (result.definition) {
+        setDefinition(result.definition); setGraph(result.definition.draft_graph);
+        setName(result.definition.name); setDescription(result.definition.description); setBuffers({});
+        setDirty(false); setNotice(`Saved draft revision ${result.definition.draft_revision}.`);
+      }
       else { setNotice(result.error ?? "Save failed. Your edits are retained."); setErrors(result.fields ?? []); }
     } catch { setNotice("The connection failed. Your edits are retained; retry saving."); }
     finally { saving.current = false; setBusy(false); }

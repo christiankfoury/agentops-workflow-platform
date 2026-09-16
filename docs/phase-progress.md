@@ -131,7 +131,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 90 | Complete | Pinned LLM tools, durable continuation, exact approval, bounded budgets, recovered usage and ledger trace linkage. |
 | 91 | Complete | Signed, scoped webhook triggers; atomic replay-safe starts, rotation and retained delivery history. |
 | 92 | Complete | Scoped cron schedules, explicit DST rules, atomic replica-safe firing, bounded catch-up and crash recovery. |
-| 93 | Planned — not started | Generic Workflow Builder Editor |
+| 93 | In progress — review fixes | Generic workflow draft builder, typed node forms and conflict-safe editing. |
 | 94 | Planned — not started | Builder Validation Publication and Version History |
 | 95 | Planned — not started | Generic Graph Run Debugger |
 | 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
@@ -1965,6 +1965,18 @@ This is a status index; implementation details live only in `docs/phases.md`.
   passed API, Web and Compose: 839 API tests in 533.00s; both dependency audits clean.
   All implementation check runs were verified successful before pushing the fix.
   Phase 94 has not started.
+- Repair fix `04e2ab52e398a28025466e2ada5ac9a0da00516e` is pushed (5 files,
+  51 changed lines). Follow-up review found a second consistency edge case: the
+  editor accepted a returned revision but retained its older local graph/name.
+  The next correction adopts returned content and revision together while controls
+  remain frozen. A regression covers a changed server snapshot and the subsequent
+  save body. Local smoke/interaction checks: **26 passed**, 4.53s; typecheck, lint
+  and diff checks passed (`.phase93-snapshot-smoke.log`,
+  `.phase93-snapshot-typecheck.log`, `.phase93-snapshot-lint.log`). Repair CI
+  [35151952306](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35151952306)
+  passed API, Web and Compose: 839 API tests in 534.47s; both audits clean. All
+  repair commit checks were verified successful before the snapshot correction
+  push. No later phase implementation has begun.
 
 When a future phase starts, add a record here using these fields:
 

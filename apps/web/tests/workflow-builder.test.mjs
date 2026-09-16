@@ -113,6 +113,19 @@ test("conflict preserves all edits, original revision and retry body", async () 
   assert.deepEqual(calls[0], calls[1]); assert.equal(calls[1][2].expected_revision, 3);
 });
 
+test("successful saves adopt returned content and revision as one snapshot", async () => {
+  const authoritative = initial(); authoritative.name = "Server title"; authoritative.draft_revision = 5;
+  authoritative.draft_graph.nodes[0].config.assign.text.value = "Server value";
+  const bodies = [];
+  setup({ initial: initial(), save: async (_id, _scope, body) => { bodies.push(structuredClone(body)); return { definition: authoritative }; } });
+  change("Inspect node", "message"); change("Assignments JSON", '{"text":{"op":"literal","value":"Local value"}}');
+  click("Save draft"); await screen.findByText("Saved draft revision 5.");
+  assert.equal(screen.getByLabelText("Workflow name").value, "Server title");
+  assert.match(screen.getByLabelText("Assignments JSON").value, /Server value/);
+  click("Save draft"); await waitFor(() => assert.equal(bodies.length, 2));
+  assert.equal(bodies[1].expected_revision, 5); assert.deepEqual(bodies[1].graph, authoritative.draft_graph);
+});
+
 test("pending saves freeze mutations; rejected network calls retain edits", async () => {
   let reject;
   setup({ save: () => new Promise((_, no) => { reject = no; }) });
