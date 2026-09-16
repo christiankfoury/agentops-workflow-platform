@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–84 are complete; Phase 85 is in progress; Phases 86–105 remain planned.
+Phases 66–85 are complete; Phases 86–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -123,7 +123,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 82 | Complete | Immutable LLM settings, bounded schema repair, usage accounting and quality revisions; implementation/fix CI and review passed. |
 | 83 | Complete | Published sales/baseline templates, durable starts, compatibility reads and delegated controls; fix CI/review passed. |
 | 84 | Complete | Customer Feedback Template Migration |
-| 85 | In progress | Incident Template and Evaluation Compatibility |
+| 85 | Complete | Incident templates and durable evaluations; 577 API tests, all CI and review passed. |
 | 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
 | 87 | Planned — not started | HTTP REST Tool |
 | 88 | Planned — not started | PostgreSQL Query Tool |
@@ -1343,7 +1343,18 @@ This is a status index; implementation details live only in `docs/phases.md`.
   removes trailing blank lines caught when newly added files entered the staged
   diff check (the earlier unstaged check did not include untracked files).
   Affected incident API, evaluation runner and promotion tests: 15 passed. Ruff
-  and the complete fix diff check passed. Fix push/CI and final review pending.
+  and the complete fix diff check passed.
+- Fix `7d4f9766d535f770ba6b2bdd7708cfa630df6a4f` is pushed to main.
+  [CI 35044958344](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35044958344)
+  and every check on that commit passed: API (**577 tests**), Web and Docker Compose,
+  including fresh migration and dependency audits. Follow-up review found no
+  additional blocking issue. The implementation CI also passed **577 tests**.
+  The redundant local verbose full run was stopped after the CI pass; neither
+  interrupted local full run is claimed as passing. Focused local results above
+  remain valid. Existing TestClient deprecation warning is unchanged.
+- Phase 85 is complete: 1,966 implementation changed lines (including 716 new test
+  lines) plus the scoped review fix. No hosted deployment or live provider check
+  was performed. Phase 86 follows this completion record's push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
