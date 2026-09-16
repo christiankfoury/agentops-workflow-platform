@@ -962,6 +962,7 @@ export default async function WorkflowRunDetailPage({
         <ArrowLeft aria-hidden="true" className="h-4 w-4" />
         Workflow Runs
       </Link>
+      <Link className="ml-4 text-sm underline" href={`/execution-traces/legacy/${run.id}`}>Open run trace</Link>
 
       <h1 className="mt-4 text-2xl font-bold tracking-tight">
         {workflowTitle ? `Workflow Run of ${workflowTitle}` : "Workflow Run"}

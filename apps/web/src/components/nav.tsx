@@ -33,6 +33,7 @@ type NavItem = {
 const primaryItems: NavItem[] = [
   { href: "/", label: "Dashboard", icon: Home, exact: true },
   { href: "/workflow-runs", label: "Runs", icon: GitBranch },
+  { href: "/execution-traces", label: "Graph runs", icon: GitBranch },
   { href: "/workflow-definitions", label: "Workflow builder", icon: GitBranch },
   { href: "/workflow-triggers", label: "Triggers", icon: PlayCircle },
   { href: "/human-approvals", label: "Approvals", icon: CheckCircle2 },

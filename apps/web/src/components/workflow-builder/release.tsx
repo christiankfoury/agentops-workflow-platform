@@ -88,6 +88,7 @@ export function WorkflowRelease({ initial, initialVersions, scope, permissions, 
       </div> : <p>Starting a run requires operator permission.</p>}
       {request && <p className="break-all text-xs">Request key: {request.idempotency_key} · version: {request.version_id}</p>}
       {accepted && <p role="status" className="text-sm">Run {accepted.id} · version {accepted.version_id} · {accepted.status}</p>}
+      {accepted && <a href={`/execution-traces/${encodeURIComponent(accepted.id)}`} className="underline">Open run debugger</a>}
     </section>
   </div>;
 }

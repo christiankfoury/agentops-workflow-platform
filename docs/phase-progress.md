@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 94 complete; Phase 95 — Generic Graph Run Debugger is next**.
+Current implementation phase: **Phase 95 — Generic Graph Run Debugger (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,8 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–94 are complete; Phases 95–105 remain planned. The Phase 94 completion
-record must pass CI before Phase 95 implementation begins.
+Phases 66–94 are complete; Phase 95 is in progress; Phases 96–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -134,7 +133,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 92 | Complete | Scoped cron schedules, explicit DST rules, atomic replica-safe firing, bounded catch-up and crash recovery. |
 | 93 | Complete | Generic workflow draft builder, typed node forms and conflict-safe editing. |
 | 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
-| 95 | Planned — not started | Generic Graph Run Debugger |
+| 95 | In progress | Immutable graph debugger, paginated traces, bounded detail and historical compatibility. |
 | 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
 | 97 | Planned — not started | Worker Observability and Live Updates |
 | 98 | Planned — not started | Deterministic Throughput Benchmark |
@@ -2066,6 +2065,75 @@ This is a status index; implementation details live only in `docs/phases.md`.
   principal UUIDs and signing aliases must already be provisioned. No provider
   requests, real signing keys or production deployment were used. Phase 95 may
   begin after this completion-record commit is pushed and all its CI checks pass.
+
+### Phase 95 — Generic Graph Run Debugger (2026-09-16)
+
+- Authorized scope: Phases 66–105. Phase 94 completion record
+  `ac22853d9acbaa3b1b9e6c70e1fc02876539ab5e` is pushed; CI
+  [35158752466](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35158752466)
+  passed every check, with 840 API tests in 515.59s, clean audits and independently
+  verified successful check runs. Worktree was clean before this phase.
+- Inspected current execution/step/attempt/event, tool-effect, approval and legacy
+  readers; immutable version and runtime snapshots; branch/quality checkpoints;
+  recovered LLM usage and AgentStep compatibility projections. Preserve all
+  execution/control behavior and existing APIs. No schema migration is needed.
+- Plan: add tenant-authorized trace readers with bounded/redacted payload previews
+  and explicit detail access, paginated steps/attempts/events/tools/approvals and
+  historical steps. Render immutable graph topology/current edge decisions and
+  latest node status separately from selected branch/iteration/attempt history.
+  Show model/prompt, usage/cost/latency, waits, approval details and errors. Route
+  projected historical runs to their canonical generic trace; never combine their
+  usage with AgentStep projections. Add graph-run listing, run/detail navigation
+  and useful independent failure states. Keep retry/recovery and live polling in
+  Phases 96–97.
+- Acceptance: tenant/missing-resource/pagination and redaction boundaries; stable
+  version after draft publication; repeated nodes with distinct branch/iteration
+  and attempt IDs; deterministic, LLM/tool, approval/delay/parallel, failed,
+  cancelled and historical trace fixtures; large and empty payloads; frontend
+  interaction, typecheck, lint/build and browser checks. Push and wait all CI,
+  then review and fix any actionable findings before completing this phase.
+- Implementation: additive `/execution-traces` readers expose metadata pages,
+  immutable topology/current edge decisions, exact logical-step/attempt details,
+  tool effects, events and approvals. Payloads load only on explicit inspection,
+  with credential-field/URL-userinfo redaction, traversal and shared string bounds.
+  Legacy readers preserve original labels/totals and direct projected runs to
+  their canonical generic trace. Added graph-run listing/debugger, historical
+  links, focused detail navigation, independent section failures and operations
+  guide [WORKFLOW_DEBUGGER.md](WORKFLOW_DEBUGGER.md). No execution mutations,
+  provider calls, schema migration, recovery controls or polling were introduced.
+- Validation: initial 9 debugger API tests passed in 38.08s; broader
+  `pytest tests/test_execution_traces.py tests/test_execution_records.py -q --tb=short`
+  passed 17 real-PostgreSQL checks in 99.99s. After tightening preview allocation,
+  all 10 final debugger API checks passed in 24.37s, including a 32 MB synthetic
+  source whose preview allocated under 2 MB. Ruff passed. Frontend smoke/interaction
+  checks passed all 47 tests in 42910.92ms; typecheck, lint, production build and
+  dependency audit passed. Corrected the shared browser-test FormData binding;
+  the final rerun had no earlier Node/browser FormData errors. Evidence:
+  `.phase95-api-{tests,regression}.log`, `.phase95-final-api.log`,
+  `.phase95-final-{smoke,typecheck,lint}.log`, `.phase95-build.log`,
+  `.phase95-audit.log` and `.phase95-ruff.log`.
+- Browser acceptance: production UI against owned `phase93_ui` schema. Inspected
+  the real completed v2 run and exact transform attempt/output; all-node synthetic
+  history fixture `6f5f5ed7-fc62-4511-aea3-6cd9336d18f9` showed parallel, LLM/tool,
+  approval/delay, failed/cancelled and repeated-node records. Selected its exact
+  iteration/branch/attempt, verified 64,000-character truncation, usage and redacted
+  tool/approval detail. Historical fixture `bb9a89b2-ac74-42d4-b6ac-554d99f56faa`
+  retained original labels and 12-token/$0.01 source totals. Narrow viewport
+  inspection measured document/scroll width 375px at 390×844, without overflow.
+  Created a new disposable run `42681e7e-bccb-4b82-af6f-afc645798edf`, cancelled it
+  through the existing API and verified retained status/reason in UI. A separate
+  built-in code fixture `046af59b-9236-4540-93eb-90a324eb65f7` executed in the worker
+  and failed its output contract; UI showed `output_invalid` and the pinned node.
+  Evidence includes `.phase95-{browser,legacy,cancel,failed}-fixture.log` and
+  `.phase95-worker-failure.log`. Synthetic history is reader acceptance, not a claim
+  that external integrations or providers were exercised.
+- Local review: verified ownership joins, immutable graph source, pagination,
+  payload loading/redaction, exact step identity, recovered usage and exclusion of
+  legacy projections. Hardened the shared preview string budget before commit;
+  no remaining local findings. The phase exceeds the preferred 300–700-line size
+  because the complete debugger includes scoped/redacted APIs, historical adapters,
+  UI and API/frontend acceptance coverage; all changes belong to Phase 95.
+  Final diff, commit/push, CI and post-push review remain required.
 
 When a future phase starts, add a record here using these fields:
 

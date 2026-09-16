@@ -9,6 +9,7 @@ const dom = new JSDOM("<!doctype html><html><body></body></html>", { url: "http:
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.FormData = dom.window.FormData;
 Object.defineProperty(globalThis, "navigator", { value: dom.window.navigator, configurable: true });
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const require = createRequire(import.meta.url);

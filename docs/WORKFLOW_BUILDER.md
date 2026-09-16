@@ -90,6 +90,8 @@ or an accepted start. Keep the page open until the result is resolved; this key 
 retained in page memory, not across reloads. **Prepare a separate run** explicitly
 creates a new logical request on its next start. Publication errors retain the
 loaded revision; reload after an uncertain publish to see whether it succeeded.
+Accepted starts link to the [run debugger](WORKFLOW_DEBUGGER.md), which preserves
+the pinned graph and exposes logical steps, attempts and durable trace details.
 
 ## Webhook and cron triggers
 

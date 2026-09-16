@@ -15,6 +15,7 @@ from src.routers import (
     demo,
     evaluation_results,
     execution_approvals,
+    execution_traces,
     human_approvals,
     identity,
     prompt_versions,
@@ -55,6 +56,8 @@ app = FastAPI(
 )
 
 authenticated_router_dependencies = [Depends(require_access)]
+app.include_router(execution_traces.router, prefix="/execution-traces", tags=["execution-traces"],
+                   dependencies=authenticated_router_dependencies)
 app.include_router(schedules.router, prefix="/workflow-schedules", tags=["workflow-schedules"],
                    dependencies=authenticated_router_dependencies)
 app.include_router(
