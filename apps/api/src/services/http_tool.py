@@ -4,7 +4,6 @@ import http.client
 import json
 import socket
 import ssl
-from datetime import UTC, datetime
 from ipaddress import ip_address, ip_network
 from threading import BoundedSemaphore, Event, Lock, Thread, Timer
 from time import monotonic
@@ -222,6 +221,9 @@ def request(policy, options, *, arguments, secret, effect_key, timeout_seconds, 
                 raise ToolFailure(code)
             if not 200 <= response.status < 300:
                 raise ToolFailure("tool_response_invalid")
+            if options.method == "HEAD":
+                budget.remaining()
+                return {"status": response.status, "body": {}}
             if response.getheader("Content-Encoding", "identity") != "identity":
                 raise ToolFailure("tool_response_invalid")
             length = response.getheader("Content-Length")
@@ -284,8 +286,12 @@ def adapter(contract, organization_id, credential):
         return request(policy, options, **kwargs)
 
     def reconcile(**kwargs):
-        age = (datetime.now(UTC) - kwargs["effect_created_at"]).total_seconds()
-        if age + kwargs["timeout_seconds"] >= policy.idempotency_retention_seconds:
+        age = kwargs.get("effect_age_seconds")
+        if (
+            age is None
+            or age < 0
+            or age + kwargs["timeout_seconds"] >= policy.idempotency_retention_seconds
+        ):
             return Reconciliation("unknown")
         return Reconciliation("succeeded", invoke(**kwargs))
 

@@ -113,8 +113,8 @@ Changing a contract requires a new numbered version and a newly published workfl
 Publication pins the server policy fingerprint into each tool node. Changing that
 policy blocks existing versions at start and dispatch, even after approval and
 before any effect reservation. Republish to bind the new policy and obtain fresh
-approval. The policy also forms part of each effect fingerprint. Disable the destination/reference to stop
-future dispatches; this cannot recall an accepted request.
+approval. The policy also forms part of each effect fingerprint. Disable the
+destination/reference to stop future dispatches; this cannot recall an accepted request.
 
 ## Ambiguous effects and provider guarantees
 
@@ -127,7 +127,8 @@ Set `idempotency_retention_seconds` above zero **only** when the configured serv
 guarantees the same receipt for the same `Idempotency-Key`, payload and account
 through that entire retention interval, including concurrent requests and failures.
 The adapter uses the ledger's stable key. Recovery requires enough remaining
-retention for the whole request budget, replays with that key, and records the
+retention for the whole request budget, measured from PostgreSQL time plus local
+elapsed time rather than the worker's wall clock. It replays with that key and records the
 confirmed receipt as reconciled. Expired retention remains unknown. Credential
 rotation or server policy changes cannot redirect recovery to another account or
 service. This guarantee is operator configuration, never workflow/model input.

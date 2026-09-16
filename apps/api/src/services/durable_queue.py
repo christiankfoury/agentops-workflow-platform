@@ -455,9 +455,12 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
             try:
                 from src.services.tool_runtime import execute_node
 
-                result = execute_work(
-                    work, registry, tool_executor=lambda item: execute_node(engine, claim, item)
+                context = (
+                    {"tool_executor": lambda item: execute_node(engine, claim, item)}
+                    if work.node.type == "tool"
+                    else {}
                 )
+                result = execute_work(work, registry, **context)
             except ExecutionError as error:
                 return commit_result(db, claim, work, error=error)
             return commit_result(db, claim, work, result=result)

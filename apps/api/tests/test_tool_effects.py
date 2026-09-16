@@ -1,5 +1,6 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from threading import Event
 
 import pytest
@@ -27,6 +28,23 @@ from tests.test_worker_leases import expire
 from tests.test_workflow_transactions_postgres import database as database
 
 SCHEMA = {"type": "object", "properties": {"value": {"type": "string"}}, "required": ["value"]}
+
+
+def test_uncertain_effect_timestamp_cannot_extend_recovery_retention(database, monkeypatch):
+    fixture = setup(database, monkeypatch)
+
+    def lost(**_):
+        raise effects.ToolFailure("tool_unavailable")
+
+    with pytest.raises(ExecutionError):
+        invoke(database, fixture, effects.ToolAdapter(lost))
+    with Session(database) as db:
+        effect = db.scalar(select(ToolExecution))
+        assert effect.status == "unknown"
+        effect.created_at += timedelta(hours=1)
+        with pytest.raises(ValueError, match="immutable"):
+            db.commit()
+        db.rollback()
 
 
 def prepare(database, claim):

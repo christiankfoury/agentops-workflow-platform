@@ -303,7 +303,7 @@ def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None,
         )
         if remaining <= 0:
             raise ExecutionError("tool_deadline", "Tool execution deadline has elapsed")
-        return secret, effect.effect_key, remaining
+        return secret, effect.effect_key, remaining, (now - effect.created_at).total_seconds()
 
 
 def finish(engine, claim, effect_id, token, status, *, result=None, error=None, latency=None):
@@ -409,7 +409,6 @@ def execute_tool(
         identity, token, contract, adapter, uncertain = reserve(
             db, claim, attempt_id, version_id, arguments, call_id, adapters
         )
-        created_at = get(db, ToolExecution, identity).created_at
         if token is None:
             effect = get(db, ToolExecution, identity)
             if effect.status in {"succeeded", "reconciled"} and not effect.error_code:
@@ -423,7 +422,7 @@ def execute_tool(
         control.raise_if_aborted()
         with Session(engine) as db:
             bind_tenant(db, claim.organization_id)
-            secret, key, budget = dispatch(
+            secret, key, budget, effect_age = dispatch(
                 db,
                 claim,
                 attempt_id,
@@ -436,7 +435,8 @@ def execute_tool(
         dispatched = True
         # Conservatively charge credential resolution/commit time against the
         # deadline calculated in dispatch before beginning any network I/O.
-        budget -= monotonic() - started
+        elapsed = monotonic() - started
+        budget -= elapsed
         if budget <= 0:
             raise ToolFailure("tool_timeout", uncertain=False)
         io_started = monotonic()
@@ -447,7 +447,7 @@ def execute_tool(
             effect_key=key,
             timeout_seconds=budget,
             control=control,
-            effect_created_at=created_at,
+            effect_age_seconds=effect_age + elapsed if effect_age >= 0 else effect_age,
         )
         status = "succeeded"
         control.raise_if_aborted()

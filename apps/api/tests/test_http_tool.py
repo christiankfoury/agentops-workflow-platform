@@ -136,6 +136,10 @@ def test_reads_writes_and_only_structured_response_body(server):
     assert call(server, arguments={"value": "a&b"}) == {"status": 200, "body": {"value": "one"}}
     assert server.calls[0][1] == "/ok?value=a%26b"
     assert call(server, method="HEAD") == {"status": 200, "body": {}}
+    assert call(server, "/oversize", method="HEAD", max_response_bytes=20) == {
+        "status": 200,
+        "body": {},
+    }
     assert call(server, "/write", method="POST", arguments={"value": "two"})["body"] == {
         "value": "two"
     }
@@ -357,13 +361,25 @@ def test_provider_idempotency_replay_retention_and_private_policy_binding(server
         effect_key="one-effect",
         timeout_seconds=2,
         control=AbortSignal(),
-        effect_created_at=datetime.now(UTC),
+        effect_age_seconds=0,
     )
     with pytest.raises(ToolFailure, match="tool_unavailable"):
         adapter.invoke(**kwargs)
     assert adapter.reconcile(**kwargs).result["body"] == {"value": "one"}
     assert len(server.effects) == 1 and len(server.calls) == 2
-    kwargs["effect_created_at"] -= timedelta(seconds=121)
+    # Worker wall-clock rollback must not extend provider retention. Old code
+    # based on local datetime and this timestamp would replay an expired key.
+    kwargs["effect_created_at"] = datetime.now(UTC) - timedelta(seconds=121)
+    kwargs["effect_age_seconds"] = 121
+
+    class SkewedClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.now(tz) - timedelta(hours=1)
+
+    monkeypatch.setattr(http, "datetime", SkewedClock, raising=False)
+    assert adapter.reconcile(**kwargs).outcome == "unknown" and len(server.calls) == 2
+    kwargs["effect_age_seconds"] = -1
     assert adapter.reconcile(**kwargs).outcome == "unknown" and len(server.calls) == 2
     raw["methods"] = ["POST", "GET"]
     changed = http.adapter(contract, "tenant", None)

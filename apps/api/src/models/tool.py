@@ -122,6 +122,7 @@ def preserve_tool_history(db, _context, _instances):
                 "effect_key",
                 "request_fingerprint",
                 "request_json",
+                "created_at",
             ),
         }[type(item)]
         if any(inspect(item).attrs[name].history.has_changes() for name in frozen):

@@ -1485,7 +1485,26 @@ This is a status index; implementation details live only in `docs/phases.md`.
   lifecycle fences and retained history. No frontend change or migration is needed.
   Scope exceeds the usual line target because the security transport, worker/catalog
   integration and 843 new fixture-test lines form one deployable adapter phase.
-  Implementation commit, push, CI and post-push review are pending.
+  Implementation `9029e5549fd9b4be50889f46a52c4f14d394710e` is pushed to main.
+  [CI 35051088246](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35051088246)
+  passed Web and Compose; API had **661 passed, 5 failed**. The five failures were
+  existing fault-injection hooks receiving the new tool-only dispatch keyword on
+  non-tool steps. The fix preserves their existing call path and supplies tool
+  context only for tool work; the failing tests remain intact.
+- Post-push review also found provider retention used the worker wall clock and
+  HEAD responses were incorrectly subject to represented-body size limits. The
+  separate fix uses PostgreSQL effect age plus monotonic elapsed time, preserves
+  fail-closed handling for negative age, and treats HEAD as bodyless. ORM timestamp
+  immutability now matches the existing SQL trigger. Tests cover clock rollback,
+  HEAD metadata and immutable uncertain-effect timestamps. The HTTP, worker tool,
+  effect, durable queue, retry and lease suites passed **107 tests** with
+  `uv run --directory apps/api pytest tests/test_http_tool.py
+  tests/test_http_tool_runtime.py tests/test_tool_effects.py tests/test_durable_queue.py
+  tests/test_retry_runtime.py tests/test_worker_leases.py -q --tb=short`
+  (`.phase87-fix-tests.log`). A final targeted retention/negative-age regression,
+  Ruff and fix diff checks also passed.
+  All five previously failing tests passed without weakening their assertions.
+  Fix CI and follow-up review remain pending; Phase 87 is not complete.
 
 When a future phase starts, add a record here using these fields:
 
