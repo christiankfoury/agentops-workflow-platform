@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from src.models.agent_type import AgentType
 from src.models.workflow_run import WorkflowType
+from src.schemas.router import RawRouterOutput, RouterOutput
 from src.services.agent_settings import (
     ROUTER_MAX_TOKENS,
     AgentRuntimeConfig,
@@ -43,18 +44,6 @@ ROUTER_SCHEMA: dict[str, Any] = {
 
 class RouterRunError(Exception):
     pass
-
-
-class RawRouterOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    workflow_type: Literal["sales_report", "customer_feedback", "incident_log"]
-    confidence: float = Field(ge=0, le=1)
-    reasoning_summary: str = Field(min_length=1)
-
-
-class RouterOutput(RawRouterOutput):
-    recommended_action: Literal["auto_select", "confirm", "manual_required"]
 
 
 class LLMClientLike(Protocol):
@@ -124,9 +113,7 @@ def detect_workflow_type(
 
 def _get_router_runtime_config(db: Session) -> AgentRuntimeConfig:
     try:
-        return get_agent_runtime_config(
-            db, AgentType.router, default_max_tokens=ROUTER_MAX_TOKENS
-        )
+        return get_agent_runtime_config(db, AgentType.router, default_max_tokens=ROUTER_MAX_TOKENS)
     except AgentSettingsError as e:
         raise RouterRunError("Active Router prompt not found") from e
 

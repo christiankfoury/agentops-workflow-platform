@@ -271,10 +271,14 @@ def test_orm_and_database_reject_cross_tenant_links(database, tenants):
 
 
 def test_demo_seeds_are_independent_tenant_copies(database, tenants):
+    from src.services.identity import Principal
+
     seen = []
     for own in tenants:
         with Session(database) as db:
             bind_tenant(db, own["org"])
+            member = db.scalar(select(Membership).where(Membership.organization_id == own["org"]))
+            db.info["principal"] = Principal("admin", member.user_id, own["org"])
             first = seed_demo_dataset(db, workflow_types=[WorkflowType.sales_report])
             again = seed_demo_dataset(db, workflow_types=[WorkflowType.sales_report])
             assert first.workflow_runs == again.workflow_runs

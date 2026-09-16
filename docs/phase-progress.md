@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–84 are complete; Phases 85–105 remain planned.
+Phases 66–84 are complete; Phase 85 is in progress; Phases 86–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -123,7 +123,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 82 | Complete | Immutable LLM settings, bounded schema repair, usage accounting and quality revisions; implementation/fix CI and review passed. |
 | 83 | Complete | Published sales/baseline templates, durable starts, compatibility reads and delegated controls; fix CI/review passed. |
 | 84 | Complete | Customer Feedback Template Migration |
-| 85 | Planned — not started | Incident Template and Evaluation Compatibility |
+| 85 | In progress | Incident Template and Evaluation Compatibility |
 | 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
 | 87 | Planned — not started | HTTP REST Tool |
 | 88 | Planned — not started | PostgreSQL Query Tool |
@@ -1268,6 +1268,71 @@ This is a status index; implementation details live only in `docs/phases.md`.
   migration and compatibility. Existing prompts and source normalization remain
   supported. This is provider-fixture evidence, not live-provider parity or a
   hosted rollout. Phase 85 follows the final record's push and successful CI.
+
+### Phase 85 — Incident Template and Evaluation Compatibility (authorized 66–105)
+
+- Dependency: Phase 84 record `ae8ffe5a4e470c0cc31fd16d4c90a052b6bafc3c`
+  is pushed and CI 35041373284 passed API, Web and Docker Compose.
+- Plan: publish timeline → root cause → reviewer → approval/revision → writer
+  and incident baseline graphs using existing prompts, normalization and semantic
+  models. Repeat timeline/root-cause/review together, preserving ambiguity and
+  confirmed/inferred distinctions. Switch new incident starts with a backout flag.
+- Complete evaluation integration by accepting durable work promptly, recording
+  pending results atomically with queued runs, and scoring from committed terminal
+  projections. Preserve administrator-authorized evaluation auto-approval with a
+  recorded initiator and a fresh permission check at decision time; clearly label
+  those decisions. Promotion/correction paths return queued run links and retain
+  same-source comparisons. Historical results remain readable.
+- Demo integration: install templates for fresh execution from seeded inputs;
+  retain explicitly synthetic historical fixture histories and scores without
+  fabricating versions. Prevent reseeding from overwriting durable-owned records.
+  Compatibility readers remain the single representation for business costs and
+  traces. Document legacy agent endpoint deprecation and asynchronous evaluation.
+- Acceptance: incident fixture parity (success, ambiguity, edits, rejection,
+  retry, cancellation, baseline); durable evaluations for all three workflows,
+  same-input deterministic scoring, pending/terminal recovery, revoked initiator
+  authorization, historical comparisons and demo reseed safety. Broaden API/Web
+  regressions after shared changes. Add only the evaluation policy metadata/schema
+  needed for durable automation; no live provider or hosted deployment is planned.
+
+- Implementation: published incident graphs with registered semantic schemas,
+  current-iteration timeline bindings, mandatory approval, bounded revisions and
+  baseline; default durable starts with `INCIDENT_TEMPLATE_ENABLED` backout.
+  Shared evaluations atomically enqueue results/run/jobs, persist immutable admin
+  delegation, reauthorize decisions, and score committed terminal projections.
+  Router diagnostics are pinned and their observed usage is included. Promotion
+  serializes duplicate requests and keys provenance to the original uploaded input;
+  correction queues source text with explicit reviewer guidance. Demo installation
+  preserves synthetic historical records and excludes durable-owned runs from reseeds.
+  Eight legacy agent endpoints are deprecated in OpenAPI. Historical readers remain.
+- Migration: `f085_durable_evaluations` adds requester/policy fields, an execution
+  lookup index and immutable-policy/binding trigger. Pending automatic evaluations
+  block downgrade. Fresh disposable `phase85_validation` database successfully ran
+  `uv run --directory apps/api alembic upgrade head` and `alembic current` reports
+  `f085_durable_evaluations (head)`. No application database was migrated.
+- Local validation: initial durable evaluations 5 passed; incident/legacy evaluation,
+  promotion/comparison/demo/router/CLI regression group 38 passed; automation,
+  execution-record and tenant isolation group 20 passed; automation plus migration
+  group 7 passed. Latest automation group (including independent-upload provenance)
+  7 passed; correction queue test 1 passed; incident normalization/deprecation/API
+  no-provider-key test 1 passed; final migration test 1 passed. The latter API test
+  first exposed an invalid test fixture (`None` instead of an empty `SecretStr`);
+  correcting the fixture made it pass. Earlier promotion JSON-null and old-schema
+  fixture failures were fixed and their affected suites passed.
+- `uv run --directory apps/api ruff check src tests
+  alembic/versions/f085_durable_evaluations.py`, Web typecheck, 11 Web smoke tests,
+  Compose configuration and `git diff --check` passed. An explicit-file full API
+  run was interrupted after output inactivity; a verbose explicit-file run is
+  still in progress and is not claimed as passing. CI will run the full suite.
+- Scope size exceeds the usual target because this phase closes three workflow
+  evaluation paths, atomic queue/result persistence, revocable approval delegation,
+  migration/history compatibility, incident graphs and real-PostgreSQL regression
+  coverage together. No later-phase tools, triggers or builder UI are included.
+- Pre-commit review covered control ownership, immutable policy, revoked membership,
+  concurrent promotion, approval restart/idempotency, cancellation, scoring lock
+  ordering and compatibility costs. Remaining evidence boundary: fixture provider
+  responses only; no live-provider equality or hosted deployment is claimed.
+  Implementation push, CI and post-push review are pending; Phase 85 remains open.
 
 When a future phase starts, add a record here using these fields:
 

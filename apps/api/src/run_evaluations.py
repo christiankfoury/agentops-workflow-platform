@@ -30,12 +30,23 @@ def parse_run_modes(argv: Sequence[str] | None = None) -> tuple[RunMode, ...]:
 def main(argv: Sequence[str] | None = None) -> None:
     run_modes = parse_run_modes(argv)
     api_key = settings.openai_api_key_value
-    if not api_key:
+    legacy_enabled = not all(
+        [
+            settings.sales_template_enabled,
+            settings.feedback_template_enabled,
+            settings.incident_template_enabled,
+        ]
+    )
+    if legacy_enabled and not api_key:
         raise RuntimeError("OPENAI_API_KEY is required to run evaluations.")
 
-    llm_client = LLMClient(
-        api_key=api_key,
-        default_model=settings.openai_model,
+    llm_client = (
+        LLMClient(
+            api_key=api_key,
+            default_model=settings.openai_model,
+        )
+        if legacy_enabled
+        else None
     )
     with SessionLocal() as db:
         seed_default_prompt_versions(db)
@@ -47,7 +58,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             llm_client,
             run_modes=run_modes,
         )
-    print(f"Stored {len(results)} evaluation results.")
+    print(f"Stored {len(results)} evaluation results. Pending runs execute on durable workers.")
 
 
 if __name__ == "__main__":

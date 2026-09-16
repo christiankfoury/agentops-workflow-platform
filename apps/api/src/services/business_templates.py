@@ -92,11 +92,11 @@ def install_templates(
     return installed
 
 
-def start_business(db, source, mode, business_type, label, key):
+def start_business(db, source, mode, business_type, label, key, *, commit=True, definition_id=None):
     authorize(db, "workflow.start", lock=True)
     if source is None or source.input_type.value != business_type.value:
         raise HTTPException(422, f"A {label} input is required")
-    definition_id = template_id(tenant_id(db), business_type, mode)
+    definition_id = definition_id or template_id(tenant_id(db), business_type, mode)
     if db.get(WorkflowDefinition, definition_id) is None:
         raise HTTPException(
             409, f"An administrator must install the {label} templates before starting"
@@ -112,5 +112,6 @@ def start_business(db, source, mode, business_type, label, key):
             input={"title": source.title, "raw_text": source.raw_text, "notes": source.notes or ""},
         ),
         legacy_run=legacy,
+        commit=commit,
     )
     return legacy

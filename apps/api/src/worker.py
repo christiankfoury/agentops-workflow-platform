@@ -50,6 +50,9 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
                     break
                 stop.wait(poll_seconds) if not stop.is_set() else Event().wait(poll_seconds)
                 continue
+            from src.services.durable_evaluations import advance_approvals
+
+            advance_approvals(database)
             available = capacity - len(active)
             recover_expired(database)
             if max_jobs is not None:

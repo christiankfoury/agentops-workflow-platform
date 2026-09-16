@@ -40,20 +40,20 @@ def existing_start(db, key, digest):
     return execution(db, receipt.execution_id)
 
 
-def start_execution(db, body, *, legacy_run=None):
+def start_execution(db, body, *, legacy_run=None, commit=True):
     """Atomically accept a pending execution and its first durable job."""
     try:
         principal = authorize(db, "workflow.start", lock=True)
         digest = fingerprint(body)
         accepted = existing_start(db, body.idempotency_key, digest)
         if accepted:
-            db.commit()
+            db.commit() if commit else db.flush()
             return accepted
         item = definition(db, body.definition_id, lock=True)
         # A competing start may have committed while this request waited for publication's lock.
         accepted = existing_start(db, body.idempotency_key, digest)
         if accepted:
-            db.commit()
+            db.commit() if commit else db.flush()
             return accepted
         selected_id = body.version_id or item.published_version_id
         if selected_id is None:
@@ -106,7 +106,7 @@ def start_execution(db, body, *, legacy_run=None):
             from src.services.business_projection import sync
 
             sync(db, run)
-        db.commit()
+        db.commit() if commit else db.flush()
         return run
     except IntegrityError:
         # The organization/key unique constraint arbitrates starts across definitions too.
@@ -115,7 +115,7 @@ def start_execution(db, body, *, legacy_run=None):
             authorize(db, "workflow.start", lock=True)
             accepted = existing_start(db, body.idempotency_key, digest)
             if accepted:
-                db.commit()
+                db.commit() if commit else db.flush()
                 return accepted
             raise
         except BaseException:

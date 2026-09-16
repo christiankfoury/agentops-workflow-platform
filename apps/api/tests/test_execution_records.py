@@ -240,11 +240,9 @@ def test_execution_migration_preserves_legacy_data_and_fences_identity():
             config = Config("alembic.ini")
             config.attributes["connection"] = conn
             command.upgrade(config, "f071_workflow_definitions")
-            from src.models.workflow_run import WorkflowType
-            from src.services.demo_dataset import seed_demo_dataset
+            from tests.generic_migration_fixtures import legacy_business_rows
 
-            with Session(conn) as db:
-                seed_demo_dataset(db, WorkflowType.sales_report)
+            legacy_business_rows(conn)
             tables = ["workflow_runs", "agent_steps", "cost_events", "evaluation_results"]
             before = {
                 table: conn.execute(

@@ -50,6 +50,12 @@ def promote_workflow_run_to_evaluation_comparison(
     llm_client: LLMClientLike,
 ) -> EvaluationPromotionResult:
     uploaded_input = _validate_source_run(db, run)
+    from src.services.durable_evaluations import enabled
+
+    if enabled(db, run.workflow_type):
+        from src.services.durable_evaluation_promotion import promote
+
+        return promote(db, run, uploaded_input)
     if run.run_mode == RunMode.baseline:
         return _promote_baseline_run(db, run, uploaded_input, llm_client)
     return _promote_multi_agent_run(db, run, uploaded_input, llm_client)
@@ -346,6 +352,28 @@ def _score_existing_run_result(
     result.cost = run.total_cost
     result.latency_ms = run.latency_ms
     result.prompt_version_summary_json = _prompt_version_summary(db, run)
+    if isinstance(db, Session):
+        from src.models.human_approval import HumanApproval
+
+        approvals = db.query(HumanApproval).filter(HumanApproval.workflow_run_id == run.id).all()
+        result.human_approval_required = bool(approvals)
+        result.human_approved = (
+            any(item.status == "approved" for item in approvals) if approvals else None
+        )
+        router = (
+            db.query(AgentStep)
+            .filter(
+                AgentStep.workflow_run_id == run.id,
+                AgentStep.agent_type == "router",
+                AgentStep.status == "completed",
+            )
+            .order_by(AgentStep.step_order.desc())
+            .first()
+        )
+        if router:
+            result.router_detected_workflow_type = router.output_json["workflow_type"]
+            result.router_confidence = router.output_json["confidence"]
+            result.router_correct = result.router_detected_workflow_type == run.workflow_type
 
 
 def _latest_completed_result(

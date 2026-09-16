@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import Boolean, Enum, Float, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, Enum, Float, ForeignKey, Integer, Text, event, inspect
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -43,6 +43,10 @@ class EvaluationResult(TenantOwned, Base):
     status: Mapped[EvaluationRunStatus] = mapped_column(
         Enum(EvaluationRunStatus), nullable=False, server_default=EvaluationRunStatus.pending.value
     )
+    requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    automatic_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    approval_blocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    derive_expected: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     prompt_version_summary_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     factual_accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
     unsupported_claim_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -60,3 +64,14 @@ class EvaluationResult(TenantOwned, Base):
     judge_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
+
+
+@event.listens_for(EvaluationResult, "before_update")
+def immutable_evaluation_intent(_mapper, _connection, result):
+    for name in ["requested_by_user_id", "automatic_approval", "derive_expected"]:
+        if inspect(result).attrs[name].history.has_changes():
+            raise ValueError("Evaluation approval intent is immutable")
+    for name in ["workflow_run_id", "evaluation_case_id", "run_mode"]:
+        history = inspect(result).attrs[name].history
+        if history.has_changes() and history.deleted and history.deleted[0] is not None:
+            raise ValueError("Evaluation run binding is immutable")

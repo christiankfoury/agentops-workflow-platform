@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from src.database import get_db
-from src.dependencies import get_llm_client
+from src.dependencies import get_evaluation_client
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.agent_type import AgentType
@@ -183,7 +183,7 @@ def make_db_with_run(
 
 def client_for(db: PromotionFakeSession) -> TestClient:
     app.dependency_overrides[get_db] = lambda: db
-    app.dependency_overrides[get_llm_client] = lambda: EvaluationLLMClient()
+    app.dependency_overrides[get_evaluation_client] = lambda: EvaluationLLMClient()
     return TestClient(app)
 
 

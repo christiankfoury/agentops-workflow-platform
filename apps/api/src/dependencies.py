@@ -12,3 +12,8 @@ def get_llm_client() -> LLMClient:
         api_key=api_key,
         default_model=settings.openai_model,
     )
+
+
+def get_evaluation_client() -> LLMClient | None:
+    """Durable acceptance needs no API-side provider credential or request."""
+    return get_llm_client() if settings.openai_api_key_value else None

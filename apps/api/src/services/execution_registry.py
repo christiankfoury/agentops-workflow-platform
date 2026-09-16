@@ -21,7 +21,13 @@ class ExecutorRegistry:
         from src.services.llm_execution import client_factory
 
         self.llm_factory = client_factory
-        from src.services.business_outputs import FEEDBACK_MODELS, final_report, model_validator
+        from src.services.business_outputs import (
+            FEEDBACK_MODELS,
+            INCIDENT_MODELS,
+            ROUTER_MODELS,
+            final_report,
+            model_validator,
+        )
         from src.services.business_schemas import graph_schema
 
         self.output_validators = {"business.final_report.v1": final_report}
@@ -32,7 +38,7 @@ class ExecutorRegistry:
                 required=["final_output"],
             )
         }
-        for name, model in FEEDBACK_MODELS.items():
+        for name, model in (FEEDBACK_MODELS | INCIDENT_MODELS | ROUTER_MODELS).items():
             self.output_validators[name] = model_validator(model)
             self.output_contracts[name] = DataSchema.model_validate(
                 graph_schema(model.model_json_schema())

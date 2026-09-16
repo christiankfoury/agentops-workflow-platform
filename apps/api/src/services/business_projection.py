@@ -135,6 +135,10 @@ def sync(db, source):
     run.latency_ms = sum(item["latency_ms"] for item in all_usage) if all_usage else None
     run.completed_at = source.completed_at
     run.state_revision = source.state_revision + 1
+    db.flush()
+    from src.services.durable_evaluations import sync as sync_evaluations
+
+    sync_evaluations(db, run)
     for event in db.scalars(select(ExecutionEvent).where(ExecutionEvent.execution_id == source.id)):
         if db.get(WorkflowEvent, event.id):
             continue

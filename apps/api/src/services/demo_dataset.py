@@ -3,12 +3,14 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult, EvaluationRunStatus
 from src.models.uploaded_input import InputType, UploadedInput
+from src.models.workflow_execution import WorkflowExecution
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
 from src.services.evaluation_cases import seed_default_evaluation_cases
 from src.services.evaluation_comparisons import CORRECTED_RUN_MARKER
@@ -123,6 +125,14 @@ def seed_demo_dataset(
     db: Session,
     workflow_types: set[WorkflowType] | None = None,
 ) -> DemoDatasetSummary:
+    if isinstance(db, Session):
+        from src.services.durable_evaluations import installer
+        from src.services.permissions import authorize
+
+        authorize(db, "demo.seed")
+        for workflow_type in sorted(workflow_types or set(WorkflowType)):
+            installer(workflow_type)(db)
+        authorize(db, "demo.seed", lock=True)
     cases = seed_default_evaluation_cases(db)
     selected_cases = [
         case for case in cases if workflow_types is None or case.workflow_type in workflow_types
@@ -278,9 +288,7 @@ def _seed_showcase_demo_records(db: Session, created_at_base: datetime) -> _Show
         cases=[action_case, impact_case],
         uploaded_inputs=action_counts.uploaded_inputs + impact_counts.uploaded_inputs,
         workflow_runs=action_counts.workflow_runs + impact_counts.workflow_runs,
-        evaluation_results=(
-            action_counts.evaluation_results + impact_counts.evaluation_results
-        ),
+        evaluation_results=(action_counts.evaluation_results + impact_counts.evaluation_results),
         agent_steps=action_counts.agent_steps + impact_counts.agent_steps,
     )
 
@@ -578,14 +586,19 @@ def _upsert_workflow_run(
     retry_count: int,
     created_at: datetime,
 ) -> WorkflowRun:
-    run = (
-        db.query(WorkflowRun)
-        .filter(
-            WorkflowRun.input_id == input_record.id,
-            WorkflowRun.run_mode == run_mode,
+    query = db.query(WorkflowRun)
+    if isinstance(db, Session):
+        query = query.filter(
+            ~WorkflowRun.id.in_(
+                select(WorkflowExecution.legacy_run_id).where(
+                    WorkflowExecution.legacy_run_id.is_not(None)
+                )
+            )
         )
-        .first()
-    )
+    run = query.filter(
+        WorkflowRun.input_id == input_record.id,
+        WorkflowRun.run_mode == run_mode,
+    ).first()
     if run is None:
         run = WorkflowRun(id=uuid.uuid4(), input_id=input_record.id, run_mode=run_mode)
         db.add(run)

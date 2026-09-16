@@ -57,7 +57,29 @@ Set `FEEDBACK_TEMPLATE_ENABLED=false` to select legacy starts for future feedbac
 runs. Already accepted durable runs retain their owner and continue on workers.
 No database migration is required for Phase 84. Fixture validation compares legacy
 and durable outputs, approval decisions and observed usage; it does not claim
-live-provider equality. Shared evaluation/demo orchestration remains Phase 85.
+live-provider equality.
+
+## Incident and evaluation rollout (Phase 85)
+
+Apply `alembic upgrade head`, deploy the API and workers together, then call
+`POST /workflow-definitions/templates/incident/install` as an administrator.
+New incident starts use the published timeline → root cause → reviewer → mandatory
+approval → writer graph, or the one-step baseline. Revisions repeat timeline,
+root cause and review together, at most twice. Writers consume the approved root
+cause, including human edits, and the current timeline. Existing timestamp parsing,
+ambiguous lines, and confirmed/inferred/unknown distinctions remain intact.
+Registered semantic models validate generated outputs and human edits.
+
+Set `INCIDENT_TEMPLATE_ENABLED=false` to back out future incident starts. Accepted
+durable executions keep their owner, pinned graph and worker control. All eight
+legacy `run-*` agent endpoints are marked deprecated in OpenAPI; they remain
+available for unlinked historical runs and return 409 for durable-owned runs.
+
+Evaluations now enqueue these published templates and score their committed
+compatibility projections. See [evaluation](EVALUATION.md) for pending results,
+automatic approval authorization and worker requirements. Demo seeding installs
+templates for new runs while preserving synthetic historical fixtures without
+invented execution versions. Reseeding never overwrites durable-owned run history.
 
 ## Compatibility and control ownership
 
@@ -81,10 +103,10 @@ the replacement. Writer input uses the approved payload and preserves human feed
 
 Historical runs have no invented version or execution link. Their existing APIs,
 steps, comparisons and evaluations remain readable. New projections retain the
-same evaluation foreign keys, deterministic scoring and comparison links. Migrating
-the shared evaluation/demo orchestration to generic execution completes in Phase 85;
-its current legacy counterpart runner is not a second execution path for an already
-linked run.
+same evaluation foreign keys, deterministic scoring and comparison links. Queued
+counterpart and corrected runs return their progress links until results complete.
+The backout runner can create unlinked runs only; it cannot take control of an
+already linked run.
 
 ## Backout
 

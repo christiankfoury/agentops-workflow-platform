@@ -76,6 +76,11 @@ def run_sales_evaluation_case(
             "and incident log cases"
         )
 
+    from src.services.durable_evaluations import enabled, enqueue
+
+    if enabled(db, evaluation_case.workflow_type):
+        return enqueue(db, evaluation_case, run_mode, guidance=correction_guidance)
+
     result = EvaluationResult(
         evaluation_case_id=evaluation_case.id,
         run_mode=run_mode,

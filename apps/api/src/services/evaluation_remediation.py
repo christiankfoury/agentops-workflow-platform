@@ -60,7 +60,7 @@ def create_corrected_evaluation_comparison_run(
         correction_guidance=_corrected_run_notes(reviewer_issues),
     )
 
-    if corrected_result.status != EvaluationRunStatus.completed:
+    if corrected_result.status == EvaluationRunStatus.failed:
         detail = corrected_result.error_message or "Corrected multi-agent evaluation failed"
         raise EvaluationRemediationError(f"Corrected multi-agent evaluation failed: {detail}")
     if corrected_result.workflow_run_id is None:
@@ -73,7 +73,11 @@ def create_corrected_evaluation_comparison_run(
         baseline_run_id=baseline_result.workflow_run_id,
         source_multi_agent_run_id=source_multi_agent_result.workflow_run_id,
         corrected_multi_agent_run_id=corrected_result.workflow_run_id,
-        comparison_url=f"/workflow-comparison?search={quote(evaluation_case.title)}",
+        comparison_url=(
+            f"/workflow-runs/{corrected_result.workflow_run_id}"
+            if corrected_result.status == EvaluationRunStatus.pending
+            else f"/workflow-comparison?search={quote(evaluation_case.title)}"
+        ),
     )
 
 
@@ -124,9 +128,7 @@ def _latest_reviewer_issues(db: Session, workflow_run_id: uuid.UUID) -> list[dic
 
 
 def _corrected_run_notes(reviewer_issues: list[dict[str, Any]]) -> str:
-    issue_lines = "\n".join(
-        f"- {_format_issue(issue)}" for issue in reviewer_issues
-    )
+    issue_lines = "\n".join(f"- {_format_issue(issue)}" for issue in reviewer_issues)
     return (
         "Corrected comparison run guidance. The reviewer issues below are not "
         "source facts; use them only to avoid repeating the same unsupported or "

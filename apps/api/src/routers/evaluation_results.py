@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.dependencies import get_llm_client
+from src.dependencies import get_evaluation_client
 from src.models.agent_step import AgentStep
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult
@@ -98,7 +98,7 @@ def get_evaluation_comparisons(
 def create_corrected_comparison_run(
     evaluation_case_id: uuid.UUID,
     db: Session = Depends(get_db),
-    llm_client: LLMClient = Depends(get_llm_client),
+    llm_client: LLMClient | None = Depends(get_evaluation_client),
 ) -> CorrectedEvaluationComparisonResult:
     try:
         return create_corrected_evaluation_comparison_run(

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.config import settings
 from src.database import get_db
-from src.dependencies import get_llm_client
+from src.dependencies import get_evaluation_client, get_llm_client
 from src.models.agent_step import AgentStep
 from src.models.uploaded_input import UploadedInput
 from src.models.workflow_event import WorkflowEvent
@@ -122,7 +122,7 @@ def list_workflow_events(run_id: uuid.UUID, db: Session = Depends(get_db)) -> li
     )
 
 
-@router.post("/{run_id}/run-analyst", response_model=AgentStepRead)
+@router.post("/{run_id}/run-analyst", response_model=AgentStepRead, deprecated=True)
 def run_analyst(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -137,7 +137,7 @@ def run_analyst(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-classifier", response_model=AgentStepRead)
+@router.post("/{run_id}/run-classifier", response_model=AgentStepRead, deprecated=True)
 def run_classifier(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -152,7 +152,7 @@ def run_classifier(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-insight", response_model=AgentStepRead)
+@router.post("/{run_id}/run-insight", response_model=AgentStepRead, deprecated=True)
 def run_insight(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -167,7 +167,7 @@ def run_insight(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-timeline", response_model=AgentStepRead)
+@router.post("/{run_id}/run-timeline", response_model=AgentStepRead, deprecated=True)
 def run_timeline(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -182,7 +182,7 @@ def run_timeline(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-root-cause", response_model=AgentStepRead)
+@router.post("/{run_id}/run-root-cause", response_model=AgentStepRead, deprecated=True)
 def run_root_cause(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -197,7 +197,7 @@ def run_root_cause(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-baseline", response_model=AgentStepRead)
+@router.post("/{run_id}/run-baseline", response_model=AgentStepRead, deprecated=True)
 def run_baseline(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -212,7 +212,7 @@ def run_baseline(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-reviewer", response_model=AgentStepRead)
+@router.post("/{run_id}/run-reviewer", response_model=AgentStepRead, deprecated=True)
 def run_reviewer(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -231,7 +231,7 @@ def run_reviewer(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
 
-@router.post("/{run_id}/run-writer", response_model=AgentStepRead)
+@router.post("/{run_id}/run-writer", response_model=AgentStepRead, deprecated=True)
 def run_writer(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -262,7 +262,7 @@ def run_writer(
 def create_evaluation_comparison_from_run(
     run_id: uuid.UUID,
     db: Session = Depends(get_db),
-    llm_client: LLMClient = Depends(get_llm_client),
+    llm_client: LLMClient | None = Depends(get_evaluation_client),
 ) -> EvaluationPromotionResult:
     run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
     if run is None:
@@ -298,6 +298,11 @@ def create_workflow_run(
         from src.services.feedback_template import start_feedback
 
         run = start_feedback(db, uploaded_input, body.run_mode)
+        return _workflow_run_payload(run, uploaded_input.title)
+    if body.workflow_type == WorkflowType.incident_log and settings.incident_template_enabled:
+        from src.services.incident_template import start_incident
+
+        run = start_incident(db, uploaded_input, body.run_mode)
         return _workflow_run_payload(run, uploaded_input.title)
     run = WorkflowRun(
         workflow_type=body.workflow_type,

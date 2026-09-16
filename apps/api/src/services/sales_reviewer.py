@@ -3,9 +3,9 @@ from __future__ import annotations
 import time
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep, AgentStepStatus
@@ -13,6 +13,7 @@ from src.models.agent_type import AgentType
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+from src.schemas.business_review import SalesReviewOutput
 from src.services.agent_settings import (
     AgentRuntimeConfig,
     AgentSettingsError,
@@ -61,23 +62,6 @@ SALES_REVIEW_SCHEMA: dict[str, Any] = {
 
 class ReviewerRunError(Exception):
     pass
-
-
-class ReviewIssue(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    claim: str
-    problem: str
-    severity: Literal["low", "medium", "high"]
-
-
-class SalesReviewOutput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    approved: bool
-    quality_score: float = Field(ge=0, le=1)
-    issues: list[ReviewIssue]
-    retry_recommended: bool
 
 
 class LLMClientLike(Protocol):
