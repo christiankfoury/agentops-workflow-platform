@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 86 — Tool Contracts Credentials and Effect Ledger**.
+Current implementation phase: **Phase 87 — HTTP REST Tool (next)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–85 are complete; Phase 86 is in progress; Phases 87–105 remain planned.
+Phases 66–86 are complete; Phases 87–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -124,7 +124,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 83 | Complete | Published sales/baseline templates, durable starts, compatibility reads and delegated controls; fix CI/review passed. |
 | 84 | Complete | Customer Feedback Template Migration |
 | 85 | Complete | Incident templates and durable evaluations; 577 API tests, all CI and review passed. |
-| 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
+| 86 | Complete | Versioned tenant tools, worker credentials, fenced effects and explicit reconciliation; implementation and fix CI passed. |
 | 87 | Planned — not started | HTTP REST Tool |
 | 88 | Planned — not started | PostgreSQL Query Tool |
 | 89 | Planned — not started | GitHub SaaS Tool |
@@ -1426,7 +1426,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   unknown status through recovery reservation and blocks concurrent manual resolution
   while that reservation is live. A regression uses real lease recovery twice and
   proves the accepted write is reconciled without invoking it again. All **18 effect
-  tests**, Ruff and fix diff checks passed. The fix and its CI/review are pending.
+  tests**, Ruff and fix diff checks passed.
+- Fix `c661817754eeb57e407c357d4cc21252ec10d02c` is pushed to main;
+  [CI 35048490433](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35048490433)
+  and all commit checks passed: API (**609 tests**), Web and Docker Compose,
+  including migration and dependency audits. Implementation CI passed **608 tests**.
+  Follow-up review confirmed repeated recovery preserves uncertainty and live
+  reservation fencing; no unresolved blocking findings remain.
+- Phase 86 is complete. The implementation changed 1,963 lines, including 667 new
+  test lines, followed by the scoped recovery fix. No external provider or hosted
+  deployment was tested. Phase 87 follows this record's push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
