@@ -13,6 +13,7 @@ export function WorkflowBuilder({ initial, scope, canEdit, save, tools = [], pro
   const [name, setName] = useState(initial?.name ?? "Untitled workflow");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [graph, setGraph] = useState<ObjectValue>(initial?.draft_graph ?? starterGraph());
+  const [rawMode, setRawMode] = useState(() => !editableGraph(initial?.draft_graph ?? starterGraph()));
   const [selected, setSelected] = useState("");
   const [type, setType] = useState<NodeType>("transform");
   const [buffers, setBuffers] = useState<Record<string, { raw: string; error: string | null }>>({});
@@ -25,7 +26,7 @@ export function WorkflowBuilder({ initial, scope, canEdit, save, tools = [], pro
   const nodes = supported ? graph.nodes : [], edges = supported ? graph.edges : [];
   const node = nodes.find(n => n.id === selected);
   const disabled = !canEdit || !!definition?.archived || busy;
-  const jsonErrors = Object.entries(buffers).filter(([, v]) => v.error).map(([k]) => `${k}: invalid JSON`);
+  const jsonErrors = Object.entries(buffers).filter(([, v]) => v.error).map(([k, v]) => `${k}: ${v.error}`);
   const issues = draftIssues(graph);
   useEffect(() => {
     function warn(event: BeforeUnloadEvent) { if (dirty) { event.preventDefault(); event.returnValue = ""; } }
@@ -64,14 +65,17 @@ export function WorkflowBuilder({ initial, scope, canEdit, save, tools = [], pro
     {definition && <a className="text-sm underline" href={`/workflow-definitions/${encodeURIComponent(definition.id)}`} target="_blank" rel="noreferrer">Open saved draft in a new tab</a>}
     {!!errors.length && <ul role="alert" className="text-red-600">{errors.map(e => <li key={e}>{e}</li>)}</ul>}
     {catalogError && <p role="status">Some tool or prompt choices are unavailable. Existing selections are retained. Reload to retry loading the catalog.</p>}
-    {supported && <Field label="Inspect node" value={selected} options={nodes.map(n => ({ id: n.id, name: `${n.id} · ${n.type}` }))} onChange={v => setSelected(String(v))} />}
+    <button type="button" className="rounded border px-3 py-2 text-sm" disabled={busy || jsonErrors.length > 0 || (rawMode && !supported)} onClick={() => {
+      setRawMode(!rawMode); setBuffers({}); setSelected(""); setSource(""); setTarget(""); setLabel("");
+    }}>{rawMode ? "Use visual editor" : "Edit graph JSON"}</button>
+    {supported && !rawMode && <Field label="Inspect node" value={selected} options={nodes.map(n => ({ id: n.id, name: `${n.id} · ${n.type}` }))} onChange={v => setSelected(String(v))} />}
     <fieldset disabled={disabled} className="min-w-0 space-y-6">
       <legend className="sr-only">Draft editing</legend>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-medium">Workflow name<input className={control} value={name} required maxLength={200} onChange={e => { setName(e.target.value); setDirty(true); }} /></label>
         <label className="text-sm font-medium">Description<input className={control} value={description} maxLength={4000} onChange={e => { setDescription(e.target.value); setDirty(true); }} /></label>
       </div>
-      {supported && <>
+      {supported && !rawMode && <>
         <section className="rounded-lg border border-border bg-card p-4" aria-label="Graph canvas">
           <h2 className="font-semibold">Graph</h2><p className="mb-3 text-sm text-muted-foreground">Select a node below to edit. Arrows follow the connection list. Every operation is available by keyboard.</p>
           <div className="overflow-x-auto">
@@ -123,7 +127,7 @@ export function WorkflowBuilder({ initial, scope, canEdit, save, tools = [], pro
           </section>
         </div>
       </>}
-      {!supported && <section className="space-y-3 rounded border p-4"><h2 className="font-semibold">Repair graph structure</h2><p>This draft needs structural repairs before visual editing. Its original data is preserved.</p>
+      {(rawMode || !supported) && <section className="space-y-3 rounded border p-4"><h2 className="font-semibold">Graph JSON editor</h2><p>Edit the complete graph, including fields outside the visual forms. Structural repairs are required before returning to the visual editor. Original values are preserved until you edit them.</p>
         {json("rawGraph", "Graph JSON", graph, v => { if (isObject(v)) update(v); else setBuffers(old => ({ ...old, rawGraph: { raw: JSON.stringify(v), error: "Graph must be an object" } })); })}
       </section>}
     </fieldset>

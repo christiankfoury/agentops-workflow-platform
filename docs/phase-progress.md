@@ -1952,6 +1952,19 @@ This is a status index; implementation details live only in `docs/phases.md`.
   and no mutation of published workflows. Implementation exceeds the suggested
   size because it includes the editor, eight forms, routes, interaction harness,
   dependency lockfile and guide as one coherent UI phase. Pushed CI/review pending.
+- Implementation `e2c0ccb97a176e290ec7e105a3ef3181a7dca91c` pushed to main
+  (14 files, 1,170 changed lines, including 428 lockfile and 192 interaction-test
+  lines). Post-push review found that structurally supported drafts with extra
+  fields lacked a raw repair path, and literal objects resembling node references
+  could receive misleading diagnostics. A separate scoped fix adds synchronized
+  raw/visual editing, specific object-shape errors and expression-aware reference
+  checks. `pnpm --dir apps/web test:smoke`: **25 passed**, 11.90s
+  (`.phase93-fix-smoke.log`); typecheck, lint, build and diff checks passed
+  (`.phase93-fix-typecheck.log`, `.phase93-fix-lint.log`, `.phase93-fix-build.log`).
+  Original CI [35150972881](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35150972881)
+  passed API, Web and Compose: 839 API tests in 533.00s; both dependency audits clean.
+  All implementation check runs were verified successful before pushing the fix.
+  Phase 94 has not started.
 
 When a future phase starts, add a record here using these fields:
 

@@ -56,6 +56,10 @@ can be saved for later repair. Unsupported structural drafts use a raw Graph JSO
 repair view and retain their original data. Published-runtime validation is a
 separate delivery gate.
 
+**Edit graph JSON** also opens the complete graph from a supported draft, so extra
+or unsupported fields can be repaired without an API client. Switching editors
+keeps parsed values synchronized; repair malformed text before switching back.
+
 Saves include the loaded revision. A conflict retains all local edits and never
 overwrites newer work automatically. Use **Open saved draft in a new tab** to
 compare before manually reapplying changes. Network and permission errors also

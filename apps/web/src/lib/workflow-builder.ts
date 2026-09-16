@@ -107,7 +107,8 @@ export function draftIssues(graph: ObjectValue): string[] {
     if (depth > 32) { issues.push("Graph · nesting exceeds 32 levels."); return; }
     if (Array.isArray(value)) value.forEach(v => references(v, depth + 1));
     else if (isObject(value)) {
-      if (value.source === "node" && !ids.has(String(value.node_id))) issues.push(`Bindings · ${String(value.node_id)}: referenced node is missing.`);
+      if (value.op === "literal") return;
+      if (value.op === "ref" && isObject(value.ref) && value.ref.source === "node" && !ids.has(String(value.ref.node_id))) issues.push(`Bindings · ${String(value.ref.node_id)}: referenced node is missing.`);
       Object.values(value).forEach(v => references(v, depth + 1));
     }
   }

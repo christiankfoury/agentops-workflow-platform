@@ -138,7 +138,22 @@ test("unsupported drafts are preserved and can be repaired as JSON", async () =>
   assert.match(screen.getByLabelText("Graph JSON").value, /keep/);
   click("Save draft"); await screen.findByText("Saved draft revision 3."); assert.deepEqual(saved.graph, draft.draft_graph);
   change("Graph JSON", "[]"); assert.equal(screen.getByRole("button", { name: "Save draft" }).disabled, true);
-  change("Graph JSON", JSON.stringify(model.starterGraph())); assert.ok(screen.getByRole("region", { name: "Graph canvas" }));
+  assert.ok(screen.getByText("rawGraph: Graph must be an object"));
+  change("Graph JSON", JSON.stringify(model.starterGraph())); click("Use visual editor"); assert.ok(screen.getByRole("region", { name: "Graph canvas" }));
+});
+
+test("raw graph editing repairs extra fields without reusing stale visual buffers", async () => {
+  const draft = initial(); draft.draft_graph.extra_field = true;
+  let saved;
+  setup({ initial: draft, save: async (_id, _scope, body) => { saved = body; return { definition: draft }; } });
+  change("Inspect node", "message"); change("Assignments JSON", '{"text":{"op":"literal","value":"Old"}}');
+  click("Edit graph JSON"); const raw = JSON.parse(screen.getByLabelText("Graph JSON").value);
+  assert.equal(raw.extra_field, true); delete raw.extra_field;
+  raw.nodes[0].config.assign.text.value = "Repaired"; change("Graph JSON", JSON.stringify(raw));
+  click("Use visual editor"); change("Inspect node", "message");
+  assert.match(screen.getByLabelText("Assignments JSON").value, /Repaired/);
+  click("Save draft"); await screen.findByText("Saved draft revision 3.");
+  assert.equal(saved.graph.extra_field, undefined); assert.equal(saved.graph.nodes[0].config.assign.text.value, "Repaired");
 });
 
 test("deletion removes incident edges and diagnoses remaining bindings", () => {
@@ -153,6 +168,8 @@ test("local diagnostics identify invalid edges, cycles and configuration paths",
   graph.nodes.push({ ...model.newNode("delay", "wait"), config: { seconds: -1, wake_at: "tomorrow" } });
   const issues = model.draftIssues(graph).join("\n");
   assert.match(issues, /self connections/); assert.match(issues, /cycle/); assert.match(issues, /wait · seconds/); assert.match(issues, /wait · wake_at/);
+  const literal = model.starterGraph(); literal.nodes[0].config.assign = { data: { op: "literal", value: { source: "node", node_id: "not-a-reference" } } };
+  assert.ok(!model.draftIssues(literal).some(e => e.includes("not-a-reference")));
 });
 
 test("server actions reject changed organization and permissions before mutation", async () => {
