@@ -28,6 +28,7 @@ PERMISSIONS = {
     "credentials.manage": {"admin"},
     "tool.manage": {"admin"},
     "tool.resolve": {"admin"},
+    "trigger.manage": {"admin"},
     "workflow.publish": {"admin"},
     "demo.seed": {"admin"},
     "audit.read": {"admin"},
@@ -111,6 +112,8 @@ def request_action(method: str, path: str) -> str:
             return "membership.manage"
         return "export" if "/export/" in path else "read"
     prefix = path.split("/")[1]
+    if prefix == "webhook-triggers":
+        return "trigger.manage"
     if prefix == "tools":
         return (
             "credentials.manage"

@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 91 — Webhook Triggers (next)**.
+Current implementation phase: **Phase 91 — Webhook Triggers (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–90 are complete; Phases 91–105 remain planned.
+Phases 66–90 are complete; Phase 91 is in progress; Phases 92–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -129,7 +129,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 88 | Complete | Registered tenant data queries, restricted read-only roles, bounded async transport, worker receipts and fixture evidence. |
 | 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
 | 90 | Complete | Pinned LLM tools, durable continuation, exact approval, bounded budgets, recovered usage and ledger trace linkage. |
-| 91 | Planned — not started | Webhook Triggers |
+| 91 | In progress | Webhook Triggers; signed delivery, atomic starts and scoped configuration. |
 | 92 | Planned — not started | Scheduled and Cron Triggers |
 | 93 | Planned — not started | Generic Workflow Builder Editor |
 | 94 | Planned — not started | Builder Validation Publication and Version History |
@@ -1691,9 +1691,10 @@ This is a status index; implementation details live only in `docs/phases.md`.
   round trip, populated retention and provider-contract tests passed in the initial
   40-test result. Ruff, Compose configuration and local diff checks pass. Existing
   TestClient deprecation warning remains.
-- The combined explicit-file regression run stalled after 72 passing test markers
-  with no active fixture database work (`.phase90-regression.log`); its owned pytest
-  process was stopped, and no completion is claimed. Reran the suites separately
+- The combined explicit-file regression run was stopped after its buffered output
+  remained at 72 passing test markers and a database snapshot showed no active work
+  (`.phase90-regression.log`). Those observations did not establish a hang, and no
+  completion is claimed for that run. Reran the suites separately
   with verbose output and a 90-second faulthandler diagnostic. The provider/LLM/
   migration group passed **36 tests** in 20.56s (`.phase90-provider-regression.log`).
   Final disabled-catalog regression passed **1 test** in 8.18s
@@ -1731,6 +1732,69 @@ This is a status index; implementation details live only in `docs/phases.md`.
   retain unknown usage/reserved cost, and adapter guarantees still govern uncertain
   remote effects. Estimated application budgets are not provider billing guarantees.
   These limits are documented. Phase 91 follows this record's push and successful CI.
+- Delivery-record commit `a6037c19792cc074f5f60442ef2185aa6be9e29e` is pushed.
+  [CI 35136566471](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35136566471)
+  attempt 1 was cancelled prematurely after its API test step exceeded the preceding
+  run's duration. Retrieved logs showed continued progress through 75% with no test
+  failure; it was a slower run, not a demonstrated stall. The cancelled API job was
+  rerun as attempt 2; all checks passed, including **778 API tests** in 434.15s and
+  dependency audits. Every latest commit check was verified successful. No code fix
+  was indicated by the cancelled logs, and Phase 91 is eligible to start.
+
+### Phase 91 — Webhook Triggers — in progress
+
+- Authorized target remains Phases 66–105. Inspected the shared start/idempotency
+  service, caller-owned evaluation transactions, identity/service scopes, graph
+  references, audit records and API authentication boundaries. Phase 90's evidence
+  commit and CI rerun are complete as recorded above; existing work is preserved.
+- Add tenant-owned webhook configuration with pinned/published version selection,
+  an explicit scoped service principal, bounded input references, revision-checked
+  administration, server-owned signing-key aliases and bounded previous-key grace.
+  No caller-supplied organization, workflow version or principal selects authority.
+- Verify HMAC-SHA256 over the trigger ID, timestamp, event ID and exact body bytes;
+  enforce freshness, size, enablement and current principal scope. Persist stable
+  event/payload fingerprints, delivery outcomes and audit history. Replays retain
+  the accepted version; changed bytes under the same event ID conflict.
+- Under the trigger lock, use a caller-owned savepoint around shared run acceptance
+  so receipt, pinned run and queue job commit atomically. Retain signed, authorized
+  input rejections for retry/conflict history without storing raw rejected payloads.
+  Preserve existing manual and evaluation starts when clarifying rollback ownership.
+- Acceptance: real disposable PostgreSQL concurrent replay/publication/revocation
+  tests; local API fixtures for signatures, freshness, payload limits, tenant/scope
+  boundaries, mapping, rotation, retry history and transactional fault injection.
+  Broaden start, permission, tenant and evaluation tests; inspect migration retention.
+- Rollout: additive trigger/delivery tables and a service-principal tenant identity
+  constraint. Empty API signing-key configuration denies webhooks. Tests use synthetic
+  local keys and deterministic workflows; no external account, live hook or LLM call
+  is required. Schedules and frontend trigger controls remain outside this phase.
+
+- Implemented tenant-owned, revision-checked trigger administration, published/pinned
+  selection, scoped service identities, bounded input references and signing-key
+  rotation. Public delivery checks HMAC/freshness/limits and current service access;
+  exact-byte replay retains the accepted run/version. Delivery/audit history is
+  paginated and tenant scoped. Shared start savepoints preserve atomic receipt/run/job
+  acceptance and retain safe input rejection history. Streaming reads are bounded;
+  database acceptance runs in the thread pool. See [webhook operations](WEBHOOK_TRIGGERS.md).
+- Local validation on disposable PostgreSQL 16.14 with synthetic keys:
+  - `uv run --directory apps/api pytest tests/test_webhooks.py -q --tb=short`:
+    **20 passed**, 73.99s (`.phase91-tests.log`). The initial run found a test-fixture
+    actor reuse issue; configuration edits now simulate a separate administrator request.
+  - `uv run --directory apps/api pytest tests/test_webhooks.py tests/test_webhook_migration.py
+    tests/test_execution_starts.py tests/test_durable_evaluations.py tests/test_permissions_audit.py
+    tests/test_tenant_isolation.py tests/test_security_controls.py -q --tb=short`:
+    **80 passed**, 326.64s (`.phase91-regression.log`). An earlier invocation referenced
+    a nonexistent `test_security.py` and ran no tests; the corrected command above passed.
+  - Final additions: `pytest tests/test_webhooks.py -k 'pinned_selection or moved_between'
+    -q --tb=short`: **2 passed**, 9.08s (`.phase91-extra.log`).
+  - Ruff (`src tests`), Docker Compose configuration and `git diff --check` passed.
+    Existing TestClient deprecation warning remains. No live webhook or deployment ran.
+- Local review covered permissions, signature domain separation, current principal
+  revocation, concurrent deduplication, pinned retries, rejected-input recovery,
+  savepoint rollback ownership and migration retention. No blocking finding remains.
+  The phase exceeds the suggested line target because its API, retained schema,
+  signature/rotation protocol and real-database acceptance tests form one delivery unit.
+- Implementation commit, push, GitHub CI and post-push review: pending; Phase 91 is
+  not complete and Phase 92 implementation has not started.
 
 When a future phase starts, add a record here using these fields:
 

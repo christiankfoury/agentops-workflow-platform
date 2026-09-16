@@ -109,6 +109,8 @@ def start_execution(db, body, *, legacy_run=None, commit=True):
         db.commit() if commit else db.flush()
         return run
     except IntegrityError:
+        if not commit:
+            raise  # The caller owns its transaction/savepoint and retry policy.
         # The organization/key unique constraint arbitrates starts across definitions too.
         db.rollback()
         try:
@@ -122,5 +124,6 @@ def start_execution(db, body, *, legacy_run=None, commit=True):
             db.rollback()
             raise
     except BaseException:
-        db.rollback()
+        if commit:
+            db.rollback()
         raise

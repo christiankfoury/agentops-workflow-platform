@@ -48,7 +48,10 @@ class Membership(Base):
 
 class ServicePrincipal(Base):
     __tablename__ = "service_principals"
-    __table_args__ = (CheckConstraint("role IN ('viewer', 'operator')"),)
+    __table_args__ = (
+        CheckConstraint("role IN ('viewer', 'operator')"),
+        UniqueConstraint("id", "organization_id", name="uq_service_principal_tenant_identity"),
+    )
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), unique=True)
     organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id"), index=True)

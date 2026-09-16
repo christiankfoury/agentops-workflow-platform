@@ -86,7 +86,8 @@ def enforce_rate_limit(request: Request) -> None:
         return
 
     client_host = request.client.host if request.client is not None else "unknown"
-    key = f"{client_host}:{request.url.path}"
+    path = "/webhooks" if request.url.path.startswith("/webhooks/") else request.url.path
+    key = f"{client_host}:{path}"
     now = monotonic()
     window_start = now - 60
     hits = _rate_limit_hits[key]

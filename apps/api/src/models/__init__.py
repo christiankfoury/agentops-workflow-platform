@@ -14,6 +14,7 @@ from src.models.llm_conversation import LLMConversation
 from src.models.prompt_version import PromptVersion
 from src.models.tool import ToolCredential, ToolDefinition, ToolExecution, ToolVersion
 from src.models.uploaded_input import UploadedInput
+from src.models.webhook import WebhookDelivery, WebhookTrigger
 from src.models.workflow_definition import (
     WorkflowDefinition,
     WorkflowVersion,
@@ -25,6 +26,8 @@ from src.models.workflow_run import WorkflowRun
 from src.services import tenancy as _tenancy  # noqa: F401
 
 __all__ = [
+    "WebhookTrigger",
+    "WebhookDelivery",
     "LLMConversation",
     "ToolCredential",
     "ToolDefinition",

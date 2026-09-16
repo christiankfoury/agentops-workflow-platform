@@ -20,6 +20,7 @@ from src.routers import (
     prompt_versions,
     tools,
     uploaded_inputs,
+    webhooks,
     workflow_definitions,
     workflow_executions,
     workflow_runs,
@@ -32,9 +33,13 @@ from src.services.workflow_transactions import StaleWorkflowError
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     if settings.environment not in {"development", "test"}:
-        if not settings.identity_enabled or not settings.oidc_audience or any(
-            not value or urlparse(value).scheme != "https" or not urlparse(value).hostname
-            for value in [settings.oidc_issuer, settings.oidc_jwks_url]
+        if (
+            not settings.identity_enabled
+            or not settings.oidc_audience
+            or any(
+                not value or urlparse(value).scheme != "https" or not urlparse(value).hostname
+                for value in [settings.oidc_issuer, settings.oidc_jwks_url]
+            )
         ):
             raise RuntimeError(
                 "Public deployment requires configured verified identity and HTTPS OIDC endpoints"
@@ -49,26 +54,51 @@ app = FastAPI(
 )
 
 authenticated_router_dependencies = [Depends(require_access)]
-app.include_router(tools.router, prefix="/tools", tags=["tools"],
-                   dependencies=authenticated_router_dependencies)
-app.include_router(execution_approvals.router, prefix="/execution-approvals",
-                   tags=["execution-approvals"], dependencies=authenticated_router_dependencies)
-app.include_router(workflow_executions.router, prefix="/workflow-executions",
-                   tags=["workflow-executions"], dependencies=authenticated_router_dependencies)
-app.include_router(workflow_definitions.router, prefix="/workflow-definitions",
-                   tags=["workflow-definitions"], dependencies=authenticated_router_dependencies)
+app.include_router(
+    webhooks.router,
+    prefix="/webhook-triggers",
+    tags=["webhook-triggers"],
+    dependencies=authenticated_router_dependencies,
+)
+app.include_router(webhooks.delivery_router, prefix="/webhooks", tags=["webhooks"])
+app.include_router(
+    tools.router, prefix="/tools", tags=["tools"], dependencies=authenticated_router_dependencies
+)
+app.include_router(
+    execution_approvals.router,
+    prefix="/execution-approvals",
+    tags=["execution-approvals"],
+    dependencies=authenticated_router_dependencies,
+)
+app.include_router(
+    workflow_executions.router,
+    prefix="/workflow-executions",
+    tags=["workflow-executions"],
+    dependencies=authenticated_router_dependencies,
+)
+app.include_router(
+    workflow_definitions.router,
+    prefix="/workflow-definitions",
+    tags=["workflow-definitions"],
+    dependencies=authenticated_router_dependencies,
+)
 app.include_router(identity.router, prefix="/identity", tags=["identity"])
-app.include_router(access.router, prefix="/access", tags=["access"],
-                   dependencies=authenticated_router_dependencies)
+app.include_router(
+    access.router, prefix="/access", tags=["access"], dependencies=authenticated_router_dependencies
+)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exc: RequestValidationError):
-    if request.url.path.startswith("/tools"):
-        return JSONResponse({"detail": [
-            {key: error[key] for key in ("type", "loc", "msg")}
-            for error in exc.errors()
-        ]}, status_code=422)
+    if request.url.path.startswith(("/tools", "/webhook-triggers")):
+        return JSONResponse(
+            {
+                "detail": [
+                    {key: error[key] for key in ("type", "loc", "msg")} for error in exc.errors()
+                ]
+            },
+            status_code=422,
+        )
     return await request_validation_exception_handler(request, exc)
 
 
