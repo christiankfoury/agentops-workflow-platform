@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 87 — HTTP REST Tool**.
+Current implementation phase: **Phase 88 — PostgreSQL Query Tool (next)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–86 are complete; Phase 87 is in progress; Phases 88–105 remain planned.
+Phases 66–87 are complete; Phases 88–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -125,7 +125,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 84 | Complete | Customer Feedback Template Migration |
 | 85 | Complete | Incident templates and durable evaluations; 577 API tests, all CI and review passed. |
 | 86 | Complete | Versioned tenant tools, worker credentials, fenced effects and explicit reconciliation; implementation and fix CI passed. |
-| 87 | In progress | HTTP REST Tool |
+| 87 | Complete | Governed HTTP tool, pinned destination policy, bounded transport and safe effect recovery; fix CI passed. |
 | 88 | Planned — not started | PostgreSQL Query Tool |
 | 89 | Planned — not started | GitHub SaaS Tool |
 | 90 | Planned — not started | Governed LLM Tool Calling |
@@ -1504,7 +1504,16 @@ This is a status index; implementation details live only in `docs/phases.md`.
   (`.phase87-fix-tests.log`). A final targeted retention/negative-age regression,
   Ruff and fix diff checks also passed.
   All five previously failing tests passed without weakening their assertions.
-  Fix CI and follow-up review remain pending; Phase 87 is not complete.
+  Fix `7272ead2dd1ad6af523dc89b2086cd985c3e464a` is pushed to main;
+  [CI 35052177161](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35052177161)
+  and all commit checks passed: API (**667 tests**), Web and Docker Compose,
+  including fresh migration and dependency audits. Follow-up review verified
+  non-tool dispatch compatibility, database-based retention, HEAD semantics and
+  immutable timestamps; no unresolved blocking findings remain.
+- Phase 87 is complete. The implementation changed 1,754 lines (843 new test lines),
+  followed by the scoped fix. All network evidence uses local HTTP/TLS fixtures;
+  no live provider or hosted deployment was tested. Phase 88 follows this record's
+  push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
