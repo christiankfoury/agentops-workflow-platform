@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 95 — Generic Graph Run Debugger (in progress)**.
+Current implementation phase: **Phase 95 — Generic Graph Run Debugger (complete; completion-record CI gate pending)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–94 are complete; Phase 95 is in progress; Phases 96–105 remain planned.
+Phases 66–95 are complete; Phases 96–105 remain planned. Phase 96 starts after the Phase 95 completion-record CI gate.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -133,7 +133,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 92 | Complete | Scoped cron schedules, explicit DST rules, atomic replica-safe firing, bounded catch-up and crash recovery. |
 | 93 | Complete | Generic workflow draft builder, typed node forms and conflict-safe editing. |
 | 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
-| 95 | In progress | Immutable graph debugger, paginated traces, bounded detail and historical compatibility. |
+| 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
 | 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
 | 97 | Planned — not started | Worker Observability and Live Updates |
 | 98 | Planned — not started | Deterministic Throughput Benchmark |
@@ -2133,7 +2133,24 @@ This is a status index; implementation details live only in `docs/phases.md`.
   no remaining local findings. The phase exceeds the preferred 300–700-line size
   because the complete debugger includes scoped/redacted APIs, historical adapters,
   UI and API/frontend acceptance coverage; all changes belong to Phase 95.
-  Final diff, commit/push, CI and post-push review remain required.
+  Final staged diff and whitespace checks passed (22 files, 1,100 additions and
+  5 deletions).
+- Implementation commit `d4ecca767d138fccc905d149d7be90d005401fc2` pushed to
+  `origin/main`. [CI run 35162214976](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35162214976)
+  completed successfully: 850 API tests in 425.81s, API lint/fresh migrations/audit,
+  47 frontend checks, typecheck/lint/production build/audit, and Compose validation.
+  Both audits reported no known vulnerabilities; independent commit check-runs
+  confirmed API, Web and Docker Compose success. Evidence: `.phase95-ci.log`.
+- Post-push review: checked pinned versions/current versus historical graph state,
+  tenant-scoped joins and record ownership, read-only lifecycle behavior, stable
+  pagination, bounded/redacted payloads, exact attempt navigation, per-attempt
+  accounting, historical compatibility and partial failure handling. No blocking
+  or actionable findings; no fix commit required.
+- Completion: Phase 95 implementation, validation, push, CI and review are complete.
+  The completion-record commit must also pass CI before Phase 96 begins. Retained
+  limitations are explicit: bounded previews, current checkpoint edge state,
+  known-field redaction, and selected-attempt rather than aggregate generic cost.
+  Recovery controls and polling remain scoped to Phases 96 and 97.
 
 When a future phase starts, add a record here using these fields:
 
