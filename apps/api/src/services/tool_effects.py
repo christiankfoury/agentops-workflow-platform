@@ -58,8 +58,14 @@ def http_adapter(contract, organization_id, credential):
     return adapter(contract, organization_id, credential)
 
 
+def postgres_adapter(contract, organization_id, credential):
+    from src.services.postgres_tool import adapter
+
+    return adapter(contract, organization_id, credential)
+
+
 # Registration is server code, never graph/API input. Factories bind server policy.
-ADAPTERS: dict[str, ToolAdapter | Callable] = {"http": http_adapter}
+ADAPTERS: dict[str, ToolAdapter | Callable] = {"http": http_adapter, "postgresql": postgres_adapter}
 ERROR_CODES = {
     "tool_timeout",
     "tool_unavailable",

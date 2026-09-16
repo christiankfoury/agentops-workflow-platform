@@ -3,8 +3,9 @@
 Phase 86 provides the shared tool catalog, credential references and effect ledger.
 Phase 87 adds the [HTTP adapter and durable graph dispatch](HTTP_TOOL.md).
 Destination configuration defaults to empty, so network dispatch is denied until
-an operator configures a tenant destination. PostgreSQL and GitHub adapters follow
-in Phases 88–89. Tests use local network fixtures and real PostgreSQL worker claims.
+an operator configures a tenant destination. Phase 88 adds the
+[PostgreSQL read adapter](POSTGRESQL_TOOL.md); GitHub follows in Phase 89.
+Tests use local network fixtures and real PostgreSQL worker claims.
 
 ## Catalog and authorization
 

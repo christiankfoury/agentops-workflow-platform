@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 88 — PostgreSQL Query Tool (next)**.
+Current implementation phase: **Phase 88 — PostgreSQL Query Tool (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–87 are complete; Phases 88–105 remain planned.
+Phases 66–87 are complete; Phase 88 is in progress; Phases 89–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -126,7 +126,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 85 | Complete | Incident templates and durable evaluations; 577 API tests, all CI and review passed. |
 | 86 | Complete | Versioned tenant tools, worker credentials, fenced effects and explicit reconciliation; implementation and fix CI passed. |
 | 87 | Complete | Governed HTTP tool, pinned destination policy, bounded transport and safe effect recovery; fix CI passed. |
-| 88 | Planned — not started | PostgreSQL Query Tool |
+| 88 | In progress | PostgreSQL Query Tool |
 | 89 | Planned — not started | GitHub SaaS Tool |
 | 90 | Planned — not started | Governed LLM Tool Calling |
 | 91 | Planned — not started | Webhook Triggers |
@@ -1514,6 +1514,49 @@ This is a status index; implementation details live only in `docs/phases.md`.
   followed by the scoped fix. All network evidence uses local HTTP/TLS fixtures;
   no live provider or hosted deployment was tested. Phase 88 follows this record's
   push and successful CI.
+
+### Phase 88 — PostgreSQL Query Tool
+
+- Authorized scope: Phases 66–105. Phase 87 completion record
+  `a7ef748908b419e2f1714d27e92ade903e8f58e4` is pushed; all checks and
+  [CI 35122976874](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35122976874)
+  passed before implementation began. The worktree was clean.
+- Plan: extend the existing catalog, pinned policy, worker credential resolution
+  and effect ledger with a PostgreSQL read adapter. Only tenant-scoped, registered
+  SELECT queries accept schema-bound parameters. Use a separate data database and
+  restricted role, deny control database/user reuse, enforce read-only transactions,
+  and bound connections, statement time, rows and serialized results. Cooperative
+  polling must close connections on cancellation without exposing SQL or secrets.
+- Acceptance: disposable PostgreSQL fixtures cover allowed reads, SQL parameter
+  injection, write/DDL/multi-statement denial, restrictive roles, tenant boundaries,
+  schema mismatch, revoked credentials, retries, timeouts, limits and cleanup.
+  Review shared HTTP/catalog/worker compatibility and run affected regressions.
+- Rollout: no migration or frontend change; empty server configuration disables
+  access. Data credentials remain worker-only aliases. No live database credentials
+  or deployment is needed or claimed; later GitHub/LLM integrations stay out of scope.
+- Implemented tenant-scoped server connection/query registration, policy binding,
+  separate read-only async libpq connections, restricted-role checks, parameter
+  binding, bounded server cursor/JSON output, statement and total deadlines,
+  cancellation cleanup and shared safe error mapping. Added operator documentation
+  and Compose configuration; reused catalog, worker credentials and effect receipts.
+- Local validation: `uv run --directory apps/api pytest tests/test_postgres_tool.py
+  tests/test_postgres_tool_runtime.py tests/test_http_tool.py
+  tests/test_http_tool_runtime.py tests/test_tool_effects.py tests/test_tool_catalog.py
+  -q --tb=short` passed **125 tests** in 327.92s (`.phase88-regression.log`).
+  A final transport run after tightening column/sequence and system-schema checks
+  passed **29 tests**, including two additional handshake/privilege regressions
+  (`.phase88-transport-final.log`). All tests used disposable local PostgreSQL and
+  HTTP/TLS fixtures. The existing TestClient deprecation warning is unchanged.
+- The initial transport run passed 26 tests. The initial worker run had 6 passed
+  and 3 failed because its revocation test hook also intercepted control-database
+  connections. The hook now targets only the data adapter; all worker cases passed
+  in the final regression run. No production behavior was weakened for the fixture.
+- Ruff, Compose configuration and the staged diff check passed. Local review
+  covered query/tenant boundaries, privileges, byte/row/deadline limits, cleanup,
+  credential revocation, retry effects, schema validation and HTTP compatibility.
+  The phase exceeds the usual line target because 553 new test lines accompany
+  one bounded transport, its security policy and operator documentation. Implementation
+  commit/push, complete GitHub CI and post-push review are still required.
 
 When a future phase starts, add a record here using these fields:
 

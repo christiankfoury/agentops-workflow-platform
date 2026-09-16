@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     incident_template_enabled: bool = True
     tool_credential_values: dict[str, SecretStr] = Field(default_factory=dict, repr=False)
     http_tool_destinations: dict[str, dict] = Field(default_factory=dict)
+    postgres_tool_connections: dict[str, dict] = Field(default_factory=dict)
     worker_poll_seconds: float = Field(default=1, gt=0, le=60)
     worker_lease_seconds: float = Field(default=30, ge=0.1, le=3600)
     worker_heartbeat_seconds: float = Field(default=10, ge=0.02, le=600)
