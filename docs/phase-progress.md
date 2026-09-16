@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 85 — Incident Template and Evaluation Compatibility**.
+Current implementation phase: **Phase 86 — Tool Contracts Credentials and Effect Ledger**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–85 are complete; Phases 86–105 remain planned.
+Phases 66–85 are complete; Phase 86 is in progress; Phases 87–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -1355,6 +1355,69 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Phase 85 is complete: 1,966 implementation changed lines (including 716 new test
   lines) plus the scoped review fix. No hosted deployment or live provider check
   was performed. Phase 86 follows this completion record's push and successful CI.
+
+### Phase 86 — Tool Contracts Credentials and Effect Ledger (authorized 66–105)
+
+- Dependency: Phase 85 final record `e6a543109c1a3fef22a404e871f98b9ee675169d`
+  is pushed; CI 35045407019 and all commit checks passed.
+- Inspected the consolidated R07/R08 requirements, graph tool placeholder, tenant
+  ORM/composite foreign keys, publication/permission/audit services, execution
+  identities and durable worker claim fences. Existing tools remain non-executable
+  until an adapter is registered; this phase adds the shared foundation.
+- Plan: persist tenant-owned tool definitions, immutable numbered contracts,
+  revocable credential references and redacted tool execution/effect records.
+  Admin APIs manage contracts/references and explicitly resolve uncertain effects.
+  Credentials are worker configuration values addressed by tenant/alias; no secret
+  is stored in a graph, contract or trace. Resolve only for a live owned worker
+  attempt and recheck revocation before dispatch; audit each use.
+- Effect acceptance binds a logical step/call identity to a canonical request
+  fingerprint. Concurrent duplicates share a ledger; changed arguments conflict.
+  Persist the dispatch boundary before I/O, fence outcomes with a reservation token,
+  and distinguish definite failure from possible remote acceptance. Registered
+  adapters must provide idempotency or reconciliation to recover ambiguous writes;
+  otherwise require explicit operator resolution. No local exactly-once claim.
+- Validation: real PostgreSQL version/tenant/credential tests, concurrent claims,
+  crash-before/after-dispatch fixtures, changed-input conflicts, independent
+  iterations, redaction and revoked credential checks. Additive migration with
+  immutable contracts/history retention; preserve existing business/runtime data.
+  HTTP, PostgreSQL and GitHub adapters and workflow dispatch integration follow
+  in their own phases. No live external credential or service is required here.
+- Implemented the catalog/reference APIs with admin permissions, immutable numbered
+  contracts, tenant-qualified references and sanitized validation errors. Worker
+  configuration is scoped by organization/alias. Credentials are rechecked before
+  dispatch, audited without values, and bound to each effect with a private salted
+  fingerprint to prevent replay under a rotated account credential.
+- Added stable logical-call keys, argument/version fingerprints, serialized
+  reservations, dispatch markers, token-fenced receipts, bounded retries, provider
+  idempotency/reconciliation contracts and explicit admin resolution. Lost dispatches
+  become unknown even when worker recovery is exhausted. Reconciliation proof is
+  retained before another write; confirmed late receipts remain separate from
+  cancelled workflow outcomes. Ledger locking preserves the prepared workflow
+  revision. Timeouts use the smaller of the tool budget and pinned deadlines.
+- Added `f086_tool_contracts` with four tables, tenant foreign keys and immutable
+  contract/effect triggers. Fresh-schema upgrade/downgrade and old-data preservation
+  passed. A real credential-backed fixture dispatch against Alembic-created tables
+  passed; SQL attempts to alter confirmed output/credential binding or delete effect
+  history were rejected. The disposable `phase85_validation` database upgraded to
+  `f086_tool_contracts (head)`. No application database was migrated.
+- Validation: `pytest tests/test_tool_effects.py tests/test_tool_catalog.py
+  tests/test_tool_migration.py -q --tb=short` passed **30 tests** after the checkpoint
+  revision fix. The subsequently added deadline-budget test passed separately;
+  the expanded migrated-table dispatch test also passed. Earlier fixture runs
+  passed 19, 10, 13 and 29 tests as coverage grew; these overlap, not additional
+  unique tests. `pytest` with the exhausted-recovery effect test plus
+  `test_durable_queue.py test_worker_leases.py test_permissions_audit.py
+  test_api_surface.py` passed **54 tests**. The sanitized-error test with
+  `test_api_surface.py test_security_controls.py` passed **7 tests**.
+  All commands used `uv run --directory apps/api` and disposable PostgreSQL.
+- Ruff (including the migration), Compose configuration and local diff checks
+  passed. No frontend files changed. Reviewed effect uncertainty, claim ownership,
+  late responses, revocation/rotation, tenant isolation, immutable history and
+  compatibility with prepared checkpoints. This scope exceeds the usual line target
+  because the shared security/recovery foundation, migration, API and real-database
+  acceptance tests must be delivered together. Concrete external adapters remain
+  unimplemented here, and no live external service/deployment claim is made.
+  Implementation push, all CI checks and post-push review remain pending.
 
 When a future phase starts, add a record here using these fields:
 

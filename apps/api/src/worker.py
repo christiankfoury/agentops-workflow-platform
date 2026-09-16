@@ -55,6 +55,9 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
             advance_approvals(database)
             available = capacity - len(active)
             recover_expired(database)
+            from src.services.tool_effects import recover_effects
+
+            recover_effects(database)
             if max_jobs is not None:
                 available = min(available, max_jobs - dispatched)
             claimed = claim_jobs(database, identity, available) if available else []

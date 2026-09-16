@@ -26,6 +26,8 @@ PERMISSIONS = {
     "settings.manage": {"admin"},
     "membership.manage": {"admin"},
     "credentials.manage": {"admin"},
+    "tool.manage": {"admin"},
+    "tool.resolve": {"admin"},
     "workflow.publish": {"admin"},
     "demo.seed": {"admin"},
     "audit.read": {"admin"},
@@ -109,6 +111,14 @@ def request_action(method: str, path: str) -> str:
             return "membership.manage"
         return "export" if "/export/" in path else "read"
     prefix = path.split("/")[1]
+    if prefix == "tools":
+        return (
+            "credentials.manage"
+            if path.startswith("/tools/credentials")
+            else "tool.resolve"
+            if path.endswith("/resolve")
+            else "tool.manage"
+        )
     if prefix == "workflow-executions":
         return (
             "workflow.start" if path.rstrip("/") == "/workflow-executions" else "workflow.control"

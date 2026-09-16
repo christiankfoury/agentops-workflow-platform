@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from src.config import settings
@@ -16,6 +18,7 @@ from src.routers import (
     human_approvals,
     identity,
     prompt_versions,
+    tools,
     uploaded_inputs,
     workflow_definitions,
     workflow_executions,
@@ -46,6 +49,8 @@ app = FastAPI(
 )
 
 authenticated_router_dependencies = [Depends(require_access)]
+app.include_router(tools.router, prefix="/tools", tags=["tools"],
+                   dependencies=authenticated_router_dependencies)
 app.include_router(execution_approvals.router, prefix="/execution-approvals",
                    tags=["execution-approvals"], dependencies=authenticated_router_dependencies)
 app.include_router(workflow_executions.router, prefix="/workflow-executions",
@@ -55,6 +60,16 @@ app.include_router(workflow_definitions.router, prefix="/workflow-definitions",
 app.include_router(identity.router, prefix="/identity", tags=["identity"])
 app.include_router(access.router, prefix="/access", tags=["access"],
                    dependencies=authenticated_router_dependencies)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/tools"):
+        return JSONResponse({"detail": [
+            {key: error[key] for key in ("type", "loc", "msg")}
+            for error in exc.errors()
+        ]}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.exception_handler(StaleWorkflowError)
