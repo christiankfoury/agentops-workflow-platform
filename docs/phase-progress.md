@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 92 — Scheduled and Cron Triggers (in progress)**.
+Current implementation phase: **Phase 92 — Scheduled and Cron Triggers (complete; delivery record verification)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–91 are complete; Phase 92 is in progress; Phases 93–105 remain planned.
+Phases 66–92 are complete; Phases 93–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -130,7 +130,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
 | 90 | Complete | Pinned LLM tools, durable continuation, exact approval, bounded budgets, recovered usage and ledger trace linkage. |
 | 91 | Complete | Signed, scoped webhook triggers; atomic replay-safe starts, rotation and retained delivery history. |
-| 92 | In progress | Scheduled and Cron Triggers; durable firing, bounded catch-up and timezone rules. |
+| 92 | Complete | Scoped cron schedules, explicit DST rules, atomic replica-safe firing, bounded catch-up and crash recovery. |
 | 93 | Planned — not started | Generic Workflow Builder Editor |
 | 94 | Planned — not started | Builder Validation Publication and Version History |
 | 95 | Planned — not started | Generic Graph Run Debugger |
@@ -1816,7 +1816,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
   passed API/Web/Compose, **803 tests**, 477.14s, and both dependency audits.
   All commit check runs were verified successful; the worktree was clean before Phase 92.
 
-### Phase 92 — Scheduled and Cron Triggers — in progress
+### Phase 92 — Scheduled and Cron Triggers — completed
 
 - Inspected the shared start contract, webhook service-principal validation, tenant
   scopes, immutable history patterns, worker maintenance loop and execution terminal
@@ -1877,7 +1877,22 @@ This is a status index; implementation details live only in `docs/phases.md`.
   `uv run --directory apps/api pytest tests/test_schedules.py -k input_is_validated
   -q --tb=short`: **1 passed**, 5.84s (`.phase92-input.log`), covering validation both
   on configuration and after a published workflow changes its input schema.
-  Implementation commit/push/CI/post-push review are pending.
+  Implementation `969a56f4412dd212b08af87377c4ae2e287e5eab` pushed to main:
+  18 files, 1,351 changed lines, including 507 test lines. GitHub CI
+  [35145325829](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35145325829)
+  passed **API, Web and Docker Compose**: **839 tests**, 521.48s, and both dependency
+  audits reported no known vulnerabilities. All commit check runs were separately
+  verified successful; no next-phase implementation has started.
+- Post-push review checked standard cron validation and bounded DST selection,
+  tenant/principal authority, skip-locked replica claims, pause/edit behavior,
+  retained fire identities and version selection, atomic crash rollback, no external
+  I/O under locks, rejected-tick advancement and existing worker compatibility.
+  No actionable finding or fix commit.
+- Completion: Phase 92 implementation, local validation, push, CI and review are
+  complete. The completion record will be committed/pushed and its CI checked before
+  Phase 93. No live model/provider call or deployment was performed. The documented
+  schedule policy supports one active run and one coalesced catch-up decision, with
+  bounded cron search and retained rejection/skip history.
 
 When a future phase starts, add a record here using these fields:
 
