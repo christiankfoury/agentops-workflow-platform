@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 83 — Sales Workflow Template Migration**.
+Current next implementation phase: **Phase 84 — Customer Feedback Template Migration**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–82 are complete; Phase 83 is in progress; Phases 84–105 remain planned.
+Phases 66–83 are complete; Phases 84–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -121,7 +121,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 80 | Complete | Immutable approval snapshots, authorized decisions, superseding edits and bounded durable resume; CI/review passed. |
 | 81 | Complete | Parallel Branches and Joins |
 | 82 | Complete | Immutable LLM settings, bounded schema repair, usage accounting and quality revisions; implementation/fix CI and review passed. |
-| 83 | In progress | Sales Workflow Template Migration |
+| 83 | Complete | Published sales/baseline templates, durable starts, compatibility reads and delegated controls; fix CI/review passed. |
 | 84 | Planned — not started | Customer Feedback Template Migration |
 | 85 | Planned — not started | Incident Template and Evaluation Compatibility |
 | 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
@@ -1199,6 +1199,18 @@ This is a status index; implementation details live only in `docs/phases.md`.
   25 cases and exposed an overly strict new event assertion, corrected to allow the
   existing queued-job event while requiring exactly one start event. Ruff and diff
   checks passed. The fix is limited to acceptance projection and event fixtures.
+- Fix `08f02de2c274e0c044cd95a7b61dfc6399299c79` pushed to main;
+  [CI run 35039151726](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35039151726)
+  passed API, Web and Docker Compose, including the complete API suite and audits.
+  Follow-up review verified that acceptance projection is inside the same commit
+  as both run records and the queue receipt, start events appear once, and the
+  legacy event fixture explicitly selects backout. No blocking finding remains.
+- Phase 83 is complete. Implementation size was 1,281 changed lines, including
+  410 new test lines and the compatibility layer; the separate fix remains scoped
+  to acceptance events. Template installation is required per organization, and
+  existing durable runs retain their owner during backout. Shared evaluation/demo
+  orchestration migration remains Phase 85 scope. No live-provider parity or hosted
+  deployment is claimed. Phase 84 follows this final record's push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
