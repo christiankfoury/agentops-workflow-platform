@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 93 — Generic Workflow Builder Editor (complete; delivery record verification)**.
+Current implementation phase: **Phase 94 — Builder Validation Publication and Version History (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–93 are complete; Phases 94–105 remain planned.
+Phases 66–93 are complete; Phase 94 is in progress; Phases 95–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -132,7 +132,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 91 | Complete | Signed, scoped webhook triggers; atomic replay-safe starts, rotation and retained delivery history. |
 | 92 | Complete | Scoped cron schedules, explicit DST rules, atomic replica-safe firing, bounded catch-up and crash recovery. |
 | 93 | Complete | Generic workflow draft builder, typed node forms and conflict-safe editing. |
-| 94 | Planned — not started | Builder Validation Publication and Version History |
+| 94 | In progress | Builder validation, publication, version history, manual starts and trigger controls. |
 | 95 | Planned — not started | Generic Graph Run Debugger |
 | 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
 | 97 | Planned — not started | Worker Observability and Live Updates |
@@ -1990,6 +1990,65 @@ This is a status index; implementation details live only in `docs/phases.md`.
   CI and review are complete; the completion record is pushed and its CI checked
   before Phase 94. Local hints are not full runtime validation; advanced nested
   settings use JSON editors. No live provider call or deployment was performed.
+
+### Phase 94 — Builder Validation Publication and Version History (2026-09-16)
+
+- Authorized scope: Phases 66–105. Phase 93 record
+  `11de96adda12d35073b14741e6b674dd458d2b91` is pushed; CI
+  [35153883493](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35153883493)
+  passed all API, Web and Compose checks, including 839 API tests in 516.54s and
+  clean dependency audits. All record commit check runs were verified successful.
+- Plan: add a saved-draft release view with validation bound to its exact revision,
+  runtime capabilities, paginated immutable versions/diffs and admin publication.
+  Manual starts send an explicit version and retain the same request/key through
+  retries. Add paginated webhook/schedule configuration and history screens using
+  current service principal, revision, enablement and version-policy contracts;
+  signing aliases are write-only masked inputs and actual keys never enter the UI.
+  Recheck tenant/permission boundaries inside every server action and retain edits
+  on conflict. Preserve published snapshots and existing business screens.
+- Acceptance: publish two versions in the UI; an older waiting run retains v1,
+  a later start pins v2, duplicate/retried starts retain one key/run. Cover invalid
+  graphs, unavailable runtime capabilities, stale publication, permission/tenant
+  rejection, trigger edits/history and masked signing references with focused API
+  and frontend interaction checks plus browser fixtures. No migration; validation
+  responses gain an additive nullable draft revision. Debugger/recovery stays in
+  Phases 95–96. Run relevant lint/typecheck/build/audits, push, wait CI and review.
+- Implementation: added revision-bound saved-draft validation/publication,
+  immutable version selection, capability checks, bounded diffs and explicit
+  version/manual-input starts. Duplicate clicks are suppressed; retries retain
+  the exact request/key for the page lifetime. Added paginated trigger listings,
+  webhook/schedule editors, enablement, revision conflicts, masked write-only
+  signing aliases/rotation and delivery/fire history. Server actions recheck
+  current organization/permissions. Added builder operations documentation.
+- Browser acceptance: production Next build against the isolated `phase93_ui`
+  PostgreSQL schema, with synthetic service-principal/signing fixtures only.
+  Published v1 (`9dd83268-e8b8-4656-ace5-ccdc058fa814`) and v2
+  (`a8eda1c0-13f9-432d-8529-38e29d4f2e89`) through the UI. Run
+  `dac895fc-ac16-46a4-9a88-7929a6bd787b` retained v1 and its waiting delay;
+  `8febe05a-b9eb-4333-9ab2-7730b191d169` selected v2 and completed after worker
+  execution. UI retries returned those same runs; capabilities/diff showed the
+  saved delay change. Created/enabled/rotated/paused a webhook, sent the same
+  signed fixture twice and observed one delivery/run with two attempts in UI
+  history. Created a cron schedule, ran its due/coalesced fire, inspected history
+  and paused it. Desktop and 390×844 trigger layout were inspected; document
+  scroll/client widths both measured 375px at the narrow viewport.
+- Acceptance uncovered expired-ORM schedule create/update responses serializing
+  as empty objects. The API now materializes configuration fields while its
+  session is open; response-body regression assertions cover create/update/read.
+  Retested both creation and update in the browser, showing saved revisions 1/2.
+  Local review also corrected historical version pages to select a visible
+  version, with a focused start-selection regression test. No schema changes.
+- Validation so far: 40 frontend smoke/interaction checks passed (32772.50ms),
+  typecheck, lint, production build and `pnpm --dir apps/web audit` passed
+  (no known vulnerabilities). Evidence: `.phase94-final-{smoke,typecheck,lint,build}.log`,
+  `.phase94-audit.log`, `.phase94-browser-api-evidence.log` and worker fixture logs.
+  `uv run --directory apps/api pytest tests/test_workflow_definitions.py
+  tests/test_schedules.py -q --tb=short` passed all 30 real-PostgreSQL checks in
+  533.97s; `ruff check src tests` passed. The test output was buffered until
+  completion; active database work was observed and the run was not interrupted.
+  `.phase94-final-api.log` and `.phase94-final-ruff.log` retain these results.
+  Staged diff review and `git diff --cached --check` passed. Commit/push, CI and
+  post-push review remain pending; this phase is not complete.
 
 When a future phase starts, add a record here using these fields:
 

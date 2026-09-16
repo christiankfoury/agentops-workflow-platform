@@ -5,7 +5,7 @@ import type { CatalogItem, GraphNode, ObjectValue } from "@/lib/workflow-builder
 
 export const control = "mt-1 block w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm disabled:opacity-60";
 export function Field({ label, value, onChange, type = "text", min, max, options, optional = false }: {
-  label: string; value: unknown; onChange: (value: unknown) => void; type?: "text" | "number" | "checkbox";
+  label: string; value: unknown; onChange: (value: unknown) => void; type?: "text" | "number" | "checkbox" | "password";
   min?: number; max?: number; options?: CatalogItem[]; optional?: boolean;
 }) {
   const id = useId();
@@ -16,7 +16,7 @@ export function Field({ label, value, onChange, type = "text", min, max, options
       {text && !options.some(o => o.id === text) && <option value={text}>{text} (current value)</option>}
       {options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
     </select> : type === "checkbox" ? <input id={id} className="ml-2" type="checkbox" checked={value === true} onChange={e => onChange(e.target.checked)} />
-      : <input id={id} className={control} type={type} min={min} max={max} step={type === "number" ? "any" : undefined}
+      : <input id={id} className={control} type={type} autoComplete={type === "password" ? "new-password" : undefined} min={min} max={max} step={type === "number" ? "any" : undefined}
         value={text} onChange={e => onChange(e.target.value === "" && optional ? undefined : type === "number" && e.target.value !== "" ? Number(e.target.value) : e.target.value)} />}
   </label>;
 }

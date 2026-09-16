@@ -12,6 +12,12 @@ from src.services import schedules
 router = APIRouter()
 
 
+def configuration(item):
+    # Commit expires ORM attributes; materialize the response while the session
+    # is open instead of letting generic serialization inspect an empty __dict__.
+    return {column.key: getattr(item, column.key) for column in item.__table__.columns}
+
+
 @router.get("")
 def listing(
     offset: int = Query(0, ge=0),
@@ -28,7 +34,7 @@ def listing(
 
 @router.post("", status_code=201)
 def create(body: ScheduleCreate, db: Session = Depends(get_db)):
-    return schedules.create(db, body)
+    return configuration(schedules.create(db, body))
 
 
 @router.get("/{identity}")
@@ -38,7 +44,7 @@ def detail(identity: uuid.UUID, db: Session = Depends(get_db)):
 
 @router.put("/{identity}")
 def update(identity: uuid.UUID, body: ScheduleUpdate, db: Session = Depends(get_db)):
-    return schedules.update(db, identity, body)
+    return configuration(schedules.update(db, identity, body))
 
 
 @router.get("/{identity}/fires")

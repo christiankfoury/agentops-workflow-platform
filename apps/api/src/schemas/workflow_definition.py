@@ -61,6 +61,7 @@ class VersionRead(BaseModel):
 
 class ValidationResult(BaseModel):
     valid: bool
+    draft_revision: int | None = None
     executable: bool = False
     errors: list[dict] = Field(default_factory=list)
     runtime_errors: list[dict] = Field(default_factory=list)

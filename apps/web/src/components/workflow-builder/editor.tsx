@@ -67,6 +67,7 @@ export function WorkflowBuilder({ initial, scope, canEdit, save, tools = [], pro
     {definition?.archived && <p role="status">This workflow is archived and cannot be edited.</p>}
     {notice && <p role="status" className="rounded-md border p-3">{notice}</p>}
     {definition && <a className="text-sm underline" href={`/workflow-definitions/${encodeURIComponent(definition.id)}`} target="_blank" rel="noreferrer">Open saved draft in a new tab</a>}
+    {definition && <a className="ml-4 text-sm underline" href={`/workflow-definitions/${encodeURIComponent(definition.id)}/release`}>Validation and versions</a>}
     {!!errors.length && <ul role="alert" className="text-red-600">{errors.map(e => <li key={e}>{e}</li>)}</ul>}
     {catalogError && <p role="status">Some tool or prompt choices are unavailable. Existing selections are retained. Reload to retry loading the catalog.</p>}
     <button type="button" className="rounded border px-3 py-2 text-sm" disabled={busy || jsonErrors.length > 0 || (rawMode && !supported)} onClick={() => {

@@ -57,7 +57,7 @@ export async function builderRequest<T>(path: string, body?: unknown, method = "
   const res = await apiFetch(path, { method, cache: "no-store",
     ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }) });
   if (!res.ok) {
-    const error = new Error(res.status === 409 ? "This draft changed on the server. Your edits are retained. Open the saved draft in a new tab to compare before reloading."
+    const error = new Error(res.status === 409 ? "This request conflicts with saved state. Your edits are retained. Open the saved resource to compare before reloading."
       : res.status === 403 ? "You no longer have permission for this action. Your edits are retained."
       : res.status === 404 ? "This workflow is unavailable in the current organization."
       : `Request failed (${res.status}). Your edits are retained.`);

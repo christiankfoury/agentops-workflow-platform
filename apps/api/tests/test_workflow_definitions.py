@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from alembic import command
 from src.models.audit_event import AuditEvent
+from src.models.identity import Membership
 from src.models.workflow_definition import WorkflowDefinition, WorkflowVersion
 from src.schemas.workflow_definition import DefinitionCreate, DefinitionUpdate
 from src.services import workflow_definitions as service
@@ -34,11 +35,45 @@ def create(db):
     return service.create_definition(db, DefinitionCreate(name="Fixture", graph=graph()))
 
 
+def test_validation_revision_describes_the_checked_snapshot(
+    tenant_client, database, tenants, monkeypatch,
+):
+    item = tenant_client.post(
+        "/workflow-definitions", json={"name": "Before", "graph": graph()},
+    ).json()
+    original = service.validate_draft
+
+    def concurrent_edit(checked_graph, db):
+        result = original(checked_graph, db)
+        with Session(database) as writer:
+            owner = tenants[0]["org"]
+            bind_tenant(writer, owner)
+            user_id = writer.scalar(
+                select(Membership.user_id).where(Membership.organization_id == owner)
+            )
+            writer.info["principal"] = Principal("admin", user_id, owner)
+            service.update_draft(
+                writer, uuid.UUID(item["id"]),
+                DefinitionUpdate(name="After", graph={}, expected_revision=1),
+            )
+        return result
+
+    monkeypatch.setattr(service, "validate_draft", concurrent_edit)
+    path = f"/workflow-definitions/{item['id']}"
+    result = tenant_client.post(path + "/validate").json()
+    assert result["valid"] and result["draft_revision"] == 1
+    assert tenant_client.get(path).json()["draft_revision"] == 2
+    monkeypatch.setattr(service, "validate_draft", original)
+    result = tenant_client.post(path + "/validate").json()
+    assert not result["valid"] and result["draft_revision"] == 2
+
+
 def test_drafts_publication_archive_history_and_runtime_gate(tenant_client, database, tenants):
     client = tenant_client
     item = client.post("/workflow-definitions", json={"name": "Fixture", "graph": {}}).json()
     path = f"/workflow-definitions/{item['id']}"
-    assert client.post(path + "/validate").json()["valid"] is False
+    invalid = client.post(path + "/validate").json()
+    assert invalid["valid"] is False and invalid["draft_revision"] == 1
     assert client.post(path + "/publish", json={"expected_revision": 1}).status_code == 422
     updated = client.put(
         path + "/draft",
@@ -50,6 +85,7 @@ def test_drafts_publication_archive_history_and_runtime_gate(tenant_client, data
     )
     assert updated.status_code == 200 and updated.json()["draft_revision"] == 2
     result = client.post(path + "/validate").json()
+    assert result["draft_revision"] == 2
     assert result["valid"] and result["executable"] and not result["runtime_errors"]
     published = client.post(path + "/publish", json={"expected_revision": 2})
     assert published.status_code == 201, published.text

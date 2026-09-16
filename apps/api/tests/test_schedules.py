@@ -324,7 +324,19 @@ def test_schedule_api_admin_scope_and_tenant_history(database, clock, tenants, t
         identity, due = item.id, item.next_fire_at
         data = ScheduleCreate(**{name: getattr(item, name) for name in ScheduleCreate.model_fields})
         body = data.model_dump(mode="json")
-    assert tenant_client.post("/workflow-schedules", json=body).status_code == 201
+    created = tenant_client.post("/workflow-schedules", json=body)
+    assert created.status_code == 201
+    saved = created.json()
+    assert saved["revision"] == 1 and saved["cron"] == body["cron"]
+    assert saved["next_fire_at"] and saved["service_principal_id"] == body["service_principal_id"]
+    updated = tenant_client.put(
+        f"/workflow-schedules/{saved['id']}",
+        json={**body, "name": "Renamed schedule", "expected_revision": 1},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["revision"] == 2
+    assert updated.json()["name"] == "Renamed schedule"
+    assert tenant_client.get(f"/workflow-schedules/{saved['id']}").json() == updated.json()
     assert schedules.fire_due_schedules(database, now=due) == 2
     response = tenant_client.get(f"/workflow-schedules/{identity}/fires")
     assert response.status_code == 200 and len(response.json()) == 1

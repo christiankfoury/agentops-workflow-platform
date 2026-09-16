@@ -69,3 +69,47 @@ save so its response cannot replace newer local changes. The browser warns befor
 unloading a dirty draft; save before using application navigation links.
 
 No migration is required. This interface uses existing definition draft APIs.
+
+## Validation, publication, and manual starts
+
+Open **Validation and versions** after saving. Validation reports the exact saved
+revision and separates graph errors from unavailable runtime capabilities. An
+administrator can publish only a runnable revision; the server rechecks it and
+rejects concurrent edits. Publishing creates an immutable version. Existing runs
+retain their original version, even while a later draft is edited or published.
+
+Select a published version to inspect its capabilities or compare it with another
+version on the same history page. History is paginated in groups of 50. Older
+pages select a visible historical version; verify that selection before starting.
+Diff previews are limited to 120,000 characters. Archived versions cannot start.
+
+Manual input must be a JSON object matching the workflow schema. The first start
+freezes the selected version, input and request key. **Retry same start** submits
+that identical request and returns the same run after an uncertain network result
+or an accepted start. Keep the page open until the result is resolved; this key is
+retained in page memory, not across reloads. **Prepare a separate run** explicitly
+creates a new logical request on its next start. Publication errors retain the
+loaded revision; reload after an uncertain publish to see whether it succeeded.
+
+## Webhook and cron triggers
+
+Open **Triggers** to list webhook or cron configurations. Administrators can
+create, edit, enable and pause triggers. Supply the definition UUID and a
+provisioned service principal UUID in the same organization with `workflow.start`
+permission. Choose the current published version or an explicit pinned version.
+Enablement rechecks the service principal and runnable target. Revision conflicts
+retain edits; compare using **Open saved trigger in a new tab** before reloading.
+
+Webhook forms accept only an operations-configured signing **alias**, using masked
+inputs. Do not enter the actual key. Saved aliases and keys are not returned to
+the browser. Rotation changes that reference with a bounded previous-key grace
+period. Save configuration edits before rotating. Blank payload mapping forwards
+the signed JSON payload; an object maps fields to input references.
+
+Cron schedules accept five fields and an IANA time zone. They forbid overlapping
+runs and coalesce missed ticks. Repeated local times use their first occurrence;
+invalid local times are skipped. Configuration changes reset the next tick;
+pause/resume preserves it. Delivery/fire histories show decisions, selected
+versions, runs and error codes, with 50-record pagination and an explicit reload.
+History failure does not discard configuration edits. These screens do not create
+service principals or provision signing keys.

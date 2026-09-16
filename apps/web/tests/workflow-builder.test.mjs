@@ -214,7 +214,7 @@ test("API adapter reports conflicts and field paths without reflecting submitted
       await assert.rejects(api.builderRequest("/workflow-definitions", {}, "POST"), error => {
         assert.doesNotMatch(error.message, /private draft/);
         if (status === 422) assert.deepEqual(error.fields, ["body · graph · nodes · 0: Invalid node"]);
-        if (status === 409) assert.match(error.message, /draft changed/);
+        if (status === 409) assert.match(error.message, /conflicts with saved state/);
         return true;
       });
     }
