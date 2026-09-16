@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 91 — Webhook Triggers (in progress)**.
+Current implementation phase: **Phase 91 — Webhook Triggers (complete; delivery record verification)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–90 are complete; Phase 91 is in progress; Phases 92–105 remain planned.
+Phases 66–91 are complete; Phases 92–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -129,7 +129,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 88 | Complete | Registered tenant data queries, restricted read-only roles, bounded async transport, worker receipts and fixture evidence. |
 | 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
 | 90 | Complete | Pinned LLM tools, durable continuation, exact approval, bounded budgets, recovered usage and ledger trace linkage. |
-| 91 | In progress | Webhook Triggers; signed delivery, atomic starts and scoped configuration. |
+| 91 | Complete | Signed, scoped webhook triggers; atomic replay-safe starts, rotation and retained delivery history. |
 | 92 | Planned — not started | Scheduled and Cron Triggers |
 | 93 | Planned — not started | Generic Workflow Builder Editor |
 | 94 | Planned — not started | Builder Validation Publication and Version History |
@@ -1741,7 +1741,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
   dependency audits. Every latest commit check was verified successful. No code fix
   was indicated by the cancelled logs, and Phase 91 is eligible to start.
 
-### Phase 91 — Webhook Triggers — in progress
+### Phase 91 — Webhook Triggers — completed
 
 - Authorized target remains Phases 66–105. Inspected the shared start/idempotency
   service, caller-owned evaluation transactions, identity/service scopes, graph
@@ -1786,6 +1786,9 @@ This is a status index; implementation details live only in `docs/phases.md`.
     a nonexistent `test_security.py` and ran no tests; the corrected command above passed.
   - Final additions: `pytest tests/test_webhooks.py -k 'pinned_selection or moved_between'
     -q --tb=short`: **2 passed**, 9.08s (`.phase91-extra.log`).
+  - Explicit migration/race rerun: `pytest tests/test_webhook_migration.py tests/test_webhooks.py
+    -k 'migration or races' -vv -o faulthandler_timeout=90 --tb=short`: **3 passed**, 19.47s
+    (`.phase91-races-migration.log`). The broader run completed normally; no test was cancelled.
   - Ruff (`src tests`), Docker Compose configuration and `git diff --check` passed.
     Existing TestClient deprecation warning remains. No live webhook or deployment ran.
 - Local review covered permissions, signature domain separation, current principal
@@ -1793,8 +1796,20 @@ This is a status index; implementation details live only in `docs/phases.md`.
   savepoint rollback ownership and migration retention. No blocking finding remains.
   The phase exceeds the suggested line target because its API, retained schema,
   signature/rotation protocol and real-database acceptance tests form one delivery unit.
-- Implementation commit, push, GitHub CI and post-push review: pending; Phase 91 is
-  not complete and Phase 92 implementation has not started.
+- Implementation `9c56a1d8c1e5f09b2ae3549b079d674cc9503faf` pushed to `origin/main`:
+  18 files, 1,509 changed lines including 464 test lines. GitHub CI
+  [35141230134](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35141230134)
+  passed **API, Web and Docker Compose**. API: **803 passed**, 456.13s;
+  both dependency audits reported no known vulnerabilities. All commit check runs
+  were separately verified successful. Phase 92 implementation has not started.
+- Post-push review of the implementation inspected signature canonicalization and
+  trigger binding, scoped administration/history, current service permissions,
+  serialized publication/revocation, receipt/version retention, atomic queue acceptance,
+  rollback ownership and migration compatibility. No actionable finding or fix commit.
+- Completion: Phase 91 implementation, validation, push, CI and review are complete.
+  This evidence record will be committed/pushed and its CI checked before advancing.
+  No deployment or external webhook provider was exercised; fixture-backed limits
+  and operation details are explicit in the guide. Phase 92 follows the record gate.
 
 When a future phase starts, add a record here using these fields:
 
