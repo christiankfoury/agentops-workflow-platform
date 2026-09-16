@@ -56,6 +56,9 @@ def promote_workflow_run_to_evaluation_comparison(
         from src.services.durable_evaluation_promotion import promote
 
         return promote(db, run, uploaded_input)
+    from src.services.evaluation_runner import require_legacy_client
+
+    require_legacy_client(llm_client)
     if run.run_mode == RunMode.baseline:
         return _promote_baseline_run(db, run, uploaded_input, llm_client)
     return _promote_multi_agent_run(db, run, uploaded_input, llm_client)

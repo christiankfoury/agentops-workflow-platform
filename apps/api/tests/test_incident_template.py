@@ -225,6 +225,9 @@ def test_incident_api_normalization_queue_and_legacy_deprecation(database, monke
                 "/workflow-runs/{run_id}/run-baseline"
             ]["post"]["deprecated"]
             monkeypatch.setattr(settings, "incident_template_enabled", False)
+            assert (
+                client.post(f"/workflow-runs/{identity}/evaluation-comparison").status_code == 503
+            )
             old = client.post(
                 "/workflow-runs",
                 json={"workflow_type": "incident_log", "input_id": source.json()["id"]},

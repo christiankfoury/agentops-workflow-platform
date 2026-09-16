@@ -13,5 +13,3 @@ class RawRouterOutput(BaseModel):
 
 class RouterOutput(RawRouterOutput):
     recommended_action: Literal["auto_select", "confirm", "manual_required"]
-
-

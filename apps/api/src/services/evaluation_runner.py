@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Protocol
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from src.models.agent_step import AgentStep
@@ -80,6 +81,7 @@ def run_sales_evaluation_case(
 
     if enabled(db, evaluation_case.workflow_type):
         return enqueue(db, evaluation_case, run_mode, guidance=correction_guidance)
+    require_legacy_client(llm_client)
 
     result = EvaluationResult(
         evaluation_case_id=evaluation_case.id,
@@ -126,6 +128,11 @@ def run_sales_evaluation_case(
         db.refresh(result)
 
     return result
+
+
+def require_legacy_client(client):
+    if client is None:
+        raise HTTPException(503, "A provider key is required for legacy evaluation execution")
 
 
 def run_sales_evaluation_suite(

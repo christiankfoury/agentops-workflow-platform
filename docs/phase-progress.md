@@ -1332,7 +1332,18 @@ This is a status index; implementation details live only in `docs/phases.md`.
   concurrent promotion, approval restart/idempotency, cancellation, scoring lock
   ordering and compatibility costs. Remaining evidence boundary: fixture provider
   responses only; no live-provider equality or hosted deployment is claimed.
-  Implementation push, CI and post-push review are pending; Phase 85 remains open.
+  Implementation `31b4879c0da7e0614958bb9557e67aad2a9674b7` is pushed to main;
+  CI [35044572077](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35044572077)
+  passed API, Web and Docker Compose, including the full API suite and dependency
+  audits. Phase 85 remains open for the separate review fix.
+- Post-push review found a backout edge case: accepting queued evaluations without
+  an API provider key is correct, but selecting legacy evaluation must reject a
+  missing key before creating evaluation records. The fix adds that preflight to
+  both legacy runner and promotion entry points, with a 503 API regression. It also
+  removes trailing blank lines caught when newly added files entered the staged
+  diff check (the earlier unstaged check did not include untracked files).
+  Affected incident API, evaluation runner and promotion tests: 15 passed. Ruff
+  and the complete fix diff check passed. Fix push/CI and final review pending.
 
 When a future phase starts, add a record here using these fields:
 
