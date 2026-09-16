@@ -15,6 +15,14 @@ CANCELLED_STEP_MESSAGE = "Workflow was cancelled before this step completed."
 
 
 def cancel_workflow_run(db: Session, run: WorkflowRun) -> WorkflowRun:
+    from src.services.business_projection import execution_for
+    from src.services.execution_cancellation import cancel_execution
+
+    execution = execution_for(db, run.id)
+    if execution is not None:
+        cancel_execution(db, execution.id)
+        db.refresh(run)
+        return run
     with workflow_transaction(db, run):
         principal = authorize(db, "workflow.control", lock=True)
         record_audit(db, principal, "workflow.cancel", "workflow_run", run.id)

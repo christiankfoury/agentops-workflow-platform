@@ -40,7 +40,7 @@ def existing_start(db, key, digest):
     return execution(db, receipt.execution_id)
 
 
-def start_execution(db, body):
+def start_execution(db, body, *, legacy_run=None):
     """Atomically accept a pending execution and its first durable job."""
     try:
         principal = authorize(db, "workflow.start", lock=True)
@@ -64,10 +64,17 @@ def start_execution(db, body):
             validate_data(body.input, graph.input_schema)
         except ValidationError as error:
             raise HTTPException(422, validation_errors(error)) from error
+        if legacy_run is not None:
+            legacy_run.created_by_user_id = principal.user_id
+            db.add(legacy_run)
+            db.flush()
         run = WorkflowExecution(
             version_id=selected.id,
             input_json=body.input,
             created_by_user_id=principal.user_id,
+            legacy_run_id=legacy_run.id if legacy_run is not None else None,
+            business_type=legacy_run.workflow_type.value if legacy_run is not None else None,
+            run_mode=legacy_run.run_mode.value if legacy_run is not None else None,
             runtime_config=snapshot_config(db, selected, graph),
             deadline_at=db.scalar(select(func.clock_timestamp()))
             + timedelta(

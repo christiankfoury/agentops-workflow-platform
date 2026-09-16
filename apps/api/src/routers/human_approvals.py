@@ -11,6 +11,7 @@ from src.schemas.human_approval import (
     HumanApprovalRead,
     HumanFeedbackSummaryRead,
 )
+from src.services.business_approvals import adapt
 from src.services.human_approvals import (
     HumanApprovalError,
     approve_human_approval,
@@ -54,6 +55,9 @@ def approve(
     db: Session = Depends(get_db),
 ) -> HumanApproval:
     approval = _get_approval_or_404(db, approval_id)
+    adapted = adapt(db, approval, "approve", body)
+    if adapted is not None:
+        return adapted
     try:
         return approve_human_approval(
             db,
@@ -72,6 +76,9 @@ def request_retry(
     db: Session = Depends(get_db),
 ) -> HumanApproval:
     approval = _get_approval_or_404(db, approval_id)
+    adapted = adapt(db, approval, "request_retry", body)
+    if adapted is not None:
+        return adapted
     try:
         return request_human_approval_retry(
             db,
@@ -90,6 +97,9 @@ def reject(
     db: Session = Depends(get_db),
 ) -> HumanApproval:
     approval = _get_approval_or_404(db, approval_id)
+    adapted = adapt(db, approval, "reject", body)
+    if adapted is not None:
+        return adapted
     try:
         return reject_human_approval(
             db,
@@ -108,6 +118,9 @@ def edit(
     db: Session = Depends(get_db),
 ) -> HumanApproval:
     approval = _get_approval_or_404(db, approval_id)
+    adapted = adapt(db, approval, "edit", body)
+    if adapted is not None:
+        return adapted
     try:
         return edit_human_approval(
             db,

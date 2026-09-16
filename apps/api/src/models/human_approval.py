@@ -16,11 +16,15 @@ class ApprovalStatus(StrEnum):
     approved = "approved"
     rejected = "rejected"
     retry_requested = "retry_requested"
+    superseded = "superseded"
+    expired = "expired"
+    cancelled = "cancelled"
+    invalidated = "invalidated"
 
 
 class HumanApproval(TenantOwned, Base):
     __tablename__ = "human_approvals"
-    __table_args__ = tenant_constraints(__tablename__, {'workflow_run_id': 'workflow_runs'})
+    __table_args__ = tenant_constraints(__tablename__, {"workflow_run_id": "workflow_runs"})
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -37,8 +41,16 @@ class HumanApproval(TenantOwned, Base):
     )
     human_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     edited_analysis_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     resolved_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    @property
+    def expected_payload_hash(self):
+        from sqlalchemy.orm import object_session
+
+        from src.models.execution_approval import ExecutionApproval
+
+        db = object_session(self)
+        source = db.get(ExecutionApproval, self.id) if db is not None else None
+        return source.payload_hash if source is not None else None

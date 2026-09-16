@@ -847,11 +847,13 @@ export default async function WorkflowRunDetailPage({
         ? "root_cause_step_id"
       : "analyst_step_id";
   const canRunAnalyst =
+    !run.execution_id &&
     (run.status === "created" || run.status === "retrying") &&
     run.workflow_type === "sales_report" &&
     run.run_mode === "multi_agent" &&
     uploadedInput !== null;
   const canRunBaseline =
+    !run.execution_id &&
     run.status === "created" &&
     run.run_mode === "baseline" &&
     uploadedInput !== null &&
@@ -861,6 +863,7 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed"),
     );
   const canRunClassifier =
+    !run.execution_id &&
     run.status === "created" &&
     run.workflow_type === "customer_feedback" &&
     run.run_mode === "multi_agent" &&
@@ -871,6 +874,7 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed"),
     );
   const canRunInsight =
+    !run.execution_id &&
     run.status === "running" &&
     run.workflow_type === "customer_feedback" &&
     run.run_mode === "multi_agent" &&
@@ -882,6 +886,7 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed"),
     );
   const canRunTimeline =
+    !run.execution_id &&
     run.status === "created" &&
     run.workflow_type === "incident_log" &&
     run.run_mode === "multi_agent" &&
@@ -892,6 +897,7 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed"),
     );
   const canRunRootCause =
+    !run.execution_id &&
     run.status === "running" &&
     run.workflow_type === "incident_log" &&
     run.run_mode === "multi_agent" &&
@@ -903,6 +909,7 @@ export default async function WorkflowRunDetailPage({
         (step.status === "running" || step.status === "completed"),
     );
   const canRunReviewer =
+    !run.execution_id &&
     run.status === "reviewer_running" &&
     (run.workflow_type === "sales_report" ||
       run.workflow_type === "customer_feedback" ||
@@ -917,6 +924,7 @@ export default async function WorkflowRunDetailPage({
         step.input_json?.[reviewerSourceInputKey] === reviewerSourceStep.id,
     );
   const canRunWriter =
+    !run.execution_id &&
     run.status === "writer_running" &&
     (run.workflow_type === "sales_report" ||
       run.workflow_type === "customer_feedback" ||

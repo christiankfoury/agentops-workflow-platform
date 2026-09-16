@@ -55,6 +55,7 @@ class WorkflowExecution(ExecutionFields, TenantOwned, Base):
             ["pending", "running", "waiting", "retrying", "completed", "failed", "cancelled"]
         ),
         CheckConstraint("state_revision >= 0"),
+        UniqueConstraint("legacy_run_id", name="uq_execution_legacy_run"),
     )
     version_id: Mapped[uuid.UUID] = mapped_column(UUID())
     legacy_run_id: Mapped[uuid.UUID | None] = mapped_column(UUID())

@@ -29,6 +29,7 @@ services:
       API_AUTH_ENABLED: ${API_AUTH_ENABLED:-false}
       API_KEY: ${API_KEY:-}
       API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-0}
+      SALES_TEMPLATE_ENABLED: ${SALES_TEMPLATE_ENABLED:-true}
     volumes:
       - ./apps/api:/app
       - /app/.venv
@@ -48,6 +49,7 @@ services:
     command: ["uv", "run", "python", "-m", "src.worker"]
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-agentops-local-only}@db:5432/agentops
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ENVIRONMENT: development
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
       WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-1}

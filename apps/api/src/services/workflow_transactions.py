@@ -31,12 +31,22 @@ def commit_workflow(db: Session) -> None:
 
 @contextmanager
 def workflow_transaction(
-    db: Session, run: WorkflowRun | WorkflowExecution, *, expected_revision=None,
+    db: Session,
+    run: WorkflowRun | WorkflowExecution,
+    *,
+    expected_revision=None,
 ):
     # Existing unit-test doubles exercise domain behavior without SQL semantics.
     if not isinstance(db, Session):
         yield
         return
+    if isinstance(run, WorkflowRun):
+        from fastapi import HTTPException
+
+        from src.services.business_projection import execution_for
+
+        if execution_for(db, run.id) is not None:
+            raise HTTPException(409, "This run is controlled by the durable worker engine")
     active = db.info.get("workflow_transaction")
     identity = (type(run), run.id)
     if active is not None:
@@ -63,6 +73,10 @@ def workflow_transaction(
         # Lazy reload after commit could otherwise adopt a competing revision.
         db.expire_on_commit = False
         yield
+        if isinstance(run, WorkflowExecution) and run.legacy_run_id is not None:
+            from src.services.business_projection import sync
+
+            sync(db, run)
         run.state_revision = expected + 1
         db.commit()
         callbacks = db.info.pop("workflow_after_commit", [])

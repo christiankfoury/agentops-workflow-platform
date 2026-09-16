@@ -1,14 +1,22 @@
 import uuid
 from datetime import UTC, datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
+from src.config import settings
 from src.database import get_db
 from src.main import app
 from src.models.agent_step import AgentStep, AgentStepStatus
 from src.models.uploaded_input import InputType, UploadedInput
 from src.models.workflow_event import WorkflowEvent, WorkflowEventType
 from src.models.workflow_run import RunMode, WorkflowRun, WorkflowStatus, WorkflowType
+
+
+@pytest.fixture(autouse=True)
+def legacy_start_backout(monkeypatch):
+    """These domain doubles cover the retained backout path; durable starts use PostgreSQL tests."""
+    monkeypatch.setattr(settings, "sales_template_enabled", False)
 
 
 class FakeQuery:

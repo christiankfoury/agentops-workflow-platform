@@ -32,7 +32,11 @@ export type ApprovalStatus =
   | "pending"
   | "approved"
   | "rejected"
-  | "retry_requested";
+  | "retry_requested"
+  | "superseded"
+  | "expired"
+  | "cancelled"
+  | "invalidated";
 export type WorkflowEventType =
   | "state_transition"
   | "workflow_started"
@@ -51,6 +55,7 @@ export type WorkflowEventType =
   | "human_requested_retry";
 
 export interface WorkflowRun {
+  execution_id?: string | null;
   id: string;
   organization_id: string | null;
   created_by_user_id: string | null;
@@ -228,6 +233,7 @@ export interface AgentPerformanceSummary {
 }
 
 export interface HumanApproval {
+  expected_payload_hash?: string | null;
   id: string;
   workflow_run_id: string;
   reviewer_score: number | null;
@@ -321,11 +327,13 @@ export interface CreatePromptVersionRequest {
 }
 
 export interface HumanApprovalActionRequest {
+  expected_payload_hash?: string;
   human_feedback?: string | null;
   approved_by_user_id?: string | null;
 }
 
 export interface HumanApprovalEditRequest {
+  expected_payload_hash?: string;
   human_feedback?: string | null;
   edited_analysis_json?: Record<string, unknown> | null;
 }

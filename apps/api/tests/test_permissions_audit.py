@@ -72,6 +72,10 @@ def test_approval_role_matrix_and_actor_forgery(tenant_client, tenants, database
 
 @pytest.mark.parametrize("role", ["viewer", "operator", "reviewer", "admin"])
 def test_workflow_and_configuration_role_matrix(tenant_client, tenants, database, role):
+    prepare(database, tenants[0], "admin")
+    installed = tenant_client.post("/workflow-definitions/templates/sales/install")
+    assert installed.status_code == 200, installed.text
+    installation_events = {entry.id for entry in audits(database, tenants[0]["org"])}
     actor = prepare(database, tenants[0], role)
     assert tenant_client.get("/workflow-runs").status_code == 200
     start = tenant_client.post(
@@ -112,7 +116,11 @@ def test_workflow_and_configuration_role_matrix(tenant_client, tenants, database
     assert permissions["role"] == role
     assert ("approval.decide" in permissions["actions"]) == (role in {"reviewer", "admin"})
     assert tenant_client.get("/evaluation-results/export/json").status_code == 200
-    evidence = audits(database, tenants[0]["org"])
+    evidence = [
+        entry
+        for entry in audits(database, tenants[0]["org"])
+        if entry.id not in installation_events
+    ]
     expected = {"export"}
     if role in {"operator", "admin"}:
         expected.add("workflow.start")
@@ -192,7 +200,7 @@ def test_scoped_service_cannot_invent_roles_or_approval_scope(tenant_client, ten
     tenant_client.headers["x-agentops-role"] = "admin"
     assert tenant_client.get("/workflow-runs").status_code == 200
     assert tenant_client.post(f"/human-approvals/{owner['approval']}/approve").status_code == 403
-    start = tenant_client.post("/workflow-runs", json={"workflow_type": "sales_report"})
+    start = tenant_client.post("/workflow-runs", json={"workflow_type": "customer_feedback"})
     assert start.status_code == 201
     assert tenant_client.get("/evaluation-results/export/json").status_code == 403
     event = audits(database, owner["org"])[0]

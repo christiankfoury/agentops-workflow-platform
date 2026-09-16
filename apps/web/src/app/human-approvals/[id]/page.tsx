@@ -238,6 +238,7 @@ function ApprovalActionControls({
       <PermissionGate action={requiresAdmin ? "approval.override" : "approval.decide"}
         fallback={<p className="text-sm text-amber-700">An administrator must approve high-severity findings.</p>}><form action={approveAction}>
         <input type="hidden" name="approval_id" value={approval.id} />
+          <input type="hidden" name="expected_payload_hash" value={approval.expected_payload_hash ?? ""} />
         <input
           type="hidden"
           name="human_feedback"
@@ -254,6 +255,7 @@ function ApprovalActionControls({
       <div className="contents">
         <form action={requestRetryAction}>
           <input type="hidden" name="approval_id" value={approval.id} />
+          <input type="hidden" name="expected_payload_hash" value={approval.expected_payload_hash ?? ""} />
           <input
             type="hidden"
             name="human_feedback"
@@ -269,6 +271,7 @@ function ApprovalActionControls({
         </form>
         <form action={rejectAction}>
           <input type="hidden" name="approval_id" value={approval.id} />
+          <input type="hidden" name="expected_payload_hash" value={approval.expected_payload_hash ?? ""} />
           <input
             type="hidden"
             name="human_feedback"
@@ -1098,6 +1101,7 @@ export default async function HumanApprovalDetailPage({
           </summary>
           <PermissionGate action="approval.decide"><form action={editAction} className="mt-4">
           <input type="hidden" name="approval_id" value={approval.id} />
+          <input type="hidden" name="expected_payload_hash" value={approval.expected_payload_hash ?? ""} />
           <input type="hidden" name="workflow_type" value={run.workflow_type} />
           <label className="block text-sm font-medium" htmlFor="human_feedback">
             Human Feedback

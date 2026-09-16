@@ -35,6 +35,7 @@ def snapshot_config(db, version, graph):
         model, temperature, max_tokens = config.model, config.temperature, config.max_tokens
         timeout = node.timeout_seconds
         threshold = 0.85
+        human_threshold = 0.70
         if config.use_agent_settings:
             pinned = db.scalar(
                 select(PromptVersion).where(PromptVersion.id == config.prompt_version_id)
@@ -51,6 +52,7 @@ def snapshot_config(db, version, graph):
             )
             timeout = min(timeout, resolved.timeout_seconds or timeout)
             threshold = resolved.reviewer_approval_threshold
+            human_threshold = resolved.human_approval_threshold
         pricing = MODEL_PRICING.get(model)
         try:
             LLMConfig.model_validate(
@@ -76,6 +78,7 @@ def snapshot_config(db, version, graph):
             "max_retries": 0,
             "max_schema_repairs": config.max_schema_repairs,
             "reviewer_approval_threshold": threshold,
+            "human_approval_threshold": human_threshold,
             "pricing": asdict(pricing) if pricing else None,
         }
     del locked_settings

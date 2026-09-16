@@ -114,7 +114,10 @@ async function approvalReachedStatus(
 export async function approveAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
   try {
-    await approveHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
+    await approveHumanApproval(approvalId, {
+      expected_payload_hash: String(formData.get("expected_payload_hash") || "") || undefined,
+      human_feedback: getFeedback(formData),
+    });
   } catch (error) {
     if (!(await approvalReachedStatus(approvalId, "approved"))) {
       redirectWithActionError(approvalId, error);
@@ -127,6 +130,7 @@ export async function requestRetryAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
   try {
     await requestHumanApprovalRetry(approvalId, {
+      expected_payload_hash: String(formData.get("expected_payload_hash") || "") || undefined,
       human_feedback: getFeedback(formData),
     });
   } catch (error) {
@@ -140,7 +144,10 @@ export async function requestRetryAction(formData: FormData) {
 export async function rejectAction(formData: FormData) {
   const approvalId = getApprovalId(formData);
   try {
-    await rejectHumanApproval(approvalId, { human_feedback: getFeedback(formData) });
+    await rejectHumanApproval(approvalId, {
+      expected_payload_hash: String(formData.get("expected_payload_hash") || "") || undefined,
+      human_feedback: getFeedback(formData),
+    });
   } catch (error) {
     if (!(await approvalReachedStatus(approvalId, "rejected"))) {
       redirectWithActionError(approvalId, error);
@@ -150,13 +157,15 @@ export async function rejectAction(formData: FormData) {
 }
 
 export async function editAction(formData: FormData) {
-  const approvalId = getApprovalId(formData);
+  let approvalId = getApprovalId(formData);
 
   try {
-    await editHumanApproval(approvalId, {
+    const edited = await editHumanApproval(approvalId, {
+      expected_payload_hash: String(formData.get("expected_payload_hash") || "") || undefined,
       human_feedback: getFeedback(formData),
       edited_analysis_json: getEditedAnalysis(formData),
     });
+    approvalId = edited.id;
   } catch (error) {
     redirectWithActionError(approvalId, error);
   }

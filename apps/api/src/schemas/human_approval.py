@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.models.human_approval import ApprovalStatus
 
@@ -11,6 +11,7 @@ class HumanApprovalRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    expected_payload_hash: str | None = None
     workflow_run_id: uuid.UUID
     reviewer_score: float | None
     issues_json: list[Any] | None
@@ -23,11 +24,13 @@ class HumanApprovalRead(BaseModel):
 
 
 class HumanApprovalAction(BaseModel):
+    expected_payload_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     human_feedback: str | None = None
     approved_by_user_id: uuid.UUID | None = None
 
 
 class HumanApprovalEdit(BaseModel):
+    expected_payload_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     human_feedback: str | None = None
     edited_analysis_json: dict[str, Any] | None = None
 

@@ -20,6 +20,7 @@ class WorkflowRunRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    execution_id: uuid.UUID | None = None
     organization_id: uuid.UUID | None
     created_by_user_id: uuid.UUID | None
     workflow_type: WorkflowType

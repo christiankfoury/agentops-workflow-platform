@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from src.config import settings
 from src.database import get_db
 from src.dependencies import get_llm_client
 from src.models.agent_step import AgentStep
@@ -53,6 +54,7 @@ router = APIRouter()
 def _workflow_run_payload(run: WorkflowRun, input_title: str | None = None) -> dict[str, object]:
     return {
         "id": run.id,
+        "execution_id": run.execution_id,
         "organization_id": run.organization_id,
         "created_by_user_id": run.created_by_user_id,
         "workflow_type": run.workflow_type,
@@ -287,6 +289,11 @@ def create_workflow_run(
                 detail="Uploaded input type must match workflow type",
             )
 
+    if body.workflow_type == WorkflowType.sales_report and settings.sales_template_enabled:
+        from src.services.sales_template import start_sales
+
+        run = start_sales(db, uploaded_input, body.run_mode)
+        return _workflow_run_payload(run, uploaded_input.title)
     run = WorkflowRun(
         workflow_type=body.workflow_type,
         run_mode=body.run_mode,

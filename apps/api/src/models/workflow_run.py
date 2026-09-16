@@ -38,14 +38,12 @@ class WorkflowStatus(StrEnum):
 
 class WorkflowRun(TenantOwned, Base):
     __tablename__ = "workflow_runs"
-    __table_args__ = tenant_constraints(__tablename__, {'input_id': 'uploaded_inputs'})
+    __table_args__ = tenant_constraints(__tablename__, {"input_id": "uploaded_inputs"})
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
-    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
-    )
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     workflow_type: Mapped[WorkflowType] = mapped_column(Enum(WorkflowType), nullable=False)
     run_mode: Mapped[RunMode] = mapped_column(
         Enum(RunMode), nullable=False, server_default=RunMode.multi_agent.value
@@ -67,3 +65,13 @@ class WorkflowRun(TenantOwned, Base):
     state_revision: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now(), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    @property
+    def execution_id(self):
+        from sqlalchemy.orm import object_session
+
+        from src.services.business_projection import execution_for
+
+        db = object_session(self)
+        source = execution_for(db, self.id) if db is not None else None
+        return source.id if source is not None else None

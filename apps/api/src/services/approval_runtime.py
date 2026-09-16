@@ -355,6 +355,13 @@ def decide_approval(db, identity, body):
                                     "approval_retry": retry,
                                 }
                         else:
+                            if (
+                                graph.quality_revision
+                                and step.node_id == graph.quality_revision.approval_node
+                            ):
+                                quality = dict(run.checkpoint_json.get("quality", {}))
+                                quality["approved_human_feedback"] = item.human_feedback
+                                run.checkpoint_json = {**run.checkpoint_json, "quality": quality}
                             edges = dict(run.checkpoint_json.get("edges", {}))
                             for i, edge in enumerate(graph_for(db, run).edges):
                                 if edge.source == step.node_id:

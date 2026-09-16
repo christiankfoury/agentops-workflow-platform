@@ -18,7 +18,7 @@ from src.services.structured_output_guardrails import repair_messages
 
 def client_factory(config):
     return LLMClient(
-        api_key=settings.openai_api_key,
+        api_key=settings.openai_api_key_value,
         default_model=config["model"],
         timeout=config["timeout_seconds"],
         max_retries=0,
@@ -38,7 +38,7 @@ def provider_schema(schema):
     return result
 
 
-def execute_llm(work, factory):
+def execute_llm(work, factory, output_validators=None):
     from src.services.execution_registry import NodeResult
 
     config = work.runtime_config
@@ -124,6 +124,14 @@ def execute_llm(work, factory):
                 if decode_error:
                     raise ValueError("Provider returned invalid JSON")
                 validate_data(response.data, work.node.output_schema)
+                if work.node.config.output_validator:
+                    validator = (output_validators or {}).get(work.node.config.output_validator)
+                    if validator is None:
+                        raise ExecutionError(
+                            "configuration_missing", "Output validator is unavailable"
+                        )
+                    response.data = validator(response.data)
+                    validate_data(response.data, work.node.output_schema)
                 if work.revision_context.get("quality_reviewer"):
                     from src.schemas.execution_approval import ApprovalReview
 

@@ -285,7 +285,7 @@ def execute_work(work, registry=DEFAULT_REGISTRY):
         if work.node.type == "llm":
             from src.services.llm_execution import execute_llm
 
-            result = execute_llm(work, registry.llm_factory)
+            result = execute_llm(work, registry.llm_factory, registry.output_validators)
         elif work.node.type == "condition" and "forced_route" in work.revision_context:
             result = NodeResult({}, route=work.revision_context["forced_route"])
         else:

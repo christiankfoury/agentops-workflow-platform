@@ -21,6 +21,13 @@ from src.services import workflow_definitions as service
 router = APIRouter()
 
 
+@router.post("/templates/sales/install", response_model=list[DefinitionRead])
+def install_sales_templates(db: Session = Depends(get_db)):
+    from src.services.sales_template import install
+
+    return install(db)
+
+
 @router.get("", response_model=list[DefinitionRead])
 def list_definitions(
     offset: int = Query(default=0, ge=0),

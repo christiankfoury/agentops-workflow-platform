@@ -116,6 +116,8 @@ def revision_context(run, graph, node_id):
                     if edge.source == node_id and edge.target == policy.approval_node
                 )
             }
+    if node_id in affected_nodes(graph) and quality.get("approved_human_feedback") is not None:
+        return {"human_feedback": quality["approved_human_feedback"]}
     return {}
 
 
@@ -189,10 +191,23 @@ def after_review(db, run, step, graph):
     quality = dict(run.checkpoint_json.get("quality", {}))
     iteration = quality.get("iteration", 0)
     threshold = run.runtime_config[step.node_id]["reviewer_approval_threshold"]
+    needs_retry = (
+        review.retry_recommended
+        or (
+            policy.retry_on_low_score
+            and review.quality_score
+            < run.runtime_config[step.node_id].get("human_approval_threshold", 0.7)
+        )
+        or (
+            policy.retry_on_high_severity
+            and any(issue.severity in {"high", "critical"} for issue in review.issues)
+        )
+    )
     accepted = (
         review.approved
         and review.quality_score >= threshold
         and not any(issue.severity in {"high", "critical"} for issue in review.issues)
+        and not ((policy.retry_on_low_score or policy.retry_on_high_severity) and needs_retry)
     )
     quality["history"] = [
         *quality.get("history", []),
@@ -200,7 +215,7 @@ def after_review(db, run, step, graph):
     ]
     quality["status"] = "accepted" if accepted else "human_required"
     run.checkpoint_json = {**run.checkpoint_json, "quality": quality}
-    if not accepted and review.retry_recommended and iteration < policy.max_revisions:
+    if not accepted and needs_retry and iteration < policy.max_revisions:
         restart(db, run, graph, {"review": step.output_json})
 
 

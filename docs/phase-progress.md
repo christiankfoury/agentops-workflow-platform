@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–82 are complete; Phases 83–105 remain planned.
+Phases 66–82 are complete; Phase 83 is in progress; Phases 84–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -121,7 +121,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 80 | Complete | Immutable approval snapshots, authorized decisions, superseding edits and bounded durable resume; CI/review passed. |
 | 81 | Complete | Parallel Branches and Joins |
 | 82 | Complete | Immutable LLM settings, bounded schema repair, usage accounting and quality revisions; implementation/fix CI and review passed. |
-| 83 | Planned — not started | Sales Workflow Template Migration |
+| 83 | In progress | Sales Workflow Template Migration |
 | 84 | Planned — not started | Customer Feedback Template Migration |
 | 85 | Planned — not started | Incident Template and Evaluation Compatibility |
 | 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
@@ -1133,6 +1133,57 @@ This is a status index; implementation details live only in `docs/phases.md`.
   pushed and its CI passes. Repeated quality regions exclude waits and external
   effects; abrupt process death can leave remote usage unknown. No live provider
   call or hosted deployment is claimed.
+
+### Phase 83 — Sales Workflow Template Migration (2026-09-15)
+
+- Dependency gate: Phase 82 record `1aec42fcba51a2adcd59f8a3e31dc077841a1671`
+  pushed; [CI run 35036368896](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35036368896)
+  passed API, Web and Docker Compose. Working tree clean before this plan.
+- Inspected sales agents/prompts, mandatory human approval, legacy run/step/cost
+  readers, evaluation promotion, durable starts and immutable execution links.
+- Plan: publish tenant-owned sales multi-agent and one-step baseline templates;
+  reuse sales schemas and prompts, pin graph revision bounds, and preserve the
+  mandatory human gate. Route new sales API starts to durable jobs. Materialize
+  compatibility records inside the execution transaction so existing pages,
+  comparisons and evaluation links retain their run IDs. Legacy controls reject
+  migrated runs; cancellation and approval actions delegate to the durable engine.
+- Acceptance: fixture-driven success, edits, rejection, retry exhaustion, baseline,
+  costs, final output and evaluation links; duplicate-control and stale-approval
+  rejection; historical reads and tenant isolation. Check migration, focused API
+  regressions, Web typecheck/smoke and all CI jobs, then review the pushed change.
+- Rollout: install published templates with an authorized admin operation before
+  new sales starts; update API/workers together. An explicit backout setting affects
+  only future starts; accepted durable runs retain their execution owner. Add a
+  unique legacy/execution link without rewriting historical runs. Shared evaluation
+  orchestration migration completes in Phase 85; this phase preserves its readers.
+  The compatibility layer and parity fixtures may exceed the suggested commit size.
+- Implemented admin-installed published sales/baseline graphs, durable sales API
+  starts, unique immutable execution ownership, atomic read projections, delegated
+  approval/cancellation and legacy duplicate-control rejection. Updated Web forms
+  to carry approval hashes and follow replacement IDs. Added registered final-report
+  validation, explicit sales quality retry options and approved feedback propagation.
+  Compose now supplies the configured provider key to workers and exposes the
+  future-start backout flag. Provider construction unwraps the secret value; its
+  regression uses a dummy key. See [business templates](BUSINESS_TEMPLATES.md).
+- Validation on disposable PostgreSQL with provider fixtures:
+  `uv run --directory apps/api pytest tests/test_sales_template.py tests/test_workflow_runs_api.py tests/test_sales_workflow_integration.py tests/test_human_approvals_api.py -q --tb=short`
+  passed **32 tests**. The final overlong-approval-body regression passed separately.
+  `uv run --directory apps/api pytest tests/test_quality_revisions.py tests/test_llm_execution.py tests/test_execution_config.py tests/test_execution_approvals.py tests/test_workflow_transactions_postgres.py tests/test_sales_analyst_api.py tests/test_sales_reviewer_api.py tests/test_sales_writer_api.py tests/test_sales_baseline_api.py tests/test_evaluation_runner.py tests/test_evaluation_promotion_api.py tests/test_evaluation_comparisons_api.py tests/test_cost_tracking.py -q --tb=short`
+  passed **135 tests**. Sales plus role-matrix checks passed **13 tests**; concurrent
+  installation and migration ownership checks passed **2 tests**; provider-factory
+  and output-validator contract checks passed **2 tests**. These focused runs overlap.
+  Initial failures exposed legacy test doubles and installation audit expectations;
+  adapters retain the domain-double path, legacy start tests explicitly exercise
+  backout, and role tests separate setup publication records from tested actions.
+- `pnpm --dir apps/web typecheck` and `pnpm --dir apps/web test:smoke` passed
+  (**11 smoke tests**). Ruff, `alembic upgrade head`, Compose configuration and
+  `git diff --check` passed. Existing TestClient deprecation warning remains.
+  No live provider request, credential modification or hosted rollout was performed.
+- Pre-push review checked mandatory approval, stale edit/decision protection,
+  single execution ownership, idempotent costs, immutable source history, rollback
+  safety, tenant authorization, concurrent installation and historical comparisons.
+  The compatibility and parity coverage forms one phase-scoped change; commit size
+  exceeds the suggested range. Implementation push, CI and post-push review pending.
 
 When a future phase starts, add a record here using these fields:
 

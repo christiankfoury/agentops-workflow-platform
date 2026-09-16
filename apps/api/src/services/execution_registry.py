@@ -3,9 +3,10 @@
 from copy import deepcopy
 from dataclasses import dataclass
 
+from src.schemas.workflow_graph import DataSchema
 from src.services.graph_expressions import ExecutionError, evaluate, resolve_bindings
+from src.services.graph_validation import compatible, invalid
 from src.services.graph_validation import ensure_executable as validate_types
-from src.services.graph_validation import invalid
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,16 @@ class ExecutorRegistry:
         from src.services.llm_execution import client_factory
 
         self.llm_factory = client_factory
+        from src.services.business_outputs import final_report
+
+        self.output_validators = {"business.final_report.v1": final_report}
+        self.output_contracts = {
+            "business.final_report.v1": DataSchema(
+                type="object",
+                properties={"final_output": DataSchema(type="string")},
+                required=["final_output"],
+            )
+        }
         self.handlers = {("builtin.identity", 1): deepcopy}
         self.controlled_handlers = {}
         self.executors = {
@@ -36,6 +47,22 @@ class ExecutorRegistry:
         validate_types(graph, {*self.executors, "delay", "approval", "llm"}, quality_revisions=True)
         validate_policy(graph)
         for index, node in enumerate(graph.nodes):
+            if (
+                node.type == "llm"
+                and node.config.output_validator is not None
+                and node.config.output_validator not in self.output_validators
+            ):
+                invalid(("nodes", index, "config"), "Registered output validator is unavailable")
+            if (
+                node.type == "llm"
+                and node.config.output_validator in self.output_contracts
+                and not compatible(
+                    node.output_schema, self.output_contracts[node.config.output_validator]
+                )
+            ):
+                invalid(
+                    ("nodes", index, "output_schema"), "Output validator contract does not match"
+                )
             if node.type == "llm" and node.output_schema.types != {"object"}:
                 invalid(("nodes", index, "output_schema"), "LLM output must be a non-null object")
             if (
