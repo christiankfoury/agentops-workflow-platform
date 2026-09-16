@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 90 — Governed LLM Tool Calling (in progress)**.
+Current implementation phase: **Phase 91 — Webhook Triggers (next)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–89 are complete; Phase 90 is in progress; Phases 91–105 remain planned.
+Phases 66–90 are complete; Phases 91–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -128,7 +128,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 87 | Complete | Governed HTTP tool, pinned destination policy, bounded transport and safe effect recovery; fix CI passed. |
 | 88 | Complete | Registered tenant data queries, restricted read-only roles, bounded async transport, worker receipts and fixture evidence. |
 | 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
-| 90 | In progress | Governed LLM Tool Calling; implementation and local validation underway. |
+| 90 | Complete | Pinned LLM tools, durable continuation, exact approval, bounded budgets, recovered usage and ledger trace linkage. |
 | 91 | Planned — not started | Webhook Triggers |
 | 92 | Planned — not started | Scheduled and Cron Triggers |
 | 93 | Planned — not started | Generic Workflow Builder Editor |
@@ -1641,7 +1641,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
   and the optional authorized sandbox check are documented. Phase 90 follows this
   record's push and successful CI.
 
-### Phase 90 — Governed LLM Tool Calling — in progress
+### Phase 90 — Governed LLM Tool Calling — complete
 
 - Authorized target remains Phases 66–105. Phase 89 evidence commit
   `f40a6052f496085f5f73948905ca5121b3a90e1a` passed all checks in
@@ -1714,7 +1714,23 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - The phase exceeds the usual line target because durable provider conversation,
   authorization/ledger integration, migration/trace accounting and extensive crash
   fixtures form one bounded feature. No future trigger or frontend scope is included.
-  Implementation commit, push, CI and post-push review remain pending.
+  Implementation `98241de95b0da3159e93905e017cc40be6854e61` is pushed to main
+  (1,773 changed lines, including 670 added test lines).
+  [CI 35135807330](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35135807330)
+  and every commit check passed: API (**778 tests** in 315.54s, existing TestClient
+  warning), Web and Docker Compose, including fresh migration and dependency audits.
+- Post-push review checked pinned tool/schema/policy boundaries, current starter and
+  reviewer authority, one effect per approved action, batch validation before I/O,
+  worker-loss/cancellation fencing, retained conversation limits, original-attempt
+  usage and ledger trace linkage. Migration ownership/retention and existing LLM,
+  adapter and business projection compatibility were reviewed. No blocking findings
+  or separate fix commit were needed.
+- Phase 90 and the R08 integration/tool-calling sequence are complete. No live
+  provider request, real credential, external action or deployment was tested.
+  Approval occurs at an explicit upstream gate; provider requests with lost responses
+  retain unknown usage/reserved cost, and adapter guarantees still govern uncertain
+  remote effects. Estimated application budgets are not provider billing guarantees.
+  These limits are documented. Phase 91 follows this record's push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
