@@ -139,6 +139,12 @@ def sync(db, source):
         if db.get(WorkflowEvent, event.id):
             continue
         kind = WorkflowEventType.state_transition
+        if (
+            event.entity_type == "workflow_executions"
+            and event.from_status is None
+            and event.to_status == "pending"
+        ):
+            kind = WorkflowEventType.workflow_started
         if event.entity_type == "workflow_executions" and event.to_status in {
             "completed",
             "failed",

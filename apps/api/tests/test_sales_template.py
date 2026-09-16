@@ -247,6 +247,8 @@ def test_api_start_adapters_historical_reads_and_backout(database, monkeypatch):
             assert accepted.status_code == 201, accepted.text
             identity = accepted.json()["id"]
             assert accepted.json()["execution_id"] is not None
+            started_events = client.get(f"/workflow-runs/{identity}/events").json()
+            assert sum(event["event_type"] == "workflow_started" for event in started_events) == 1
             for action in ["run-analyst", "run-reviewer", "run-writer", "run-baseline"]:
                 assert client.post(f"/workflow-runs/{identity}/{action}").status_code == 409
             drain(database, monkeypatch, [ANALYSIS, review(approved=True, retry=False, score=0.95)])
@@ -352,6 +354,29 @@ def test_concurrent_template_install_is_idempotent(database):
         assert futures[0].result(timeout=30) == futures[1].result(timeout=30)
     with Session(database) as db:
         assert len(db.scalars(select(WorkflowVersion)).all()) == 2
+
+
+def test_acceptance_projection_failure_rolls_back_both_run_records_and_job(database, monkeypatch):
+    from src.models.durable_job import DurableJob
+    from src.models.execution_start import ExecutionStart
+    from src.models.workflow_execution import WorkflowExecution
+    from src.services import business_projection
+
+    def fail_projection(*args):
+        raise RuntimeError("Injected projection failure")
+
+    with Session(database) as db:
+        install(db)
+        source = UploadedInput(
+            title="Atomic start", input_type="sales_report", raw_text="Revenue 10"
+        )
+        db.add(source)
+        db.commit()
+        monkeypatch.setattr(business_projection, "sync", fail_projection)
+        with pytest.raises(RuntimeError, match="Injected projection"):
+            start_sales(db, source, RunMode.baseline)
+        for model in [WorkflowRun, WorkflowExecution, ExecutionStart, DurableJob]:
+            assert not db.scalars(select(model)).all()
 
 
 def test_sales_migration_retains_history_and_enforces_one_owner():

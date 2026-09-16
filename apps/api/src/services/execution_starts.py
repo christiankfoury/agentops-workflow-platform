@@ -102,6 +102,10 @@ def start_execution(db, body, *, legacy_run=None):
             version_id=str(selected.id),
             definition_id=str(item.id),
         )
+        if legacy_run is not None:
+            from src.services.business_projection import sync
+
+            sync(db, run)
         db.commit()
         return run
     except IntegrityError:

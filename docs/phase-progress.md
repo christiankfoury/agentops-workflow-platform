@@ -1184,6 +1184,21 @@ This is a status index; implementation details live only in `docs/phases.md`.
   safety, tenant authorization, concurrent installation and historical comparisons.
   The compatibility and parity coverage forms one phase-scoped change; commit size
   exceeds the suggested range. Implementation push, CI and post-push review pending.
+- Implementation `d80ade2b2274130a2f4fadbcb2a4f15c59bc4536` pushed to main.
+  [CI run 35038501298](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35038501298)
+  passed Web and Docker Compose; API reported **545 passed, 1 failed**. The remaining
+  legacy start-event fixture needed the explicit backout setting. Post-push review
+  also found that queued sales starts should expose their compatibility start event
+  immediately, before a worker first polls. The fix projects acceptance atomically
+  and maps the initial generic event to `workflow_started`; an API regression checks
+  the event before worker execution. No other blocking review finding. The phase
+  remains in progress pending fix validation, push, CI and follow-up review.
+- Fix validation: `uv run --directory apps/api pytest tests/test_workflow_events.py tests/test_sales_template.py -k 'workflow_events or api_start or acceptance_projection' -q --tb=short`
+  passed **7 tests**, including injected projection failure rolling back both run
+  records and the durable job. The preceding broader start/sales/event run passed
+  25 cases and exposed an overly strict new event assertion, corrected to allow the
+  existing queued-job event while requiring exactly one start event. Ruff and diff
+  checks passed. The fix is limited to acceptance projection and event fixtures.
 
 When a future phase starts, add a record here using these fields:
 

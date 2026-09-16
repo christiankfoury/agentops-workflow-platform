@@ -31,7 +31,10 @@ def make_run(status: WorkflowStatus = WorkflowStatus.created) -> WorkflowRun:
     )
 
 
-def test_create_workflow_run_logs_started_event():
+def test_create_workflow_run_logs_started_event(monkeypatch):
+    from src.config import settings
+
+    monkeypatch.setattr(settings, "sales_template_enabled", False)
     db = FakeSession()
     uploaded_input = make_input()
     db.inputs.append(uploaded_input)
