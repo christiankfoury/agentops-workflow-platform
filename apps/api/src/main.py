@@ -18,6 +18,7 @@ from src.routers import (
     human_approvals,
     identity,
     prompt_versions,
+    schedules,
     tools,
     uploaded_inputs,
     webhooks,
@@ -54,6 +55,8 @@ app = FastAPI(
 )
 
 authenticated_router_dependencies = [Depends(require_access)]
+app.include_router(schedules.router, prefix="/workflow-schedules", tags=["workflow-schedules"],
+                   dependencies=authenticated_router_dependencies)
 app.include_router(
     webhooks.router,
     prefix="/webhook-triggers",
@@ -90,7 +93,7 @@ app.include_router(
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exc: RequestValidationError):
-    if request.url.path.startswith(("/tools", "/webhook-triggers")):
+    if request.url.path.startswith(("/tools", "/webhook-triggers", "/workflow-schedules")):
         return JSONResponse(
             {
                 "detail": [

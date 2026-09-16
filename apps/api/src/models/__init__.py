@@ -12,6 +12,7 @@ from src.models.human_approval import HumanApproval
 from src.models.identity import IdentitySession, Membership, Organization, ServicePrincipal, User
 from src.models.llm_conversation import LLMConversation
 from src.models.prompt_version import PromptVersion
+from src.models.schedule import ScheduleFire, WorkflowSchedule
 from src.models.tool import ToolCredential, ToolDefinition, ToolExecution, ToolVersion
 from src.models.uploaded_input import UploadedInput
 from src.models.webhook import WebhookDelivery, WebhookTrigger
@@ -26,6 +27,8 @@ from src.models.workflow_run import WorkflowRun
 from src.services import tenancy as _tenancy  # noqa: F401
 
 __all__ = [
+    "ScheduleFire",
+    "WorkflowSchedule",
     "WebhookTrigger",
     "WebhookDelivery",
     "LLMConversation",

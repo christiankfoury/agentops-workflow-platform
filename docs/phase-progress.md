@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 91 — Webhook Triggers (complete; delivery record verification)**.
+Current implementation phase: **Phase 92 — Scheduled and Cron Triggers (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–91 are complete; Phases 92–105 remain planned.
+Phases 66–91 are complete; Phase 92 is in progress; Phases 93–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -130,7 +130,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
 | 90 | Complete | Pinned LLM tools, durable continuation, exact approval, bounded budgets, recovered usage and ledger trace linkage. |
 | 91 | Complete | Signed, scoped webhook triggers; atomic replay-safe starts, rotation and retained delivery history. |
-| 92 | Planned — not started | Scheduled and Cron Triggers |
+| 92 | In progress | Scheduled and Cron Triggers; durable firing, bounded catch-up and timezone rules. |
 | 93 | Planned — not started | Generic Workflow Builder Editor |
 | 94 | Planned — not started | Builder Validation Publication and Version History |
 | 95 | Planned — not started | Generic Graph Run Debugger |
@@ -1810,6 +1810,74 @@ This is a status index; implementation details live only in `docs/phases.md`.
   This evidence record will be committed/pushed and its CI checked before advancing.
   No deployment or external webhook provider was exercised; fixture-backed limits
   and operation details are explicit in the guide. Phase 92 follows the record gate.
+
+- Evidence record `87f570c83474b3044af54334ed80e6db2001226a` pushed to main;
+  [CI 35142183434](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35142183434)
+  passed API/Web/Compose, **803 tests**, 477.14s, and both dependency audits.
+  All commit check runs were verified successful; the worktree was clean before Phase 92.
+
+### Phase 92 — Scheduled and Cron Triggers — in progress
+
+- Inspected the shared start contract, webhook service-principal validation, tenant
+  scopes, immutable history patterns, worker maintenance loop and execution terminal
+  states. Phase 91's implementation and evidence-record CI are complete.
+- Add tenant-owned schedule configuration, revision-checked administration, fixed
+  input, explicit pinned/published selection, service identity, UTC next-fire time
+  and retained fire history. Persist the planned `forbid` overlap and `coalesce`
+  missed-run policies. Pausing retains the pending tick; resume coalesces once.
+  Changes to timing, input or routing reset the next tick and are audited.
+- Evaluate standard five-field cron in local wall time with bounded croniter search;
+  use IANA ZoneInfo round trips to skip nonexistent times and select fold 0 once.
+  Add locked croniter/tzdata dependencies for portable Windows/Linux behavior.
+- Worker replicas select due IDs, then claim each schedule using tenant-scoped row
+  locks with skip-locked behavior. Under one transaction, retain a unique fire receipt,
+  revalidate service access, resolve a version, call shared start without committing,
+  and advance the next tick. Rollback leaves the intended fire available to retry.
+  Existing active runs suppress overlap; failures/skips retain bounded audit history.
+- Acceptance: fake-clock DST, exact-boundary, invalid-cron, downtime, pause/resume,
+  overlap, version/config/revocation cases; real PostgreSQL competing schedulers and
+  rollback fault injection; tenant/admin API and migration retention checks. Broaden
+  webhook/start/worker regressions after integration.
+- Rollout: additive schedule/fire tables and worker maintenance integration; no
+  schedule exists by default. Tests use deterministic workflows and local service
+  fixtures, with no live provider or external account. Frontend controls are later scope.
+
+- Implemented revision-checked schedule APIs, scoped target/input validation, retained
+  schedule/fire models, bounded cron selection, atomic skip-locked firing and worker
+  maintenance integration. The additive migration prevents fire-history mutation or
+  populated downgrade. The dependency lock adds croniter 6.2.4, tzdata 2026.4,
+  python-dateutil and six without updating existing packages.
+- Local checks completed so far:
+  - `uv run --directory apps/api pytest tests/test_cron_schedule.py -q --tb=short`:
+    **17 passed**, 0.34s (terminal output).
+  - `uv run --directory apps/api pytest tests/test_cron_schedule.py tests/test_schedules.py
+    -q --tb=short`: **29 passed**, 49.39s (`.phase92-tests.log`).
+  - `uv run --directory apps/api pytest tests/test_schedules.py -k process_crash
+    -q --tb=short`: **1 passed**, 9.67s (`.phase92-crash.log`), with an actual child
+    process exiting after queue insertion and before commit.
+  - `uv run --directory apps/api pytest tests/test_schedules.py -k failed_candidate
+    -q --tb=short`: **1 passed**, 5.94s (`.phase92-isolation.log`).
+  - Ruff and diff checks passed; `uv run --directory apps/api pip-audit` reported
+    no known vulnerabilities (`.phase92-audit.log`).
+  - `uv run --directory apps/api pytest tests/test_schedules.py tests/test_schedule_migration.py
+    tests/test_webhooks.py tests/test_execution_starts.py tests/test_durable_queue.py
+    tests/test_worker_leases.py tests/test_durable_delays.py -q --tb=short`:
+    **90 passed**, 416.19s (`.phase92-regression.log`). This includes migration retention,
+    publication/revocation/configuration races and shared worker/start regressions.
+- [Schedule operations](SCHEDULED_TRIGGERS.md) documents five-field cron, DST,
+  pause/resume, edit resets, overlap, rejected ticks, crash recovery, worker logs and
+  bounded search. Sources are the official croniter and Python ZoneInfo documentation.
+  All run/clock/process evidence uses local deterministic fixtures; no provider call
+  or deployment is claimed. Scope size includes the API, migration, clock rules,
+  worker transaction and real database/process coverage as one phase delivery.
+- Local review checked tenant authority, no external I/O under schedule locks,
+  current service scope, atomic acceptance/advancement, immutable history, publication
+  pinning, config resets, overlap, deadline ordering and compatibility with existing
+  worker maintenance. No blocking finding remains. Final check:
+  `uv run --directory apps/api pytest tests/test_schedules.py -k input_is_validated
+  -q --tb=short`: **1 passed**, 5.84s (`.phase92-input.log`), covering validation both
+  on configuration and after a published workflow changes its input schema.
+  Implementation commit/push/CI/post-push review are pending.
 
 When a future phase starts, add a record here using these fields:
 

@@ -51,10 +51,10 @@ def principal_for(db, identity, *, active=True):
         )
     row = db.execute(query.with_for_update(read=True)).one_or_none()
     if row is None:
-        raise HTTPException(403, "Webhook service principal is unavailable")
+        raise HTTPException(403, "Trigger service principal is unavailable")
     principal = Principal(row.role, row.user_id, tenant_id(db), identity, frozenset(row.scopes))
     if active and not permits(principal, "workflow.start"):
-        raise HTTPException(403, "Webhook principal lacks workflow.start permission")
+        raise HTTPException(403, "Trigger principal lacks workflow.start permission")
     return principal
 
 

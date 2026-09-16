@@ -112,7 +112,7 @@ def request_action(method: str, path: str) -> str:
             return "membership.manage"
         return "export" if "/export/" in path else "read"
     prefix = path.split("/")[1]
-    if prefix == "webhook-triggers":
+    if prefix in {"webhook-triggers", "workflow-schedules"}:
         return "trigger.manage"
     if prefix == "tools":
         return (

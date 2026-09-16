@@ -53,6 +53,9 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
             from src.services.durable_evaluations import advance_approvals
 
             advance_approvals(database)
+            from src.services.schedules import fire_due_schedules
+
+            fire_due_schedules(database)
             available = capacity - len(active)
             recover_expired(database)
             from src.services.tool_effects import recover_effects
