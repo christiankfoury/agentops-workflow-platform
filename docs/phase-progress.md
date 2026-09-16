@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current next implementation phase: **Phase 84 — Customer Feedback Template Migration**.
+Current next implementation phase: **Phase 85 — Incident Template and Evaluation Compatibility**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–83 are complete; Phase 84 is in progress; Phases 85–105 remain planned.
+Phases 66–84 are complete; Phases 85–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -122,7 +122,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 81 | Complete | Parallel Branches and Joins |
 | 82 | Complete | Immutable LLM settings, bounded schema repair, usage accounting and quality revisions; implementation/fix CI and review passed. |
 | 83 | Complete | Published sales/baseline templates, durable starts, compatibility reads and delegated controls; fix CI/review passed. |
-| 84 | In progress | Customer Feedback Template Migration |
+| 84 | Complete | Customer Feedback Template Migration |
 | 85 | Planned — not started | Incident Template and Evaluation Compatibility |
 | 86 | Planned — not started | Tool Contracts Credentials and Effect Ledger |
 | 87 | Planned — not started | HTTP REST Tool |
@@ -1255,7 +1255,19 @@ This is a status index; implementation details live only in `docs/phases.md`.
   and preserved sales installation behavior. Corrected feedback definition labels
   in the shared installer and added a regression assertion. Provider schemas require
   every property, including nullable source fields. No live-provider or hosted
-  rollout claim. Implementation commit, push, CI and post-push review pending.
+  rollout claim.
+- Implementation `dd846c0681f86e73716f211cf8ec69477fefb8b1` pushed to main.
+  [CI run 35041028754](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35041028754)
+  passed API, Web and Docker Compose, including the full API suite and dependency
+  audits. Post-push review verified current-iteration bindings, frozen template
+  configuration, semantic repair and edit validation, mandatory approval, tenant
+  installation locks, shared acceptance rollback and retained control ownership.
+  No blocking findings or separate fix commit were required.
+- Phase 84 is complete. The 1,049 changed lines include 349 test lines and moving
+  shared installation/schema helpers out of sales; all changes serve feedback
+  migration and compatibility. Existing prompts and source normalization remain
+  supported. This is provider-fixture evidence, not live-provider parity or a
+  hosted rollout. Phase 85 follows the final record's push and successful CI.
 
 When a future phase starts, add a record here using these fields:
 
