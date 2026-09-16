@@ -460,6 +460,14 @@ def process_claim(engine, claim, registry=DEFAULT_REGISTRY):
                     if work.node.type == "tool"
                     else {}
                 )
+                if work.node.type == "llm" and work.node.config.tools:
+                    from src.services.llm_tool_execution import execute as execute_llm_tools
+
+                    context = {
+                        "llm_tool_executor": lambda item: execute_llm_tools(
+                            engine, claim, item, registry.llm_factory, registry.output_validators
+                        )
+                    }
                 result = execute_work(work, registry, **context)
             except ExecutionError as error:
                 return commit_result(db, claim, work, error=error)

@@ -117,15 +117,25 @@ def steps(
 
 @router.get("/{execution_id}/steps/{step_id}/attempts", response_model=list[StepAttemptRead])
 def attempts(execution_id: uuid.UUID, step_id: uuid.UUID, db: Session = Depends(get_db)):
+    from src.services.llm_tool_execution import attempt_metadata
+
     execution(db, execution_id)
     step = db.scalar(
         select(StepRun).where(StepRun.id == step_id, StepRun.execution_id == execution_id)
     )
     if step is None:
         raise HTTPException(404, "Step run not found")
-    return db.scalars(
+    rows = db.scalars(
         select(StepAttempt).where(StepAttempt.step_run_id == step_id).order_by(StepAttempt.number)
     ).all()
+    return [
+        StepAttemptRead.model_validate(row).model_copy(
+            update={
+                "llm_metadata": attempt_metadata(db, row),
+            }
+        )
+        for row in rows
+    ]
 
 
 @router.get("/{execution_id}/events", response_model=list[ExecutionEventRead])

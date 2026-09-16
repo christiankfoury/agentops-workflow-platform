@@ -1,12 +1,14 @@
 """Catalog-bound graph tools and exact human authorization at worker dispatch."""
 
+from types import SimpleNamespace
+
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.config import settings
 from src.models.execution_approval import ExecutionApproval
-from src.models.identity import Membership, User
+from src.models.identity import Membership, ServicePrincipal, User
 from src.models.tool import ToolDefinition, ToolVersion
 from src.models.workflow_execution import StepRun
 from src.schemas.tool import ToolContract
@@ -14,6 +16,8 @@ from src.services.approval_runtime import digest, source_hash
 from src.services.execution_registry import NodeResult
 from src.services.graph_expressions import ExecutionError
 from src.services.graph_validation import compatible, invalid
+from src.services.identity import Principal
+from src.services.permissions import authorize
 from src.services.retry_runtime import runtime_now
 from src.services.tenancy import bind_tenant, tenant_id
 from src.services.tool_effects import (
@@ -41,11 +45,37 @@ def pinned_tool(db, node):
     return version, contract
 
 
+def tool_binding(node, name=None):
+    if node.type == "tool" and name is None:
+        return node
+    if node.type == "llm" and name in node.config.tools:
+        return SimpleNamespace(id=node.id, config=node.config.tools[name])
+    raise ExecutionError("tool_contract_mismatch", "Tool is not declared by this step")
+
+
+def authorize_starter(db, run):
+    if not settings.identity_enabled:
+        return
+    service = db.scalar(
+        select(ServicePrincipal.id).where(ServicePrincipal.user_id == run.created_by_user_id)
+    )
+    db.info["principal"] = Principal("worker", run.created_by_user_id, run.organization_id, service)
+    try:
+        authorize(db, "workflow.start", lock=True)
+    except HTTPException:
+        raise ExecutionError("tool_denied", "Execution principal is no longer authorized") from None
+
+
 def validate_references(db, graph, *, bind_policy=False, require_bound=False):
     nodes = {node.id: node for node in graph.nodes}
-    for index, node in enumerate(graph.nodes):
-        if node.type != "tool":
-            continue
+    bindings = [
+        (index, node, tool_binding(node, name))
+        for index, node in enumerate(graph.nodes)
+        for name in (
+            [None] if node.type == "tool" else node.config.tools if node.type == "llm" else []
+        )
+    ]
+    for index, owner, node in bindings:
         try:
             _, contract = pinned_tool(db, node)
             credential = active_credential(db, contract)
@@ -70,11 +100,12 @@ def validate_references(db, graph, *, bind_policy=False, require_bound=False):
             )
             if side_effecting != contract.side_effecting:
                 raise ValueError("Tool effect policy disagrees with its adapter")
-            if not compatible(node.input_schema, contract.input_schema) or not compatible(
-                contract.output_schema, node.output_schema
+            if owner.type == "tool" and (
+                not compatible(node.input_schema, contract.input_schema)
+                or not compatible(contract.output_schema, node.output_schema)
             ):
                 raise ValueError("Node schemas disagree with the pinned tool contract")
-            if contract.side_effecting and adapter.requires_approval:
+            if contract.side_effecting and (adapter.requires_approval or owner.type == "llm"):
                 gate = nodes.get(node.config.approval_node)
                 ancestors, pending = set(), [node.id]
                 while pending:
@@ -158,6 +189,7 @@ def require_approval(db, run, step, node, arguments):
         ).first()
         if allowed is None:
             raise ExecutionError("tool_approval_required", "Tool approver is no longer authorized")
+    return item.id
 
 
 def execute_node(engine, claim, work):

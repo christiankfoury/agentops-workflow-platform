@@ -36,6 +36,16 @@ class StructuredResponse:
     finish_reason: str | None = None
 
 
+@dataclass
+class ToolResponse:
+    content: str | None
+    calls: list[dict]
+    model: str
+    usage: LLMUsage
+    refusal: str | None = None
+    finish_reason: str | None = None
+
+
 class StructuredDecodeError(json.JSONDecodeError):
     """Retain returned usage even when the provider's JSON cannot be decoded."""
 
@@ -132,7 +142,7 @@ class LLMClient:
                 "json_schema": {
                     "name": "structured_response",
                     "schema": schema,
-                }
+                },
             },
         }
         if temperature is not None:
@@ -159,3 +169,54 @@ class LLMClient:
         except json.JSONDecodeError as error:
             raise StructuredDecodeError(error, result) from error
         return result
+
+    def generate_tools(
+        self,
+        *,
+        messages,
+        tools,
+        schema,
+        system,
+        model,
+        max_tokens,
+        temperature=None,
+        timeout=None,
+        max_retries=0,
+    ):
+        kwargs = {
+            "model": model,
+            "messages": [{"role": "system", "content": system}, *messages],
+            "tools": tools,
+            "max_completion_tokens": max_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_response",
+                    "schema": schema,
+                },
+            },
+        }
+        if temperature is not None:
+            kwargs["temperature"] = temperature
+        response = self._client.with_options(
+            timeout=timeout, max_retries=max_retries
+        ).chat.completions.create(**kwargs)
+        choice = response.choices[0]
+        return ToolResponse(
+            choice.message.content,
+            [
+                {
+                    "id": call.id,
+                    "type": call.type,
+                    "function": {
+                        "name": call.function.name,
+                        "arguments": call.function.arguments,
+                    },
+                }
+                for call in (choice.message.tool_calls or [])
+            ],
+            response.model,
+            LLMUsage(response.usage.prompt_tokens, response.usage.completion_tokens),
+            choice.message.refusal,
+            choice.finish_reason,
+        )

@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 90 — Governed LLM Tool Calling (next)**.
+Current implementation phase: **Phase 90 — Governed LLM Tool Calling (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–89 are complete; Phases 90–105 remain planned.
+Phases 66–89 are complete; Phase 90 is in progress; Phases 91–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -128,7 +128,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 87 | Complete | Governed HTTP tool, pinned destination policy, bounded transport and safe effect recovery; fix CI passed. |
 | 88 | Complete | Registered tenant data queries, restricted read-only roles, bounded async transport, worker receipts and fixture evidence. |
 | 89 | Complete | Configured issue reads/approved creation, durable correlation and backoff, ambiguity recovery and fixture evidence. |
-| 90 | Planned — not started | Governed LLM Tool Calling |
+| 90 | In progress | Governed LLM Tool Calling; implementation and local validation underway. |
 | 91 | Planned — not started | Webhook Triggers |
 | 92 | Planned — not started | Scheduled and Cron Triggers |
 | 93 | Planned — not started | Generic Workflow Builder Editor |
@@ -1640,6 +1640,81 @@ This is a status index; implementation details live only in `docs/phases.md`.
   provider backoff is per effect rather than a token-wide limiter. These limitations
   and the optional authorized sandbox check are documented. Phase 90 follows this
   record's push and successful CI.
+
+### Phase 90 — Governed LLM Tool Calling — in progress
+
+- Authorized target remains Phases 66–105. Phase 89 evidence commit
+  `f40a6052f496085f5f73948905ca5121b3a90e1a` passed all checks in
+  [CI 35130613280](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35130613280).
+- Inspected graph configuration, pinned provider execution, effect reservations,
+  exact approval checks, durable worker claims, identity permissions and accounting.
+  Add explicitly declared/versioned LLM tool bindings and bounded sequential execution
+  of provider call batches. Validate the entire batch before dispatch. Reuse all
+  adapter, credential, tenant, policy, approval and recovery checks.
+- Persist conversation checkpoints and provider reservations/usage before tool I/O;
+  resume pending calls and completed results after worker loss. Side effects require
+  an upstream approval of the exact action envelope; one approval authorizes one
+  logical effect even if the model changes its call ID. Recheck starter permissions.
+- Enforce cumulative call, provider-round, estimated-cost and time budgets. Tool
+  output is untrusted data and cannot alter bindings or authority. Expose safe call
+  linkage and usage without credentials or raw conversation text in the trace.
+- Acceptance: fixture-only provider tests plus real PostgreSQL worker/recovery tests
+  for multiple calls, malformed/unknown arguments, duplicate IDs, budget exhaustion,
+  restarts, exact approval/rejection/cancellation, revoked authority, injected output,
+  stable effects and accounting. Broaden shared tool/LLM/lifecycle regressions.
+- Rollout: additive tenant-owned conversation migration; empty tool bindings retain
+  existing LLM behavior. Preserve the pinned Chat Completions/model interface. No
+  live provider credentials, key changes, external calls or deployment are required.
+- Implemented pinned tool declarations, full-batch validation, sequential ledger
+  dispatch and exact upstream approval. Approved writes use approval-derived ledger
+  identities; model call-ID changes cannot multiply an approved action. Current
+  starter permissions and existing adapter/credential/policy boundaries are checked.
+- Added the tenant-owned `llm_conversations` migration and owned-worker checkpoint
+  service. Provider reservations/responses precede tool I/O; completed receipts and
+  pending calls survive recovery. Call, provider-round, estimated-cost, repair and
+  conversation-time limits persist across attempts. Unknown usage retains a cost
+  reservation. Attempts expose safe ledger IDs/status and usage from original
+  attempts; business projections include recovered usage. Existing LLM nodes remain
+  on their previous execution path. See [LLM_TOOL_CALLING.md](LLM_TOOL_CALLING.md).
+- Focused provider/runtime/migration run initially passed 40 tests with two fixture
+  failures: the cancellation test did not expect the existing stale-result fence,
+  and rejection expected failed rather than cancelled. These expectations were
+  corrected. An earlier expanded fixture used a nonexistent service-principal name
+  field; it was removed. The first runtime batch passed 13 tests before expansion.
+- Final `tests/test_llm_tools.py` passed **28 tests** in 162.31s
+  (`.phase90-final-focused.log`), including approved-write recovery, schema repair,
+  revocation, pricing, exact approval, cancellation, credential redaction and tenant
+  isolation. Final checkpoint recovery tests passed **2 tests** in 14.79s
+  (`.phase90-checkpoint-final.log`); final trace/linkage tests passed **2 tests** in
+  13.83s (`.phase90-trace-final.log`). Sales-template/durable-evaluation projection
+  regressions passed **20 tests** in 135.52s (`.phase90-projection.log`). Migration
+  round trip, populated retention and provider-contract tests passed in the initial
+  40-test result. Ruff, Compose configuration and local diff checks pass. Existing
+  TestClient deprecation warning remains.
+- The combined explicit-file regression run stalled after 72 passing test markers
+  with no active fixture database work (`.phase90-regression.log`); its owned pytest
+  process was stopped, and no completion is claimed. Reran the suites separately
+  with verbose output and a 90-second faulthandler diagnostic. The provider/LLM/
+  migration group passed **36 tests** in 20.56s (`.phase90-provider-regression.log`).
+  Final disabled-catalog regression passed **1 test** in 8.18s
+  (`.phase90-revocation-final.log`), confirming denial before a provider request.
+  The shared tool/lifecycle group passed **124 tests** in 666.75s
+  (`.phase90-shared-regression.log`): `test_tool_effects.py`,
+  `test_http_tool_runtime.py`, `test_github_tool_runtime.py`,
+  `test_postgres_tool_runtime.py`, `test_execution_approvals.py`,
+  `test_worker_leases.py`, `test_execution_cancellation.py`, `test_durable_queue.py`
+  and `test_execution_starts.py`, with `-v --tb=short -o faulthandler_timeout=90`.
+  No diagnostic timeout or failure occurred in the rerun.
+- Final review aligned model/migration storage constraints and bounded provider
+  usage to prevent aggregate overflow. Schema/runtime checks passed **2 tests** in
+  16.37s (`.phase90-schema-final.log`); malformed usage passed **1 test** in 7.97s
+  (`.phase90-usage-final.log`). Conversation deadlines now also retain the original
+  attempt deadline, verified by **2 tests** in 13.37s (`.phase90-deadline-final.log`).
+  Only local fixtures and disposable PostgreSQL were exercised.
+- The phase exceeds the usual line target because durable provider conversation,
+  authorization/ledger integration, migration/trace accounting and extensive crash
+  fixtures form one bounded feature. No future trigger or frontend scope is included.
+  Implementation commit, push, CI and post-push review remain pending.
 
 When a future phase starts, add a record here using these fields:
 

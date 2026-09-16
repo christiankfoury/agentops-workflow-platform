@@ -278,7 +278,7 @@ def prepare_next(
     return replace(work, revision=run.state_revision) if work else None
 
 
-def execute_work(work, registry=DEFAULT_REGISTRY, *, tool_executor=None):
+def execute_work(work, registry=DEFAULT_REGISTRY, *, tool_executor=None, llm_tool_executor=None):
     """No database session or lock crosses this boundary."""
     try:
         work.control.raise_if_aborted()
@@ -291,7 +291,14 @@ def execute_work(work, registry=DEFAULT_REGISTRY, *, tool_executor=None):
         elif work.node.type == "llm":
             from src.services.llm_execution import execute_llm
 
-            result = execute_llm(work, registry.llm_factory, registry.output_validators)
+            if work.node.config.tools:
+                if llm_tool_executor is None:
+                    raise ExecutionError(
+                        "durable_worker_required", "LLM tools require an owned worker"
+                    )
+                result = llm_tool_executor(work)
+            else:
+                result = execute_llm(work, registry.llm_factory, registry.output_validators)
         elif work.node.type == "condition" and "forced_route" in work.revision_context:
             result = NodeResult({}, route=work.revision_context["forced_route"])
         else:

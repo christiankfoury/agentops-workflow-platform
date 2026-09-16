@@ -243,3 +243,47 @@ class TestLLMUsage:
     def test_total_tokens(self):
         usage = LLMUsage(input_tokens=100, output_tokens=50)
         assert usage.total_tokens == 150
+
+
+def test_tool_call_provider_contract_preserves_ids_and_disables_sdk_retries(mock_openai):
+    from types import SimpleNamespace
+
+    response = _mock_response("")
+    response.choices[0].message.refusal = None
+    response.choices[0].finish_reason = "tool_calls"
+    response.choices[0].message.tool_calls = [
+        SimpleNamespace(
+            id="provider_call_1",
+            type="function",
+            function=SimpleNamespace(name="lookup", arguments='{"value":"one"}'),
+        )
+    ]
+    mock_openai.with_options.return_value.chat.completions.create.return_value = response
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "lookup", "strict": False, "parameters": {"type": "object"}},
+        }
+    ]
+    result = LLMClient(api_key="fixture").generate_tools(
+        messages=[{"role": "user", "content": "test"}],
+        tools=tools,
+        schema={"type": "object"},
+        system="fixture",
+        model=DEFAULT_MODEL,
+        max_tokens=40,
+        timeout=2,
+        temperature=0.2,
+    )
+    mock_openai.with_options.assert_called_once_with(timeout=2, max_retries=0)
+    kwargs = mock_openai.with_options.return_value.chat.completions.create.call_args.kwargs
+    assert kwargs["tools"] == tools and kwargs["max_completion_tokens"] == 40
+    assert kwargs["messages"][0] == {"role": "system", "content": "fixture"}
+    assert result.calls == [
+        {
+            "id": "provider_call_1",
+            "type": "function",
+            "function": {"name": "lookup", "arguments": '{"value":"one"}'},
+        }
+    ]
+    assert result.usage.total_tokens == 30 and result.finish_reason == "tool_calls"

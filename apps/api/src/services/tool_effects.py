@@ -174,17 +174,21 @@ def active_credential(db, contract):
     return credential
 
 
-def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
+def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters, *, tool_name=None):
     with serialized_claim(db, claim) as run:
         step = worker_attempt(db, claim, attempt_id)
         if run.status != "running" or run.cancel_requested:
             raise ExecutionError("tool_owner_lost", "Execution cannot dispatch a tool")
         version = get(db, ToolVersion, version_id)
         definition = get(db, ToolDefinition, version.definition_id)
-        node = pinned_node(db, run, step.node_id)
+        from src.services.tool_runtime import authorize_starter, tool_binding
+
+        owner = pinned_node(db, run, step.node_id)
+        node = tool_binding(owner, tool_name)
+        if owner.type == "llm":
+            authorize_starter(db, run)
         if (
-            node.type != "tool"
-            or node.config.tool_id != version.definition_id
+            node.config.tool_id != version.definition_id
             or node.config.version != version.number
             or not definition.active
         ):
@@ -211,10 +215,12 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
         )
         if actual_effect != contract.side_effecting:
             raise ExecutionError("tool_contract_mismatch", "Adapter effect policy does not match")
-        if contract.side_effecting and adapter.requires_approval:
+        if contract.side_effecting and (adapter.requires_approval or owner.type == "llm"):
             from src.services.tool_runtime import require_approval
 
-            require_approval(db, run, step, node, arguments)
+            approval_id = require_approval(db, run, step, node, arguments)
+            if owner.type == "llm":
+                call_id = f"approval:{approval_id}"
         key = digest([str(step.id), call_id])
         fingerprint = digest(
             [str(version.id), arguments]
@@ -274,7 +280,18 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters):
         return effect.id, effect.reservation_token, contract, adapter, uncertain
 
 
-def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None, arguments=None):
+def dispatch(
+    db,
+    claim,
+    attempt_id,
+    effect_id,
+    token,
+    contract,
+    *,
+    adapter=None,
+    arguments=None,
+    tool_name=None,
+):
     with serialized_claim(db, claim) as run:
         step = worker_attempt(db, claim, attempt_id)
         effect = get(db, ToolExecution, effect_id, lock=True)
@@ -292,10 +309,18 @@ def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None,
         )
         if not definition.active:
             raise ExecutionError("tool_disabled", "Tool is disabled")
-        if contract.side_effecting and adapter and adapter.requires_approval:
-            from src.services.tool_runtime import require_approval
+        from src.services.tool_runtime import authorize_starter, require_approval, tool_binding
 
-            require_approval(db, run, step, pinned_node(db, run, step.node_id), arguments)
+        owner = pinned_node(db, run, step.node_id)
+        node = tool_binding(owner, tool_name)
+        if owner.type == "llm":
+            authorize_starter(db, run)
+        if (
+            contract.side_effecting
+            and adapter
+            and (adapter.requires_approval or owner.type == "llm")
+        ):
+            require_approval(db, run, step, node, arguments)
         credential = active_credential(db, contract)
         secret = ""
         if credential:
@@ -336,12 +361,26 @@ def dispatch(db, claim, attempt_id, effect_id, token, contract, *, adapter=None,
         effect.dispatched = True
         effect.attempts += 1
         now = runtime_now(db)
+        conversation_deadline = None
+        if owner.type == "llm":
+            from src.models.llm_conversation import LLMConversation
+
+            conversation = db.scalar(
+                select(LLMConversation).where(LLMConversation.step_run_id == step.id)
+            )
+            if conversation is None:
+                raise ExecutionError("tool_contract_mismatch", "LLM continuation is unavailable")
+            conversation_deadline = datetime.fromisoformat(conversation.state["deadline"])
         remaining = min(
             [
                 contract.timeout_seconds,
                 *(
                     (deadline - now).total_seconds()
-                    for deadline in [run.deadline_at, db.get(StepAttempt, attempt_id).deadline_at]
+                    for deadline in [
+                        run.deadline_at,
+                        db.get(StepAttempt, attempt_id).deadline_at,
+                        conversation_deadline,
+                    ]
                     if deadline
                 ),
             ]
@@ -471,7 +510,16 @@ def recover_effects(engine):
 
 
 def execute_tool(
-    engine, claim, attempt_id, version_id, arguments, *, call_id="tool", adapters=None, control=None
+    engine,
+    claim,
+    attempt_id,
+    version_id,
+    arguments,
+    *,
+    call_id="tool",
+    adapters=None,
+    control=None,
+    tool_name=None,
 ):
     adapters = ADAPTERS if adapters is None else adapters
     control = control or AbortSignal()
@@ -479,7 +527,14 @@ def execute_tool(
     with Session(engine) as db:
         bind_tenant(db, claim.organization_id)
         identity, token, contract, adapter, uncertain = reserve(
-            db, claim, attempt_id, version_id, arguments, call_id, adapters
+            db,
+            claim,
+            attempt_id,
+            version_id,
+            arguments,
+            call_id,
+            adapters,
+            **({"tool_name": tool_name} if tool_name is not None else {}),
         )
         if token is None:
             effect = get(db, ToolExecution, identity)
@@ -503,6 +558,7 @@ def execute_tool(
                 contract,
                 adapter=adapter,
                 arguments=arguments,
+                **({"tool_name": tool_name} if tool_name is not None else {}),
             )
         dispatched = True
         # Conservatively charge credential resolution/commit time against the

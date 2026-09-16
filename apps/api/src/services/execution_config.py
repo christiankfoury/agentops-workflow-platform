@@ -54,6 +54,8 @@ def snapshot_config(db, version, graph):
             threshold = resolved.reviewer_approval_threshold
             human_threshold = resolved.human_approval_threshold
         pricing = MODEL_PRICING.get(model)
+        if config.tools and pricing is None:
+            raise HTTPException(422, "Governed LLM tools require configured model pricing")
         try:
             LLMConfig.model_validate(
                 {

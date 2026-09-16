@@ -10,6 +10,12 @@ from src.services.execution_records import pinned_node
 from src.services.workflow_state import transition_execution_entity as transition
 
 PERMANENT_ERRORS = {
+    "llm_tool_call_invalid",
+    "llm_call_limit",
+    "llm_round_limit",
+    "llm_cost_limit",
+    "llm_budget_unavailable",
+    "llm_conversation_limit",
     "provider_rejected",
     "provider_refused",
     "provider_incomplete",

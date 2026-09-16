@@ -28,6 +28,8 @@ def execution_for(db, legacy_id):
 def sync(db, source):
     if source.legacy_run_id is None:
         return
+    from src.services.llm_tool_execution import attempt_metadata
+
     db.flush()
     run = db.get(WorkflowRun, source.legacy_run_id)
     if run is None:
@@ -55,7 +57,8 @@ def sync(db, source):
             .where(StepAttempt.step_run_id == row.id)
             .order_by(StepAttempt.number)
         ).all()
-        usage = [attempt.llm_metadata for attempt in attempts if attempt.llm_metadata]
+        usage_by_id = {attempt.id: attempt_metadata(db, attempt) for attempt in attempts}
+        usage = [item for item in usage_by_id.values() if item]
         all_usage.extend(usage)
         projected.status = AgentStepStatus(
             {
@@ -83,9 +86,14 @@ def sync(db, source):
         projected.cost = total_cost(usage)
         db.flush()
         for attempt in attempts:
-            item = attempt.llm_metadata
+            item = usage_by_id[attempt.id]
             identity = uuid.uuid5(attempt.id, "compatibility-cost")
-            if not item or item["estimated_cost_usd"] is None or db.get(CostEvent, identity):
+            if (
+                attempt.status in {"pending", "running"}
+                or not item
+                or item["estimated_cost_usd"] is None
+                or db.get(CostEvent, identity)
+            ):
                 continue
             pricing = item["pricing"]
             db.add(

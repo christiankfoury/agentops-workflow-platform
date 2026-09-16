@@ -151,6 +151,18 @@ class BaseNode(GraphModel):
     merge: Literal["exclusive"] | None = None
 
 
+class ToolConfig(GraphModel):
+    tool_id: uuid.UUID
+    version: int = Field(ge=1)
+    adapter: Literal["http", "postgresql", "github"] = "http"
+    approval_node: NodeID | None = None
+    policy_fingerprint: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+
+class LLMToolConfig(ToolConfig):
+    description: str = Field(default="", max_length=1000)
+
+
 class LLMConfig(GraphModel):
     prompt_version_id: uuid.UUID
     model: str = Field(min_length=1, max_length=100)
@@ -159,19 +171,15 @@ class LLMConfig(GraphModel):
     use_agent_settings: bool = False
     max_schema_repairs: int = Field(default=1, ge=0, le=2, strict=True)
     output_validator: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_.-]{0,99}$")
+    tools: dict[NodeID, LLMToolConfig] = Field(default_factory=dict, max_length=8)
+    max_tool_calls: int = Field(default=8, ge=1, le=32, strict=True)
+    max_provider_rounds: int = Field(default=6, ge=1, le=16, strict=True)
+    max_cost_usd: float = Field(default=1, gt=0, le=100)
 
 
 class CodeConfig(GraphModel):
     handler: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,99}$")
     version: int = Field(ge=1)
-
-
-class ToolConfig(GraphModel):
-    tool_id: uuid.UUID
-    version: int = Field(ge=1)
-    adapter: Literal["http", "postgresql", "github"] = "http"
-    approval_node: NodeID | None = None
-    policy_fingerprint: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class ConditionCase(GraphModel):
