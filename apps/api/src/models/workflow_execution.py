@@ -75,7 +75,13 @@ class WorkflowExecution(ExecutionFields, TenantOwned, Base):
 class StepRun(ExecutionFields, TenantOwned, Base):
     __tablename__ = "step_runs"
     __table_args__ = (
-        *tenant_constraints(__tablename__, {"execution_id": "workflow_executions"}),
+        *tenant_constraints(
+            __tablename__,
+            {
+                "execution_id": "workflow_executions",
+                "recovered_from_id": "step_runs",
+            },
+        ),
         UniqueConstraint("execution_id", "node_id", "branch", "iteration", name="uq_logical_step"),
         CheckConstraint("iteration >= 0"),
         Index("ix_step_delay_wake", "wake_at", "id", postgresql_where="status = 'waiting'"),
@@ -93,6 +99,7 @@ class StepRun(ExecutionFields, TenantOwned, Base):
         ),
     )
     execution_id: Mapped[uuid.UUID] = mapped_column(UUID())
+    recovered_from_id: Mapped[uuid.UUID | None] = mapped_column(UUID())
     node_id: Mapped[str] = mapped_column(String(64))
     step_type: Mapped[str] = mapped_column(String(20))
     branch: Mapped[str] = mapped_column(String(256), default="main")
@@ -146,7 +153,15 @@ def preserve_execution_identity(db, _context, _instances):
             "run_mode",
             "runtime_config",
         ),
-        StepRun: ("execution_id", "node_id", "step_type", "branch", "iteration", "idempotency_key"),
+        StepRun: (
+            "execution_id",
+            "node_id",
+            "step_type",
+            "branch",
+            "iteration",
+            "idempotency_key",
+            "recovered_from_id",
+        ),
         StepAttempt: ("step_run_id", "number", "idempotency_key"),
     }
     for item in db.new:

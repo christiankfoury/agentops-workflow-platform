@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:smoke": "node --test tests/routes.smoke.test.mjs tests/identity.test.mjs tests/workflow-builder.test.mjs tests/workflow-release.test.mjs tests/execution-traces.test.mjs",
+    "test:smoke": "node --test tests/routes.smoke.test.mjs tests/identity.test.mjs tests/workflow-builder.test.mjs tests/workflow-release.test.mjs tests/execution-traces.test.mjs tests/execution-controls.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

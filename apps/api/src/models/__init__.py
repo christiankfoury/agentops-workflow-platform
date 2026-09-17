@@ -7,6 +7,7 @@ from src.models.durable_job import DurableJob
 from src.models.evaluation_case import EvaluationCase
 from src.models.evaluation_result import EvaluationResult
 from src.models.execution_approval import ExecutionApproval
+from src.models.execution_recovery import ExecutionRecovery
 from src.models.execution_start import ExecutionStart
 from src.models.human_approval import HumanApproval
 from src.models.identity import IdentitySession, Membership, Organization, ServicePrincipal, User
@@ -27,6 +28,7 @@ from src.models.workflow_run import WorkflowRun
 from src.services import tenancy as _tenancy  # noqa: F401
 
 __all__ = [
+    "ExecutionRecovery",
     "ScheduleFire",
     "WorkflowSchedule",
     "WebhookTrigger",

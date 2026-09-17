@@ -28,6 +28,7 @@ FIELDS = {
         "waiting_reason",
         "wake_at",
         "next_attempt_at",
+        "recovered_from_id",
     ),
     "attempts": (*COMMON, "step_run_id", "number", "deadline_at", "error_classification"),
     "events": ("id", "entity_type", "entity_id", "from_status", "to_status", "created_at"),

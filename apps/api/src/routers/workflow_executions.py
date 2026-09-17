@@ -11,6 +11,7 @@ from src.models.workflow_execution import ExecutionEvent, StepAttempt, StepRun, 
 from src.models.workflow_run import WorkflowRun
 from src.schemas.durable_job import JobRead
 from src.schemas.execution_cancel import ExecutionCancelRead, ExecutionCancelRequest
+from src.schemas.execution_recovery import RecoveryRequest
 from src.schemas.execution_start import ExecutionStartRead, ExecutionStartRequest
 from src.schemas.workflow_execution import (
     ExecutionEventRead,
@@ -24,6 +25,28 @@ from src.services.execution_records import execution
 from src.services.execution_starts import start_execution
 
 router = APIRouter()
+
+
+@router.get("/{execution_id}/controls")
+def controls(execution_id: uuid.UUID, db: Session = Depends(get_db)):
+    from src.services.execution_recovery import controls as read_controls
+
+    return read_controls(db, execution_id)
+
+
+@router.post("/{execution_id}/recover", status_code=202)
+def recover(execution_id: uuid.UUID, body: RecoveryRequest, db: Session = Depends(get_db)):
+    from src.services.execution_recovery import recover as create_recovery
+
+    run = create_recovery(db, execution_id, body.reason)
+    return {"id": run.id, "status": run.status, "version_id": run.version_id}
+
+
+@router.post("/{execution_id}/jobs/{job_id}/retry")
+def retry_job(execution_id: uuid.UUID, job_id: uuid.UUID, db: Session = Depends(get_db)):
+    from src.services.execution_recovery import retry_job as retry
+
+    return retry(db, execution_id, job_id)
 
 
 @router.post("", response_model=ExecutionStartRead, status_code=202)

@@ -3,7 +3,8 @@
 Open **Graph runs**, or use **Open run debugger** after a manual start. Business
 run pages also link to **Open run trace**. All readers enforce the current
 organization and read permission; changing organization requires reopening the
-trace. The debugger performs no workflow mutation.
+trace. Trace readers perform no workflow mutation. The separate
+[recovery and cancellation panel](WORKFLOW_RECOVERY.md) provides authorized controls.
 
 ## Graph and logical history
 
@@ -44,8 +45,7 @@ must keep credentials in configured references rather than workflow payloads.
 A failed section load retains the existing view and provides a retry. Initial
 step-history failure leaves the graph/run state usable. Controls suppress duplicate
 requests while loading. **Reload section** refreshes that history; reload the page
-to refresh graph/run state. Automatic polling and recovery controls are separate
-delivery phases.
+to refresh graph/run state. Automatic polling remains a separate delivery phase.
 
 ## Historical compatibility and usage
 

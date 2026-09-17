@@ -36,6 +36,9 @@ def add_step(db, run, node_id, *, branch="main", iteration=0, inputs=None):
         if not branch or len(branch) > 256 or type(iteration) is not int or iteration < 0:
             raise ValueError("Invalid branch/iteration identity")
         node = pinned_node(db, run, node_id)
+        from src.services.recovery_lineage import source_step
+
+        prior = source_step(db, run, node_id, branch, iteration)
         key = hashlib.sha256(
             json.dumps([str(run.id), node_id, branch, iteration]).encode()
         ).hexdigest()
@@ -47,6 +50,7 @@ def add_step(db, run, node_id, *, branch="main", iteration=0, inputs=None):
             iteration=iteration,
             idempotency_key=key,
             input_json=inputs,
+            recovered_from_id=prior.id if prior is not None else None,
         )
         db.add(step)
         db.flush()

@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 95 — Generic Graph Run Debugger (complete; completion-record CI gate pending)**.
+Current implementation phase: **Phase 96 — Safe Manual Retry and Recovery Controls (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–95 are complete; Phases 96–105 remain planned. Phase 96 starts after the Phase 95 completion-record CI gate.
+Phases 66–95 are complete; Phase 96 is in progress; Phases 97–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -134,7 +134,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 93 | Complete | Generic workflow draft builder, typed node forms and conflict-safe editing. |
 | 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
 | 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
-| 96 | Planned — not started | Safe Manual Retry and Recovery Controls |
+| 96 | In progress | Authorized cancellation, bounded infrastructure retry, reconciliation and linked terminal recovery. |
 | 97 | Planned — not started | Worker Observability and Live Updates |
 | 98 | Planned — not started | Deterministic Throughput Benchmark |
 | 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
@@ -2151,6 +2151,87 @@ This is a status index; implementation details live only in `docs/phases.md`.
   limitations are explicit: bounded previews, current checkpoint edge state,
   known-field redaction, and selected-attempt rather than aggregate generic cost.
   Recovery controls and polling remain scoped to Phases 96 and 97.
+
+### Phase 96 — safe manual retry and recovery controls
+
+- Authorized range: Phases 66–105. Phase 95 completion record
+  `c59e53f3cfe9461ca2dfd5b39ee590b37c11fc79` was pushed; all checks in
+  [CI 35162885131](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35162885131)
+  passed (850 API tests in 431.30s, Web and Compose green, both audits clean).
+  Independent check-runs confirmed success; `.phase95-record-ci.log` retains evidence.
+- Plan/inspection: reviewed the required context docs, Phase 96 requirements,
+  graph/parallel/quality checkpoints, lifecycle immutability, cancellation,
+  worker lease recovery, retry budgets, effect ledger/reconciliation, private LLM
+  continuations, permissions and debugger. Preserve their existing authorities.
+- Implementation plan: add an immutable tenant-scoped recovery receipt with one
+  child per terminal source, preserving original version/input/runtime settings.
+  Copy safe completed checkpoints with explicit provenance; rerun approval gates
+  and their dependent computation. Link logical tool actions to original effect
+  identities and retain bounded LLM continuation budgets. Block uncertain effects
+  until recorded reconciliation; never manufacture a new effect key to bypass a
+  confirmed result or exhausted effect budget. Keep original terminal rows intact.
+  Active-run retry invokes existing expired-lease recovery, including its budgets
+  and backoff; it does not reopen terminal jobs or accelerate scheduled retries.
+- UI/API plan: current eligibility/reasons, cancel, expired-lease retry, linked
+  terminal recovery and administrator effect-resolution controls in the debugger.
+  Recheck permissions and scope at mutation time; suppress duplicate pending UI
+  requests and serialize competing operators. Preserve trace availability when
+  control requests fail; expose recovery provenance without duplicating usage.
+- Migration/rollout: additive recovery receipt table and nullable logical-step
+  provenance field with tenant foreign keys; deploy migration before updated
+  API/workers. Retain historical runs/attempts/effects and existing API contracts.
+- Acceptance: independent-session duplicate recovery and cancel races; immutable
+  terminal snapshots; pinned settings/input and rejection of changed-input requests;
+  reused output/effect identity, unknown and exhausted-effect blocking, fresh/expired
+  approval behavior, continuation budget preservation and unauthorized access.
+  Validate migrations, focused PostgreSQL/worker regression tests, frontend
+  interaction/type/lint/build, and local browser control flows. Push, wait all CI,
+  review and fix before completion; observability/polling remains Phase 97.
+- Implementation: additive `f096_execution_recovery` receipt/provenance migration,
+  scoped eligibility and control APIs, source-serialized recovery receipts, safe
+  checkpoint reuse and fresh approval gates, lineage-bound effect identities,
+  retained private LLM continuation budgets and scoped expired-lease retry audit.
+  Added debugger controls with reason/evidence forms, pending-request guards,
+  current permission/scope checks and retained error state. Operations semantics
+  and rollout are documented in [WORKFLOW_RECOVERY.md](WORKFLOW_RECOVERY.md).
+- Local validation so far: initial 4 recovery PostgreSQL checks passed in 29.82s;
+  57 recovery/LLM/tool-effect checks passed in 339.78s. Expanded recovery/migration
+  suite initially had one incorrect test helper name (11 passed); corrected it.
+  All 14 subsequent recovery/migration checks passed in 89.03s, including real local
+  HTTP lost-response reconciliation, fresh/expired approvals, LLM round/cost
+  retention, migration roundtrip/retention, parallel joins and quality iteration.
+  Local review caught and fixed initial recovery scheduling for quality iteration
+  greater than zero, with dedicated regression coverage. Final broader backend
+  validation passed 63 checks in 386.12s (`test_execution_recovery`, recovery migration,
+  parallel runtime, worker leases, cancellation and quality revisions), including
+  exhausted-effect policy. After metadata-only eligibility reads and current-actor
+  audit hardening, all 15 final recovery/migration checks passed in 94.15s.
+  The migration additionally rejected direct SQL provenance changes (1 final check
+  passed in 8.80s). Evidence: `.phase96-api-final.log`, `.phase96-migration-final.log`.
+- Frontend: all 53 smoke/interaction checks passed in 11941.42ms; typecheck, lint
+  and production build passed. Ruff and diff whitespace checks passed. Evidence:
+  `.phase96-api-{initial,effects,expanded,final-focused,regression}.log`,
+  `.phase96-web-{smoke,typecheck,lint,build}.log`.
+- Browser acceptance: migrated only owned `phase93_ui` schema from f092 to f096
+  and ran production UI/API. Created new disposable deterministic run
+  `3a88b9ed-7852-4e68-aecf-d72732374944`, cancelled through the UI, and created
+  linked recovery `15bda07b-3221-4b8f-877b-85f96a0b7b9b`. Repeated recovery returned
+  that same child. The child retained pinned v2, completed in the worker, exposed
+  its original source link and disabled terminal mutations. The original remains
+  cancelled. At 390×844, document/scroll widths were both 375px; restored normal
+  viewport afterward. Evidence: `.phase96-ui-migration.log`,
+  `.phase96-browser-{fixture,worker,recovery}.log`. No paid provider or real external
+  account was used; HTTP effects and LLM responses in tests are explicit fixtures.
+- Scope size: this phase exceeds the preferred 300–700 changed lines because safe
+  recovery spans immutable schema, checkpoints, logical effects, LLM budgets,
+  permissions, controls and meaningful concurrency/integration coverage. All
+  changes are Phase 96; commit/push, CI and post-push review remain required.
+- Local review: checked lock ordering and decision-time permissions, immutable
+  source/receipt/provenance, original input/settings/version, branch/quality
+  scheduling, expired approval replacement, LLM continuation/accounting,
+  successful and uncertain effects, bounded policies and duplicate operator
+  actions. Tool eligibility queries now omit payloads and refresh effect metadata
+  under lock. No unresolved local findings; all required local checks passed.
 
 When a future phase starts, add a record here using these fields:
 

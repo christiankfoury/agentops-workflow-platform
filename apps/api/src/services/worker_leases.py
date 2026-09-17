@@ -118,9 +118,14 @@ class NoRecovery(Exception):
     pass
 
 
-def recover_claim(engine, claim):
+def recover_claim(engine, claim, *, operator=None):
     with Session(engine) as db:
         bind_tenant(db, claim.organization_id)
+        if operator is not None:
+            from src.services.permissions import authorize
+
+            db.info["principal"] = operator
+            operator = authorize(db, "workflow.control", lock=True)
         run = execution(db, claim.execution_id)
         try:
             with workflow_transaction(db, run):
@@ -129,6 +134,17 @@ def recover_claim(engine, claim):
                     select(func.clock_timestamp())
                 ):
                     raise NoRecovery()
+                if operator is not None:
+                    from src.services.audit import record_audit
+
+                    record_audit(
+                        db,
+                        operator,
+                        "workflow.retry_claim",
+                        "durable_job",
+                        claim.id,
+                        execution_id=str(run.id),
+                    )
                 if run.status in TERMINAL:
                     finish_job(
                         db,

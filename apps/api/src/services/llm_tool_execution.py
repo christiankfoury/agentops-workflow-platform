@@ -111,6 +111,16 @@ class Conversation:
                             ).isoformat(),
                         },
                     )
+                    from src.services.recovery_lineage import inherited_conversation
+
+                    inherited = inherited_conversation(
+                        db,
+                        self.work.step_id,
+                        self.fingerprint,
+                        row.state["deadline"],
+                    )
+                    if inherited is not None:
+                        row.state = inherited
                     db.add(row)
                 if row.fingerprint != self.fingerprint:
                     fail("tool_input_conflict")
@@ -307,13 +317,24 @@ class Conversation:
                         arguments,
                     )
                     ledger_id = f"approval:{approval}"
+                from src.services.recovery_lineage import effect_identity
+
+                policy = tool_binding(self.work.node, name).config.policy_fingerprint
+                fingerprint = digest([str(version_id), arguments] + ([policy] if policy else []))
                 additions.append(
                     {
                         "id": call["id"],
                         "name": name,
                         "arguments": arguments,
                         "version_id": version_id,
-                        "effect_key": digest([str(self.work.step_id), ledger_id]),
+                        "effect_key": effect_identity(
+                            db,
+                            db.get(StepRun, self.work.step_id),
+                            ledger_id,
+                            fingerprint,
+                            approved_call=contract.side_effecting,
+                            version_id=uuid.UUID(str(version_id)),
+                        ),
                     }
                 )
             state["pending"] = list(
@@ -349,7 +370,11 @@ def attempt_metadata(db, attempt):
     result = metadata(conversation.state, run.runtime_config[step.node_id], attempt.id)
     effects = {
         item.effect_key: item
-        for item in db.scalars(select(ToolExecution).where(ToolExecution.step_run_id == step.id))
+        for item in db.scalars(
+            select(ToolExecution).where(
+                ToolExecution.effect_key.in_([call["effect_key"] for call in result["tool_calls"]]),
+            )
+        )
     }
     for call in result["tool_calls"]:
         effect = effects.get(call["effect_key"])

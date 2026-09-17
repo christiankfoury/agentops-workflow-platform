@@ -221,10 +221,19 @@ def reserve(db, claim, attempt_id, version_id, arguments, call_id, adapters, *, 
             approval_id = require_approval(db, run, step, node, arguments)
             if owner.type == "llm":
                 call_id = f"approval:{approval_id}"
-        key = digest([str(step.id), call_id])
         fingerprint = digest(
             [str(version.id), arguments]
             + ([adapter.policy_identity] if adapter.policy_identity else [])
+        )
+        from src.services.recovery_lineage import effect_identity
+
+        key = effect_identity(
+            db,
+            step,
+            call_id,
+            fingerprint,
+            approved_call=call_id.startswith("approval:"),
+            version_id=version.id,
         )
         effect = db.scalar(
             select(ToolExecution)
