@@ -1,0 +1,71 @@
+{
+  "reviewed_at": "2026-09-17T12:15:16.205643+00:00",
+  "reviewed_head": "80e33013a4b25103fec90d77d6a12ef7596765b3",
+  "passed": true,
+  "completed_phase_rows": 105,
+  "completed_expansion_phases": 40,
+  "phase_records_with_commit_ci_validation_review": 40,
+  "requirements": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "pushed_commit_identities": 103,
+  "ci_ledger": {
+    "linked_runs": 94,
+    "conclusions": {
+      "success": 91,
+      "failure": 3
+    },
+    "missing": [],
+    "unresolved_failures": [],
+    "historical_failed_runs_preserved": [
+      35038501298,
+      35051088246,
+      35180407041
+    ]
+  },
+  "phase105": {
+    "implementation": {
+      "conclusion": "success",
+      "databaseId": 35217099419,
+      "headSha": "348309ed13592f832a79dd63c9019d659630e046",
+      "status": "completed",
+      "url": "https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35217099419"
+    },
+    "fix": {
+      "conclusion": "success",
+      "databaseId": 35218914634,
+      "headSha": "80e33013a4b25103fec90d77d6a12ef7596765b3",
+      "status": "completed",
+      "url": "https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35218914634"
+    },
+    "api_tests_each": 906,
+    "web_tests_each": 66,
+    "implementation_api_seconds": 1138.93,
+    "fix_api_seconds": 547.32
+  },
+  "pushed_review": {
+    "case_study_hash_matches_fix": true,
+    "github_render": "Inspected headings, assigned-value tables, R01\u2013R14 table and rendered Mermaid architecture diagram at fix commit",
+    "blocking_findings": []
+  },
+  "preservation": "Existing measurements/archives unchanged; original Phase 1\u201365 definitions verified in initial review. Local fixture resources/data retained.",
+  "boundaries": [
+    "Required local acceptance complete",
+    "Hosted/provider/account and multi-node acceptance unperformed",
+    "No production security certification or recorded/generated video"
+  ],
+  "completion_record_ci": "This audit covers implementation/fix CI. The final documentation record is separately pushed and awaited; its GitHub commit checks retain the result."
+}
