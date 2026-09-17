@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 104 — reproducible platform demo script**.
+Current implementation phase: **Phase 105 — final case study**, eligible after the Phase 104 completion-record CI.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–103 are complete; Phase 104 is active and Phase 105 remains planned.
+Phases 66–104 are complete; Phase 105 remains planned until the preceding completion-record CI passes.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +89,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 104: Platform Demo Video Script
+### Phase 105: Final Workflow Platform Case Study
 
-Status: In progress — Phase 103 final completion-record CI passed.
+Status: Eligible after Phase 104 completion-record CI passes.
 
-Scope: a reproducible, timed platform demo script with business examples and
-clearly labeled seeded, measured and unperformed evidence.
-See [the full phase entry](phases.md#phase-104-platform-demo-video-script) for
+Scope: evidence-backed final case study, complete R01–R14 checklist and delivery
+ledger review, with measured, seeded and unperformed results distinguished.
+See [the full phase entry](phases.md#phase-105-final-workflow-platform-case-study) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -142,7 +142,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 101 | Complete | Authenticated kind deployment, migration, approval/PVC persistence and metrics; implementation `918db61`, CI `35195207152` passed 896 API tests. |
 | 102 | Complete | Local rollout, scaling, Pod loss/fencing, readiness, backup/restore and rollback; 21 runs/21 effects reconciled; implementation `3c30652`, CI `35200997403` passed 898 API tests. |
 | 103 | Complete | Implementation `242c611`, fix `39b8f4f`; CI `35205261374` and `35207650946` passed 898 API tests; documentation review resolved. |
-| 104 | In progress | Reproducible timed script, local fixtures and browser walkthrough. |
+| 104 | Complete | Rehearsed script; implementation `677c6bb`, fixes `9133592`/`7055664`; all CI and review passed, 906 API tests. |
 | 105 | Planned — not started | Final Workflow Platform Case Study |
 
 ## Per-Phase Execution Record
@@ -3008,6 +3008,28 @@ This is a status index; implementation details live only in `docs/phases.md`.
   [Additional fixture review](evidence/phase104/tenant-guard-review.json) records
   this finding and its revised source fingerprints. Completion still awaits
   all fix CI and follow-up review.
+
+
+- Query-override fix `91335923e454e6c93bf2ce2c37a8afee10c3e22a` passed
+  [CI 35213352297](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35213352297):
+  **905 API tests in 632.51s**, **66 web tests**, and all other jobs/audits.
+- Single-organization fix `705566430be1bd8a3cfa3c70744b735a9a557494` was then
+  pushed and passed
+  [CI 35214506317](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35214506317):
+  **906 API tests in 527.93s**, **66 web tests**, migrations, lint/typecheck/build,
+  deployment/documentation checks and both audits with no known vulnerabilities.
+  Independent commit check-runs also reported all three jobs successful.
+- Final review matched all ten recorded source hashes against their respective
+  implementation/fix commits and the unchanged original archive SHA-256. Reviewed
+  the organization query, pre-worker guard placement, real PostgreSQL regression
+  and exclusive-database instructions. No blocking findings remain. Final local
+  documentation validation covers 48 documents and 446 links.
+- **Phase 104 complete.** The 861-line implementation addition includes the
+  reproducible fixture, regression tests and evidence alongside the script;
+  this exceeds the suggested size to keep the phase independently reproducible.
+  Both follow-up fixes are separate commits. No paid-provider execution, generated
+  video, hosted acceptance or production runtime/schema change is claimed.
+  Phase 105 begins only after this completion record is pushed and its CI passes.
 
 When a future phase starts, add a record here using these fields:
 
