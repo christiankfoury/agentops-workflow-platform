@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 98 — Deterministic Throughput Benchmark (in progress)**.
+Current implementation phase: **Phase 98 — complete; completion-record CI pending**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,8 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–97 are complete; Phase 98 is in progress; Phases 99–105 remain planned.
+Phases 66–98 are complete; Phases 99–105 remain planned. Phase 99 starts after
+the Phase 98 completion-record CI passes.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +90,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 74: Deterministic Graph Interpreter
+### Phase 99: Crash and Concurrency Reliability Experiments
 
-Status: In progress — authorized implementation run.
+Status: Planned — awaiting Phase 98 completion-record CI.
 
-Scope: registry-dispatched deterministic code, transform and condition execution,
-persisted selected/skipped routes and restartable checkpoints.
-See [the full phase entry](phases.md#phase-74-deterministic-graph-interpreter) for
+Scope: reproducible worker, database, delivery, timeout and concurrency faults,
+with raw recovery and effect reconciliation evidence.
+See [the full phase entry](phases.md#phase-99-crash-and-concurrency-reliability-experiments) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -136,7 +137,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
 | 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
 | 97 | Complete | Scoped worker metrics and bounded live updates; implementation `202adc1`, fix `f73d4a1`, all CI passed with 874 API tests. |
-| 98 | In progress | Deterministic Throughput Benchmark |
+| 98 | Complete | 10,000 workflows, 33,333 jobs and 3,333 sink effects reconciled; implementation `450c8c4`, CI `35177537976` passed. |
 | 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
 | 100 | Planned — not started | Production Container Packaging |
 | 101 | Planned — not started | Kubernetes Deployment Manifests |
@@ -2442,6 +2443,23 @@ This is a status index; implementation details live only in `docs/phases.md`.
   verification and documentation; roughly 7 MB of compressed full-run evidence is
   retained to make the 10,000-run claim inspectable. Commit/push, all CI and
   post-push review are still required before Phase 98 is complete.
+
+- Delivery: implementation **`450c8c4e114bf0767311a75023178705125878de`**
+  was pushed to `main`. [CI 35177537976](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35177537976)
+  completed successfully: **876 API tests in 429.03s**, Ruff, fresh PostgreSQL
+  migration, API dependency audit; **65 web smoke tests**, lint/typecheck/build,
+  web dependency audit; Compose configuration. Both audits reported no known
+  vulnerabilities. The commit check-runs endpoint independently confirmed all
+  three jobs completed successfully.
+- Post-push review checked the committed workload graphs, isolated schema and
+  output ownership, bounded worker/controller behavior, exact receipt/job/attempt/
+  effect accounting, immutable version/input checks, archive hashes, failed-run
+  visibility, and measurement provenance. No blocking findings or fix commit.
+  The CLI is opt-in and does not change application runtime behavior or schema.
+- Phase 98 is complete. Its documented limits remain: one shared local host,
+  sequential concurrency stages, immediate synthetic approvals, and no real
+  provider, HTTP/OIDC ingress or hosted capacity claim. Phase 99 becomes eligible
+  after this completion record is committed, pushed and its CI passes.
 
 When a future phase starts, add a record here using these fields:
 
