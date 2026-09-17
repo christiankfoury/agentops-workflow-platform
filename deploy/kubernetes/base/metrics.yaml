@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: worker-metrics}
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 45
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: runtime
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: metrics
+              image: agentops-api:kubernetes
+              imagePullPolicy: IfNotPresent
+              args: [python, -m, src.operations_metrics]
+              envFrom: [{configMapRef: {name: runtime}}]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {cpu: 500m, memory: 256Mi}
+              volumeMounts:
+                - {name: database, mountPath: /run/database, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: database
+              secret:
+                secretName: database
+                items: [{key: database_url, path: database_url}]
+            - name: tmp
+              emptyDir: {sizeLimit: 32Mi}

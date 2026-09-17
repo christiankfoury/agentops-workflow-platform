@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata: {name: oidc, namespace: agentops}
+spec:
+  selector: {app: oidc}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: oidc, namespace: agentops}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: oidc}}
+  template:
+    metadata: {labels: {app: oidc}}
+    spec:
+      serviceAccountName: runtime
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: oidc
+          image: agentops-oidc-fixture:kubernetes
+          imagePullPolicy: IfNotPresent
+          env: [{name: FIXTURE_ORIGIN, value: "https://localhost:8443"}]
+          ports: [{name: http, containerPort: 8080}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 192Mi}
+          volumeMounts:
+            - {name: signing, mountPath: /run/secrets, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          startupProbe:
+            httpGet: {path: /oidc/jwks, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: {path: /oidc/jwks, port: http}
+          readinessProbe:
+            httpGet: {path: /oidc/jwks, port: http}
+      volumes:
+        - name: signing
+          secret:
+            secretName: fixture-signing
+            items: [{key: oidc.key, path: fixture_signing_key}]
+        - {name: tmp, emptyDir: {sizeLimit: 32Mi}}

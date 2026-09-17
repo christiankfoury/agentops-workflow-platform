@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 100 — complete; completion-record CI pending**.
+Current implementation phase: **Phase 101 — Kubernetes deployment manifests in progress**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,8 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–100 are complete; Phases 101–105 remain planned. Phase 101 starts after
-the Phase 100 completion-record CI passes.
+Phases 66–100 are complete; Phase 101 is active and Phases 102–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -92,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 101: Kubernetes Deployment Manifests
 
-Status: Planned — awaiting Phase 100 completion-record CI.
+Status: In progress — Phase 100 completion-record CI passed.
 
 Scope: reproducible local/hosted Kubernetes profiles, persistent database,
 migration Job, ingress, least-privilege workloads, probes and worker metrics.
@@ -140,7 +139,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 98 | Complete | 10,000 workflows, 33,333 jobs and 3,333 sink effects reconciled; implementation `450c8c4`, CI `35177537976` passed. |
 | 99 | Complete | 45 fault experiments and 15 fix checks reconciled; implementation `8d45828`, fix `bfe6c73`, CI `35181619634` passed all 891 API tests. |
 | 100 | Complete | Production images and authenticated deployment; 11 runs/207 jobs including two active drains; implementation `d7d172c`, CI `35188845395` passed 896 API tests. |
-| 101 | Planned — not started | Kubernetes Deployment Manifests |
+| 101 | In progress | Kubernetes Deployment Manifests |
 | 102 | Planned — not started | Kubernetes Operations and Recovery Verification |
 | 103 | Planned — not started | Platform README and Architecture Reconciliation |
 | 104 | Planned — not started | Platform Demo Video Script |
@@ -2682,6 +2681,67 @@ This is a status index; implementation details live only in `docs/phases.md`.
   phase; fixture identity, database-role and image-audit limits are documented.
   Phase 101 is eligible after this completion record is committed, pushed and
   all of its CI checks pass.
+
+### Phase 101 — Kubernetes deployment manifests
+
+- Phase 100 completion record **`753daaace23675032af348263deeeacbbe074a2d`**
+  was pushed. [CI 35189765309](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35189765309)
+  passed all three jobs: **896 API tests in 630.84s**, 65 web smoke tests,
+  lint/typecheck/build, fresh migration, all Compose profiles and both audits
+  with no known vulnerabilities. Independent commit check-runs confirmed success.
+- Plan: reuse the measured production runtime/authentication and deterministic
+  fixture. Add Kustomize base/local/hosted profiles, services and TLS ingress,
+  configuration/secret references, one-shot migration Job, persistent local
+  PostgreSQL and operator worker-metrics export. App service accounts have no
+  Kubernetes API token; the ingress controller gets only required discovery RBAC.
+  Configure resources, startup/readiness/liveness behavior, rollout and termination.
+- Use an owned kind cluster, pinned node image and workspace-local verified CLI
+  binaries. Always pass the owned kubeconfig; preserve the user's default context,
+  existing preview/benchmark database and Phase 100 named volume. Stop only the
+  owned Phase 100 services when needed to free their loopback port/resources.
+- Acceptance: render/schema-check both profiles; deploy local infrastructure,
+  run migration to completion before app workloads, authenticate through real
+  ingress, publish/approve/complete a deterministic graph, inspect worker metrics
+  and verify run/approval persistence after pod replacement. Record actual cluster,
+  image, source and result evidence. Hosted deployment is configuration-only unless
+  a target/access is supplied; do not claim it ran.
+- No schema migration is planned. Ensure image-level signal forwarding works in
+  Pods independently of Compose's `init` option. Rolling updates, replica scaling,
+  fault/effect reconciliation, backup/restore and rollback remain Phase 102 scope.
+- Implemented base/local/hosted Kustomize profiles, separate ingress RBAC and
+  TLS routing, persistent local PostgreSQL, referenced Secrets, migration Job,
+  resource/probe/termination settings and operator metrics CronJob. Added verified
+  local CLIs, ownership-checked ordered deployment and authenticated acceptance
+  helpers, runbook and retained evidence. CI now renders both profiles and lints
+  deployment scripts. API/fixture images use `tini`; web API routing recognizes
+  Kubernetes without Docker's marker file, with a behavioral regression test.
+- Local acceptance passed **2026-09-17 07:29:11–07:30:17 UTC** on kind v0.33.0 /
+  Kubernetes v1.37.0 / containerd 2.3.4. Fresh migration reached f097 before app
+  Pods; authenticated TLS ingress, published version, idempotent start, approval,
+  output 42, SSR and tenant/operator metrics passed. **1 run, 3 jobs, 2 attempts**
+  completed; zero stale/recovered/abandoned claims. Database/API/worker Pod UIDs
+  changed while the PVC, session, version, approval and output persisted.
+- Validation: both rendered profiles passed actual server schema dry-run;
+  production runtime **5 tests passed in 99.21s**; web **66 tests passed**,
+  typecheck/lint, deployment Ruff, production builds, documentation links/fences
+  and diff whitespace passed. Independent inspection matched **33 source hashes**,
+  archive SHA, run/approval/version and actual Pod security/resources. Live RBAC
+  denied runtime Secret listing and ingress access to application Secrets.
+- Corrected before commit: wrong initial API build context; kubectl multi-object
+  JSON parsing; web readiness failure from Docker-only container detection. The
+  web rollout failed its gate, was fixed/tested/rebuilt under a new tag, and then
+  passed full acceptance. Failed-attempt logs remain in the evidence archive.
+- Evidence: [Kubernetes results](KUBERNETES_RESULTS.md),
+  [manifest](evidence/phase101/summary.json),
+  [independent review](evidence/phase101/independent-review.json),
+  [cluster archive](evidence/phase101/cluster-evidence.json.gz) and
+  [validation logs](evidence/phase101/validation-logs.json.gz).
+- Scope is larger than the usual commit range because complete app/ingress/local/
+  hosted resources, safe deployment/verification helpers and measured evidence
+  are required together. No future-phase recovery experiment is included.
+  Hosted deployment is **not performed**; configuration/schema validation is
+  separate from local deployment. Implementation commit, push, CI and post-push
+  review remain required before Phase 101 can be marked complete.
 
 When a future phase starts, add a record here using these fields:
 

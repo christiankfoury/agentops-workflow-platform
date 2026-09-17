@@ -1,0 +1,196 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: api
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 3
+      minReadySeconds: 5
+      progressDeadlineSeconds: 240
+      strategy: &rolling
+        type: RollingUpdate
+        rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+      selector: {matchLabels: {app: api}}
+      template:
+        metadata: {labels: {app: api}}
+        spec: &apiPod
+          serviceAccountName: runtime
+          automountServiceAccountToken: false
+          terminationGracePeriodSeconds: 60
+          securityContext: &security
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - &apiContainer
+              name: api
+              image: agentops-api:kubernetes
+              imagePullPolicy: IfNotPresent
+              envFrom: [{configMapRef: {name: runtime}}]
+              ports: [{name: http, containerPort: 8000}]
+              securityContext: &containerSecurity
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 100m, memory: 256Mi}
+                limits: {cpu: "1", memory: 768Mi}
+              volumeMounts:
+                - {name: database, mountPath: /run/database, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+              startupProbe:
+                httpGet: {path: /health, port: http, httpHeaders: [{name: Host, value: localhost}]}
+                periodSeconds: 2
+                failureThreshold: 30
+              livenessProbe:
+                httpGet: {path: /health, port: http, httpHeaders: [{name: Host, value: localhost}]}
+                periodSeconds: 10
+                timeoutSeconds: 3
+              readinessProbe:
+                httpGet: {path: /ready, port: http, httpHeaders: [{name: Host, value: localhost}]}
+                periodSeconds: 5
+                timeoutSeconds: 4
+          volumes:
+            - name: database
+              secret:
+                secretName: database
+                items: [{key: database_url, path: database_url}]
+            - name: tmp
+              emptyDir: {sizeLimit: 64Mi}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata: {name: worker}
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 3
+      minReadySeconds: 5
+      progressDeadlineSeconds: 240
+      strategy: *rolling
+      selector: {matchLabels: {app: worker}}
+      template:
+        metadata: {labels: {app: worker}}
+        spec:
+          <<: *apiPod
+          containers:
+            - <<: *apiContainer
+              name: worker
+              args: [python, -m, src.worker]
+              ports: []
+              # Process exit is supervised by Kubernetes. Dependency readiness
+              # must not become a liveness kill during a temporary DB failure.
+              livenessProbe: null
+              startupProbe:
+                exec: {command: [python, container_entrypoint.py, python, -m, src.container_health]}
+                periodSeconds: 2
+                timeoutSeconds: 5
+                failureThreshold: 30
+              readinessProbe:
+                exec: {command: [python, container_entrypoint.py, python, -m, src.container_health]}
+                periodSeconds: 5
+                timeoutSeconds: 5
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata: {name: web}
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 3
+      minReadySeconds: 5
+      progressDeadlineSeconds: 240
+      strategy: *rolling
+      selector: {matchLabels: {app: web}}
+      template:
+        metadata: {labels: {app: web}}
+        spec:
+          serviceAccountName: runtime
+          automountServiceAccountToken: false
+          terminationGracePeriodSeconds: 60
+          securityContext:
+            <<: *security
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+          containers:
+            - name: web
+              image: agentops-web:kubernetes-v2
+              imagePullPolicy: IfNotPresent
+              envFrom: [{configMapRef: {name: runtime}}]
+              ports: [{name: http, containerPort: 3000}]
+              securityContext: *containerSecurity
+              resources:
+                requests: {cpu: 100m, memory: 128Mi}
+                limits: {cpu: "1", memory: 512Mi}
+              volumeMounts:
+                - {name: identity, mountPath: /run/identity, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+              startupProbe:
+                httpGet: {path: /health, port: http}
+                periodSeconds: 2
+                failureThreshold: 30
+              livenessProbe:
+                httpGet: {path: /health, port: http}
+                periodSeconds: 10
+                timeoutSeconds: 3
+              readinessProbe:
+                httpGet: {path: /ready, port: http}
+                periodSeconds: 5
+                timeoutSeconds: 4
+          volumes:
+            - name: identity
+              secret: {secretName: identity}
+            - name: tmp
+              emptyDir: {sizeLimit: 64Mi}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata: {name: gateway}
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 3
+      minReadySeconds: 5
+      strategy: *rolling
+      selector: {matchLabels: {app: gateway}}
+      template:
+        metadata: {labels: {app: gateway}}
+        spec:
+          serviceAccountName: runtime
+          automountServiceAccountToken: false
+          terminationGracePeriodSeconds: 30
+          securityContext: *security
+          containers:
+            - name: gateway
+              image: agentops-gateway:kubernetes
+              imagePullPolicy: IfNotPresent
+              env: [{name: PUBLIC_HOST, value: app.example.invalid}]
+              ports: [{name: http, containerPort: 8080}, {name: health, containerPort: 8081}]
+              securityContext: *containerSecurity
+              resources:
+                requests: {cpu: 50m, memory: 32Mi}
+                limits: {cpu: 500m, memory: 128Mi}
+              volumeMounts:
+                - {name: config, mountPath: /etc/caddy, readOnly: true}
+                - {name: data, mountPath: /data}
+                - {name: scratch, mountPath: /config}
+                - {name: tmp, mountPath: /tmp}
+              startupProbe:
+                httpGet: {path: /health, port: health}
+                periodSeconds: 2
+                failureThreshold: 30
+              livenessProbe:
+                httpGet: {path: /health, port: health}
+                periodSeconds: 10
+              readinessProbe:
+                httpGet: {path: /health, port: health}
+                periodSeconds: 5
+          volumes:
+            - name: config
+              configMap: {name: gateway}
+            - name: data
+              emptyDir: {sizeLimit: 32Mi}
+            - name: scratch
+              emptyDir: {sizeLimit: 32Mi}
+            - name: tmp
+              emptyDir: {sizeLimit: 32Mi}

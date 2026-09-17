@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: runtime, namespace: agentops}
+data:
+  APP_ORIGIN: https://localhost:8443
+  OIDC_ISSUER: https://localhost:8443/oidc
+  OIDC_AUDIENCE: agentops-verification
+  OIDC_CLIENT_ID: agentops-verification
+  OIDC_JWKS_URL: https://gateway:8443/oidc/jwks
+  OIDC_AUTHORIZE_URL: https://localhost:8443/oidc/authorize
+  OIDC_TOKEN_URL: https://gateway:8443/oidc/token
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: gateway, namespace: agentops}
+data:
+  Caddyfile: |
+    {
+      admin off
+      auto_https off
+      servers {
+        protocols h1 h2
+      }
+    }
+    (application) {
+      @untrusted not host localhost gateway
+      route {
+        respond @untrusted "Untrusted host" 421
+        handle_path /api/* {
+          reverse_proxy api:8000 {
+            header_up Host api
+          }
+        }
+        handle /oidc/* {
+          reverse_proxy oidc:8080
+        }
+        handle {
+          reverse_proxy web:3000
+        }
+      }
+    }
+    :8081 {
+      respond /health "ok" 200
+    }
+    :8080 {
+      import application
+    }
+    :8443 {
+      tls /run/tls/tls.crt /run/tls/tls.key
+      import application
+    }
+---
+apiVersion: v1
+kind: Service
+metadata: {name: gateway, namespace: agentops}
+spec:
+  ports:
+    - {name: fixture-tls, port: 8443, targetPort: 8443}

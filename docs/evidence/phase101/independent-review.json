@@ -1,0 +1,66 @@
+{
+  "reviewed_at": "2026-09-17T07:31:40.330194+00:00",
+  "source_hashes_matched": 33,
+  "raw_archive_hash_matched": true,
+  "run_approval_version_reconciled": true,
+  "pod_security_and_resources_checked": true,
+  "rbac": [
+    {
+      "subject": "agentops:runtime",
+      "namespace": "agentops",
+      "list_secrets": "no",
+      "exit_code": 1
+    },
+    {
+      "subject": "agentops-ingress:ingress",
+      "namespace": "agentops",
+      "list_secrets": "no",
+      "exit_code": 1
+    },
+    {
+      "subject": "agentops-ingress:ingress",
+      "namespace": "agentops-ingress",
+      "list_secrets": "yes",
+      "exit_code": 0
+    }
+  ],
+  "cluster_version": {
+    "architecture": "amd64",
+    "bootID": "8210501c-4ad0-4478-9f13-1c6b1fcb3266",
+    "containerRuntimeVersion": "containerd://2.3.4",
+    "kernelVersion": "6.6.87.2-microsoft-standard-WSL2",
+    "kubeProxyVersion": "",
+    "kubeletVersion": "v1.37.0",
+    "machineID": "21597e1073974d5f8386ea9ddd9f1c3e",
+    "operatingSystem": "linux",
+    "osImage": "Debian GNU/Linux 13 (trixie)",
+    "runningInUserNamespace": false,
+    "swap": {
+      "capacity": 2147483648
+    },
+    "systemUUID": "21597e1073974d5f8386ea9ddd9f1c3e"
+  },
+  "validation_logs_sha256": "b202c7858d0553913ebcfc697a0a3032d470731d890c5c5861a9eca7c6fafdd7",
+  "validation_log_files": [
+    ".phase101-acceptance.log",
+    ".phase101-api-build-recheck.log",
+    ".phase101-api-build.log",
+    ".phase101-cluster-create.log",
+    ".phase101-deploy-final.log",
+    ".phase101-deploy-recheck.log",
+    ".phase101-deploy.log",
+    ".phase101-load-images.log",
+    ".phase101-node-image.log",
+    ".phase101-oidc-build.log",
+    ".phase101-runtime-tests.log",
+    ".phase101-stop-owned-compose.log",
+    ".phase101-tools.log",
+    ".phase101-traefik-pull.log",
+    ".phase101-web-build.log",
+    ".phase101-web-lint.log",
+    ".phase101-web-load.log",
+    ".phase101-web-tests.log",
+    ".phase101-web-typecheck.log"
+  ],
+  "hosted_deployment": "not performed; rendered/server-schema-validated only"
+}

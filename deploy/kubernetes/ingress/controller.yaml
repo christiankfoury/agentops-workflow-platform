@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentops-ingress
+  labels:
+    app.kubernetes.io/part-of: agentops
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.37
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: ingress}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: ingress}
+rules:
+  - apiGroups: [""]
+    resources: [services, secrets]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses/status]
+    verbs: [update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: ingress}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: ingress}
+subjects: [{kind: ServiceAccount, name: ingress}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: agentops-ingress-discovery}
+rules:
+  - apiGroups: [networking.k8s.io]
+    resources: [ingressclasses]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: agentops-ingress-discovery}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: agentops-ingress-discovery}
+subjects: [{kind: ServiceAccount, name: ingress, namespace: agentops-ingress}]
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata: {name: agentops}
+spec: {controller: traefik.io/ingress-controller}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: ingress}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: ingress}}
+  template:
+    metadata: {labels: {app: ingress}}
+    spec:
+      serviceAccountName: ingress
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: ingress
+          image: traefik:v3.7.13@sha256:f86a2cab1b5c649070c49f883c743dd32d8485a56e3368c5f93b9e91f1e91259
+          args:
+            - --providers.kubernetesingress=true
+            - --providers.kubernetesingress.namespaces=agentops-ingress
+            - --providers.kubernetesingress.ingressclass=agentops
+            - --providers.kubernetesingress.allowexternalnameservices=true
+            - --entrypoints.websecure.address=:8443
+            - --entrypoints.health.address=:8082
+            - --ping=true
+            - --ping.entrypoint=health
+            - --api.dashboard=false
+          ports: [{name: https, containerPort: 8443}, {name: health, containerPort: 8082}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 192Mi}
+          startupProbe:
+            httpGet: {path: /ping, port: health}
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: {path: /ping, port: health}
+          readinessProbe:
+            httpGet: {path: /ping, port: health}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: ingress}
+spec:
+  type: LoadBalancer
+  selector: {app: ingress}
+  ports: [{name: https, port: 443, targetPort: https}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: gateway}
+spec:
+  type: ExternalName
+  externalName: gateway.agentops.svc.cluster.local
+  ports: [{name: http, port: 8080}]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: agentops
+  tls: [{hosts: [app.example.invalid], secretName: platform-tls}]
+  rules:
+    - host: app.example.invalid
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: gateway, port: {number: 8080}}

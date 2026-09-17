@@ -6,6 +6,25 @@ import test from "node:test";
 import ts from "typescript";
 
 const require = createRequire(import.meta.url);
+test("API routing supports Kubernetes without a Docker marker and preserves native development", () => {
+  const source = readFileSync(new URL("../src/lib/api-url.ts", import.meta.url), "utf8");
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  function resolve(env, docker = false) {
+    const exports = {};
+    new Function("require", "exports", "process", compiled)(
+      () => ({ existsSync: () => docker }), exports, { env },
+    );
+    return exports.apiUrl("/ready");
+  }
+  const env = { API_INTERNAL_URL: "http://api:8000", NEXT_PUBLIC_API_URL: "http://localhost:8007" };
+  assert.equal(resolve({ ...env, KUBERNETES_SERVICE_HOST: "10.96.0.1" }), "http://api:8000/ready");
+  assert.equal(resolve(env, true), "http://api:8000/ready");
+  assert.equal(resolve(env), "http://localhost:8007/ready");
+  assert.equal(resolve({ API_INTERNAL_URL: "https://private.example.test" }), "https://private.example.test/ready");
+});
+
 const config = {
   origin: "https://app.example.test", authorizeUrl: "https://id.example.test/authorize",
   tokenUrl: "https://id.example.test/token", clientId: "agentops",

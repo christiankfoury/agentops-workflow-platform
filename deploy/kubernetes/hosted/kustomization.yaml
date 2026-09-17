@@ -1,0 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Configure runtime ConfigMap, gateway PUBLIC_HOST, Ingress host/TLS, and
+# registry image digests before applying. No database or identity fixture here.
+resources: [../base, ../ingress]

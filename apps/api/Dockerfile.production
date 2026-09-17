@@ -9,12 +9,14 @@ ARG SOURCE_REVISION=unknown
 LABEL org.opencontainers.image.revision=$SOURCE_REVISION
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
-RUN groupadd --gid 10001 app && useradd --uid 10001 --gid 10001 --no-create-home app
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 app && useradd --uid 10001 --gid 10001 --no-create-home app
 COPY --from=dependencies /app/.venv /app/.venv
 COPY src ./src
 COPY alembic ./alembic
 COPY alembic.ini container_entrypoint.py ./
 USER 10001:10001
 EXPOSE 8000
-ENTRYPOINT ["python", "container_entrypoint.py"]
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python", "container_entrypoint.py"]
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-proxy-headers", "--timeout-graceful-shutdown", "45"]

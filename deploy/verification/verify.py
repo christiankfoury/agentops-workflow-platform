@@ -128,14 +128,16 @@ def graph(approval=True, length=1):
     }
 
 
-def login(origin="https://localhost:8443", ca=None):
+def login(origin="https://localhost:8443", ca=None, untrusted_status=421):
     client = httpx.Client(
         base_url=origin,
         verify=ssl.create_default_context(cafile=str(ca or ROOT / ".local/production/ca.crt")),
         follow_redirects=True,
         timeout=15,
     )
-    assert client.get("/api/health", headers={"host": "attacker.test"}).status_code == 421
+    assert (
+        client.get("/api/health", headers={"host": "attacker.test"}).status_code == untrusted_status
+    )
     assert client.get("/api/workflow-definitions").status_code == 401
     response = client.get("/auth/sign-in")
     assert response.status_code == 200 and "Local verifier" in response.text

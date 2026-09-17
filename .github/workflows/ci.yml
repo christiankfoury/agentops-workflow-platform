@@ -50,7 +50,7 @@ jobs:
         run: uv sync --locked --dev
 
       - name: Lint
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests ../../deploy/kubernetes ../../deploy/verification
 
       - name: Migrate fresh PostgreSQL database
         run: uv run alembic upgrade head
@@ -105,6 +105,12 @@ jobs:
 
       - name: Validate development Compose configuration
         run: docker compose --env-file .env.example config --quiet
+
+      - name: Render Kubernetes profiles with checksum-verified pinned tools
+        run: |
+          python deploy/kubernetes/tools.py
+          .local/kubernetes/kubectl-v1.37.0 kustomize deploy/kubernetes/local > /tmp/agentops-local.yaml
+          .local/kubernetes/kubectl-v1.37.0 kustomize deploy/kubernetes/hosted > /tmp/agentops-hosted.yaml
 
       - name: Validate production and isolated verification configuration
         env:

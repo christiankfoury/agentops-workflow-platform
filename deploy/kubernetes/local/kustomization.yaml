@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: [../base, ../ingress, database.yaml, identity.yaml]
+patches:
+  - path: settings.yaml
+  - path: fixture-mounts.yaml
+  - target: {kind: Service, name: ingress, namespace: agentops-ingress}
+    patch: |-
+      - {op: replace, path: /spec/type, value: NodePort}
+      - {op: add, path: /spec/ports/0/nodePort, value: 30443}
+  - target: {kind: Ingress, name: platform}
+    patch: |-
+      - {op: replace, path: /spec/rules/0/host, value: localhost}
+      - {op: replace, path: /spec/tls/0/hosts/0, value: localhost}

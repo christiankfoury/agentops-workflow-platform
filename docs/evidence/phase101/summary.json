@@ -1,0 +1,140 @@
+{
+  "started_at": "2026-09-17T07:29:11.200347+00:00",
+  "passed": true,
+  "deployment": {
+    "cluster": "agentops-phase101",
+    "node_image": "kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5",
+    "migration_job": "migrate-1789630121",
+    "first_migration_job": "migrate-1789629290",
+    "base_commit": "753daaace23675032af348263deeeacbbe074a2d"
+  },
+  "source_hashes": {
+    "deploy/Caddyfile": "28329ed6546e267d2882fafb54b09b13b49909058351c4cf8df52b166393857f",
+    "deploy/compose.production.yml": "70ad80d100ca67d048647291eb83f31e87a7c82f05b09913e35dcc36e71cb7f3",
+    "deploy/compose.verification.yml": "007e31c3c298dea9288d82d07d020e2311311ea6bd6b150dec1a9a304887c001",
+    "deploy/Dockerfile.gateway": "ff43355671327b80eba7c3e9f5d2ebb92b12040f5e642fe6a475215ddfa36204",
+    "deploy/kubernetes/cluster.py": "620fc779197dbe20f9c93bd0828909349f20e13f960d76ccfee6e5f23ff6c6f5",
+    "deploy/kubernetes/kind.yaml": "6922a0691ee5ed5d7e11b37dd5e42d13ddebcdf1a1a7c9c37f8043dac9c70bb4",
+    "deploy/kubernetes/tools.py": "a115ae802adf2663e591addc3d9a6156a93068c4046c438a3da163f91b7b9afa",
+    "deploy/kubernetes/verify.py": "3ed19a85da4de7ae8811ea4a02b69785690f562a387840ba2a1c18d8d1f6f507",
+    "deploy/verification/Caddyfile": "5f93d7319a1927487a7adee524b20c8f090331af4d595c27c69d668b0a467575",
+    "deploy/verification/Dockerfile": "41c437908903db43574558c21331a60697419e00f0c6ccc49425c648c0700a4c",
+    "deploy/verification/drain.py": "c5a9d673bf9a4dfc40ba0634a5117753b61d47150afcbe6c09de055a94f46f05",
+    "deploy/verification/oidc.py": "e12d5afef21f74ba45d960c4b7d578c5c0bd006f497705d4776977c37be0abf8",
+    "deploy/verification/setup.py": "06b7f308f344f62cd8950274f0ad208de7ef45460fc04161678926c17bc8939f",
+    "deploy/verification/verify.py": "55f68fcf4dee7ddf03f2e4658a1615355950a30a812fcdb51b77a1829dbd5ccb",
+    "deploy/kubernetes/base/foundation.yaml": "9f5bebfbc5f24c86ee9626ce11642634c840115960a44ddb1051e686627a06df",
+    "deploy/kubernetes/base/kustomization.yaml": "8888a6e553463bb2a53a15456ff2bd32febf2b6074cce32edb382889d07321fd",
+    "deploy/kubernetes/base/metrics.yaml": "1daaef5813c4c962853a54881f4faa55319b3cb1139525806136d85c49780414",
+    "deploy/kubernetes/base/migration.yaml": "27d15255d9e6fca9ea765cd790c6d7742b5f6da4e752d0133a888301f7f6226c",
+    "deploy/kubernetes/base/services.yaml": "59161b9e9dca8f9df93427ec45a75728257d57e637abf2acd3ea78cc735b2c35",
+    "deploy/kubernetes/base/workloads.yaml": "734707fdbccf556bc89d9434e3b62ec3296944a4e0e47db7c2d6ad52dedb05b3",
+    "deploy/kubernetes/hosted/kustomization.yaml": "c144e089a1037c2e72a3cd4b9ddf14087e5466ac3691e1dfe3ec28da55f4ba39",
+    "deploy/kubernetes/ingress/controller.yaml": "bd5a7d84bb27d79a648a131cfca5070cb8cec0636500047ef973d24948e094c1",
+    "deploy/kubernetes/ingress/kustomization.yaml": "5446899b68cb9c6e21197d811771c580f0c1d22977536b0bb561afe1c614c294",
+    "deploy/kubernetes/local/database.yaml": "608c9affe87dbcbc4140e6e11dd7d5c56f0c49764e72186ec1f7dd06883aecd4",
+    "deploy/kubernetes/local/fixture-mounts.yaml": "397a7bd685b60b037021d2f03c6d49e917529daa62f89b5ca80dd0893d62dca0",
+    "deploy/kubernetes/local/identity.yaml": "1936e197739c9e8549952fe069f7f027c9a3d5dafde4de2ed109240599ac7ed4",
+    "deploy/kubernetes/local/kustomization.yaml": "bad51b7c9b3ec5e829f9ec737bfbb004111ad714f50dc215b1cdfde63f5645ef",
+    "deploy/kubernetes/local/settings.yaml": "63708c2344b24b6767f8d614f16d84cbd417365e274a6893a873ccfb23c74488",
+    "apps/api/Dockerfile.production": "2cb5e296224bf08d05811779eaaebf4b9f4b4ec7e7e6b535c3d9ad1837a8aafb",
+    "apps/api/container_entrypoint.py": "da239c8ca9edd9a8a08779b4cf9536d7f1ee01eef9c2261c564678fb826e86d7",
+    "apps/web/Dockerfile.production": "e21cf39cc9b330e7255c3f5abcd59f367e41dbecd302c0fa1afe1ab51918a59c",
+    "apps/web/container-entrypoint.mjs": "71a393679799bc5fe3a3a31d3d7aeb1fea0643552b1027880628ad6be0dd5ebf",
+    "apps/web/src/lib/api-url.ts": "b94e90bd137b9e343737f22ce76a4b138ca3453bad36562e1d7fbfbc5993dea2"
+  },
+  "migration_before_application_pods": true,
+  "application_service_account_tokens_disabled": true,
+  "identity_provisioning": "Identity and membership provisioned. No provider credentials were stored.\n",
+  "run": {
+    "id": "c6bc94fc-6515-4681-91b8-708afcf15791",
+    "status": "completed",
+    "input_json": {
+      "payload": {
+        "value": 42
+      }
+    },
+    "output_json": {
+      "value": 42
+    },
+    "error_code": null,
+    "error_message": null,
+    "created_at": "2026-09-17T07:29:34.199129Z",
+    "started_at": "2026-09-17T07:29:35.491877Z",
+    "heartbeat_at": null,
+    "completed_at": "2026-09-17T07:29:37.287660Z",
+    "version_id": "f355bba2-cff1-4d95-8de8-74c3f54c825b",
+    "legacy_run_id": null,
+    "business_type": null,
+    "run_mode": null,
+    "created_by_user_id": "0196384a-e002-4b3f-a754-f0bf11cd167e",
+    "state_revision": 5,
+    "checkpoint_json": {
+      "edges": {
+        "0": "selected"
+      }
+    },
+    "runtime_config": {},
+    "deadline_at": "2026-09-18T07:29:34.225321Z",
+    "cancel_requested": false,
+    "cancel_requested_at": null,
+    "cancel_requested_by_user_id": null,
+    "cancel_reason": null
+  },
+  "approval": {
+    "id": "f7786bd0-c399-4c29-abf2-1a3f19489719",
+    "status": "approved",
+    "replacement_id": null,
+    "execution_id": "c6bc94fc-6515-4681-91b8-708afcf15791",
+    "step_run_id": "69553d71-593b-487e-9297-309aeb5438ba",
+    "version_id": "f355bba2-cff1-4d95-8de8-74c3f54c825b",
+    "node_id": "gate",
+    "iteration": 0,
+    "revision": 1,
+    "payload_hash": "561ea7ef32569c723a172058fd8627e3c8472368d512b51d51136105f742425f",
+    "payload_json": {
+      "value": 42
+    },
+    "review_json": {
+      "issues": [],
+      "approved": true,
+      "quality_score": 1.0,
+      "retry_recommended": false
+    },
+    "expires_at": null,
+    "created_at": "2026-09-17T07:29:35.410675Z",
+    "resolved_at": "2026-09-17T07:29:35.931656Z",
+    "decided_by_user_id": "0196384a-e002-4b3f-a754-f0bf11cd167e",
+    "human_feedback": null
+  },
+  "authenticated_ssr": true,
+  "pod_replacements": {
+    "db": {
+      "before": "aadcde3d-0656-468d-aba9-db8e7639ad01",
+      "after": "b8c03eb5-4eba-4de2-9fc4-c7692e4b6508"
+    },
+    "api": {
+      "before": "332f3cbe-17de-4bcb-ad3c-0a9256201ee0",
+      "after": "7a302e77-1ba8-43d8-982a-de21ef2493bb"
+    },
+    "worker": {
+      "before": "f2ee566c-aaf0-4209-a48d-bce80c80c170",
+      "after": "ba0d5ad2-f22f-4600-b904-b2676dfbfef2"
+    }
+  },
+  "persistence_after_replacement": true,
+  "persistent_volume_claim_uid": "f8dce1c4-7c2c-4d37-a98a-7c41d1f9cc26",
+  "tenant_metrics_status": 200,
+  "finished_at": "2026-09-17T07:30:17.782489+00:00",
+  "raw_evidence": {
+    "path": "cluster-evidence.json.gz",
+    "sha256": "a85a019ac59548046e417d275a2168fce842ef249777a2b918bdf3127cab20a3"
+  },
+  "image_ids": {
+    "agentops-api:kubernetes": "sha256:1306439e72f32309a5e9fb087764cab5ca375384a8726ed7451e0e5b179d2f52",
+    "agentops-web:kubernetes-v2": "sha256:cd7bcaeedaa473be043c5a297a9f64a144fc72eea918641ce748bfcadb5cb06d",
+    "agentops-gateway:kubernetes": "sha256:e5cff3e4a6ce24770a5c13f5222e491e33c1f05b90a49c05017de0c66a916d37",
+    "agentops-oidc-fixture:kubernetes": "sha256:7420f0f0bb29718e44f6a899651f2ec52f17101e75c21fbafec612d1c562b49e",
+    "traefik:v3.7.13": "sha256:88d3f28abf1469b03faff610614e7c3699bf001b8c4e8b2079d059673d2f1bef"
+  }
+}

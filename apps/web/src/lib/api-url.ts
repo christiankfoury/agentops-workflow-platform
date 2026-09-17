@@ -17,7 +17,7 @@ function isDockerServiceUrl(value: string): boolean {
 }
 
 function isRunningInContainer(): boolean {
-  return existsSync("/.dockerenv");
+  return existsSync("/.dockerenv") || Boolean(process.env.KUBERNETES_SERVICE_HOST);
 }
 
 export function resolveApiBaseUrl({

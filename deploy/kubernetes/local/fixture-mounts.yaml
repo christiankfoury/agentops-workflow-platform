@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: api, namespace: agentops}
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          env: [{name: SSL_CERT_FILE, value: /run/fixture/ca.crt}]
+          volumeMounts: [{name: fixture-ca, mountPath: /run/fixture, readOnly: true}]
+      volumes: [{name: fixture-ca, secret: {secretName: fixture-ca}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: web, namespace: agentops}
+spec:
+  template:
+    spec:
+      containers:
+        - name: web
+          env: [{name: NODE_EXTRA_CA_CERTS, value: /run/fixture/ca.crt}]
+          volumeMounts: [{name: fixture-ca, mountPath: /run/fixture, readOnly: true}]
+      volumes: [{name: fixture-ca, secret: {secretName: fixture-ca}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gateway, namespace: agentops}
+spec:
+  template:
+    spec:
+      containers:
+        - name: gateway
+          env: [{name: PUBLIC_HOST, value: localhost}]
+          volumeMounts: [{name: fixture-tls, mountPath: /run/tls, readOnly: true}]
+      volumes: [{name: fixture-tls, secret: {secretName: platform-tls}}]
