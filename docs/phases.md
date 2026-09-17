@@ -1,5 +1,5 @@
 This is the scoped phase plan for AgentOps, including the completed multi-agent
-application and the planned generic workflow platform expansion.
+application and the generic workflow platform expansion.
 
 The goal is that each phase is small enough to implement in one focused PR, but meaningful enough that the app keeps improving after every merge.
 
@@ -7,9 +7,10 @@ The goal is that each phase is small enough to implement in one focused PR, but 
 
 ## Final outcome
 
-Phases 1–65 are the completed historical implementation according to
-[phase progress](phase-progress.md). Phases 66–105 are planned in the platform
-expansion section below and require explicit implementation authorization.
+Phases 1–65 are the completed historical implementation. Phases 66–105 form the
+authorized expansion sequence in the platform section below. Current delivery,
+validation and CI status are maintained in [phase progress](phase-progress.md);
+these phase definitions describe scope rather than current status.
 [The consolidated plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md) maps all
 features from the original two lists to these phases without duplicate scope.
 
@@ -2402,15 +2403,16 @@ implementation phases add the harnesses; do not claim future commands already ex
 
 # Build order and stopping points
 
-The historical build through Phase 65 is complete. Future implementation proceeds
-in numeric order from Phase 66 only after explicit authorization. Dependency
-references are prerequisites, not permission to skip intervening delivery gates.
+The historical build through Phase 65 is complete. The authorized expansion run
+follows Phases 66–105 in numeric order. Dependency references are prerequisites,
+not permission to skip intervening delivery gates. Consult the phase ledger for
+the final completion decision; this catalog does not authorize additional work.
 
 Milestone ranges and capability coverage are maintained in
 [the implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md#milestones-and-completion-gate);
 execution status is maintained in [phase progress](phase-progress.md).
 
-Useful future checkpoints are Phase 82 (generic durable runtime), Phase 85
+The expansion checkpoints are Phase 82 (generic durable runtime), Phase 85
 (existing workflows migrated), Phase 97 (builder/debugger and automation), and
 Phase 102 (reliability and deployment evidence). These are progress checkpoints;
 the full requested scope, including final documentation, ends at Phase 105.

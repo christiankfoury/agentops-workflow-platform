@@ -168,6 +168,8 @@ and requires fresh approvals instead of reopening a terminal run.
 
 The [implementation plan](WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md) owns R01–R14;
 [phase progress](docs/phase-progress.md) owns completion and CI evidence.
+Read the [final platform case study](docs/CASE_STUDY.md) for design decisions,
+measured results, tradeoffs, lessons and the complete R01–R14 checklist.
 For a five-minute product demonstration, use the [recording script](docs/DEMO_SCRIPT.md)
 and [reproducible local walkthrough](docs/demo-walkthrough.md), with synthetic
 model responses clearly separated from measured runtime experiments.

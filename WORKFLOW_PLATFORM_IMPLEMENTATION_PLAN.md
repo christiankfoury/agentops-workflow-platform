@@ -320,6 +320,8 @@ Record commit IDs, push status, checks, review outcome, and blockers in progress
 Do not advance until the current phase passes those gates.
 
 Completion requires implementation and acceptance evidence for every R01–R14.
-This revision completes planning only. Notifications, evaluation-result caching,
+The original 2026-09-14 revision completed planning only; subsequent delivery and
+CI are recorded in [phase progress](docs/phase-progress.md), with the final story
+in [the case study](docs/CASE_STUDY.md). Notifications, evaluation-result caching,
 another evaluator, another business use case, and additional integrations do not
 enter scope simply because older aspirational documents mention them.

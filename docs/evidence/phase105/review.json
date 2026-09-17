@@ -1,0 +1,183 @@
+{
+  "reviewed_at": "2026-09-17T11:41:07.063865+00:00",
+  "base_commit": "a6e51114f1da1140e2da82a81ce9cbc0588633f3",
+  "passed": true,
+  "scope": "Documentation acceptance review; existing experiments were not rerun. Final Phase 105 CI and pushed review are recorded in phase-progress.md.",
+  "coverage": {
+    "case_study_requirements": [
+      "R01",
+      "R02",
+      "R03",
+      "R04",
+      "R05",
+      "R06",
+      "R07",
+      "R08",
+      "R09",
+      "R10",
+      "R11",
+      "R12",
+      "R13",
+      "R14"
+    ],
+    "completed_phase_records_reviewed": "66–104 (39 records); Phase 105 delivery evidence added after its push/CI",
+    "historical_phase_definitions_unchanged": "1–65",
+    "pushed_commit_identities": 101
+  },
+  "ci_ledger": {
+    "linked_runs": 92,
+    "conclusions": {
+      "success": 89,
+      "failure": 3
+    },
+    "missing": [],
+    "historical_failures": [
+      {
+        "run_id": 35038501298,
+        "disposition": "Phase 83 fixture corrected; subsequent CI passed"
+      },
+      {
+        "run_id": 35051088246,
+        "disposition": "Phase 87 tool-only dispatch context corrected; subsequent CI passed"
+      },
+      {
+        "run_id": 35180407041,
+        "disposition": "Phase 99 persisted lease-deadline fixture corrected; subsequent CI passed"
+      }
+    ],
+    "phase104_completion_record": {
+      "conclusion": "success",
+      "databaseId": 35215466462,
+      "headSha": "a6e51114f1da1140e2da82a81ce9cbc0588633f3",
+      "status": "completed",
+      "url": "https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35215466462"
+    }
+  },
+  "archive_integrity": {
+    "checked_at": "2026-09-17T11:25:16.738183+00:00",
+    "archive_count": 94,
+    "checks": [
+      {
+        "manifest": "docs/evidence/phase98-full/summary.json",
+        "archives": 30,
+        "sha256_and_json_valid": true
+      },
+      {
+        "manifest": "docs/evidence/phase99-full/summary.json",
+        "archives": 45,
+        "sha256_and_json_valid": true
+      },
+      {
+        "manifest": "docs/evidence/phase99-fix/summary.json",
+        "archives": 15,
+        "sha256_and_json_valid": true
+      },
+      {
+        "manifest": "docs/evidence/phase100-final/summary.json",
+        "archives": 1,
+        "sha256_and_json_valid": true
+      },
+      {
+        "manifest": "docs/evidence/phase101/summary.json",
+        "archives": 1,
+        "sha256_and_json_valid": true
+      },
+      {
+        "manifest": "docs/evidence/phase102-final/summary.json",
+        "archives": 1,
+        "sha256_and_json_valid": true
+      },
+      {
+        "manifest": "docs/evidence/phase104/summary.json",
+        "archives": 1,
+        "sha256_and_json_valid": true
+      }
+    ],
+    "scope": "Read-only archive integrity/JSON review, not a rerun of experiments"
+  },
+  "numeric_source_checks": {
+    "load_capacity_completed_rate_p95": [
+      [
+        1,
+        3334,
+        1.351,
+        73.695
+      ],
+      [
+        4,
+        3333,
+        4.24,
+        20.898
+      ],
+      [
+        16,
+        3333,
+        5.666,
+        14.398
+      ]
+    ],
+    "fault_accounting": {
+      "passed": true,
+      "run_statuses": {
+        "cancelled": 9,
+        "completed": 54,
+        "failed": 9
+      },
+      "scenario_count": 15,
+      "totals": {
+        "accepted": 72,
+        "attempts": 234,
+        "duplicate_effects": 0,
+        "intended_effects": 12,
+        "jobs": 279,
+        "lost_effects": 0,
+        "lost_jobs": 0,
+        "observed_effects": 12,
+        "sink_duplicates_prevented": 6,
+        "sink_requests": 18,
+        "unknown_effects": 3
+      }
+    },
+    "kubernetes_operations": {
+      "accepted": 21,
+      "completed": 21,
+      "distinct_effects": 21,
+      "sink_calls_for_suite": 23,
+      "lost_accepted_runs": 0,
+      "duplicate_effects": 0,
+      "restored_history_verified": true
+    },
+    "evaluation": "Both assigned-value tables checked against EVALUATION.md and demo_dataset.py; no live-provider uplift claim"
+  },
+  "semantic_review": [
+    "Diagram agrees with architecture: authenticated tenant API, durable PostgreSQL, separate workers and governed external calls",
+    "Admission, fencing, immutable versions, approval replacement, compatibility and uncertain effects retain current contract boundaries",
+    "32 seeded cases/65 runs/99 steps distinguished from three actual synthetic-model rehearsal executions",
+    "Load is single-process service-level; faults include failed/cancelled/unknown outcomes; Kubernetes is local single-node and metadata-only release",
+    "Setup links reuse rehearsed isolated fixture and verified deployment runbooks; no provider or hosted operation performed",
+    "Original baseline/multi-agent quality, cost, latency, business-agent, lessons and future-work scope retained",
+    "Historical planning language reconciled; phase IDs, requirement scope and existing records preserved"
+  ],
+  "source_hashes": {
+    "docs/CASE_STUDY.md": "0e7c28d2344fff3c350636b1c5f6be6d7d1a774e0ffd4136ba7a41027414c545",
+    "README.md": "2e789434c8123dad5bd304a061f849e6c88f5b9a07a0c5f8dafc69fe68d0a938",
+    "WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md": "79e7cf7b8f45408e02b27dc5495f2b8f3c38e957a7eaba7ce25f2ccb2595f21b",
+    "docs/PLATFORM_EVIDENCE.md": "f796ae50fdce3970bd4a1e111da66508beb8ab62283c5e2c565d096175eb1cb4",
+    "docs/phases.md": "8891808d60a99e93556f3bba1604c29e1d89dc6de99b8c09aa69f945a51f3d75",
+    "docs/ARCHITECTURE.md": "15c0a50487cd7868cd750e66bd61d31779ce438e2525e59bc5c818e9b32340d3",
+    "docs/EVALUATION.md": "eb627b5ca9f90f06656431f6a529ec22638dd98191575176edf53075493ab42c",
+    "apps/api/src/services/demo_dataset.py": "06ec01b636222ffe0b978647d4e29e07a9494d6dd01c0c14fcda1a95c379d056",
+    "docs/BENCHMARK_RESULTS.md": "d00920430b0cb2c6e822d382bb235fe5d9c310276ae8e6af9b1e29ff69dbf501",
+    "docs/RELIABILITY_RESULTS.md": "e76173abc6ebbb4db1e4ca4d15392e0a0f9d7f05e31cbd479962d577dfd6872e",
+    "docs/PRODUCTION_CONTAINER_RESULTS.md": "45b5aba1489ad08f5ded8acb72dab07c7bc6fcebf6837f87eb75c6fcb77133cd",
+    "docs/KUBERNETES_RESULTS.md": "e79d4551a43780dbf39be545e8d73c09960b7698170ac3c41d2c3a0198bf9c67",
+    "docs/KUBERNETES_OPERATIONS_RESULTS.md": "caca0502c946bb9d15cec71c8275aaf9b887606daf74e8cea1dc837c6d5594b7",
+    "docs/DEMO_SCRIPT.md": "c5dbb07d791df35e9a9eeee1a4107fd1f5883aee8a2f49d91e65de851da97324",
+    "docs/demo-walkthrough.md": "a706dfde55bca717d448ac512cb419218c9347ec6eeefa481169f4dad5f098cc"
+  },
+  "remaining_limits": [
+    "Hosted and live-provider/account acceptance unperformed",
+    "No multi-node or production-security certification",
+    "No recorded/generated video; Phase 104 delivers a recording script"
+  ]
+}

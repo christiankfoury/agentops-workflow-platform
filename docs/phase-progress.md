@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 105 — final case study**, eligible after the Phase 104 completion-record CI.
+Current implementation phase: **Phase 105 — final workflow platform case study**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–104 are complete; Phase 105 remains planned until the preceding completion-record CI passes.
+Phases 66–104 are complete; Phase 105 is active.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 105: Final Workflow Platform Case Study
 
-Status: Eligible after Phase 104 completion-record CI passes.
+Status: In progress — Phase 104 completion-record CI passed.
 
 Scope: evidence-backed final case study, complete R01–R14 checklist and delivery
 ledger review, with measured, seeded and unperformed results distinguished.
@@ -143,7 +143,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 102 | Complete | Local rollout, scaling, Pod loss/fencing, readiness, backup/restore and rollback; 21 runs/21 effects reconciled; implementation `3c30652`, CI `35200997403` passed 898 API tests. |
 | 103 | Complete | Implementation `242c611`, fix `39b8f4f`; CI `35205261374` and `35207650946` passed 898 API tests; documentation review resolved. |
 | 104 | Complete | Rehearsed script; implementation `677c6bb`, fixes `9133592`/`7055664`; all CI and review passed, 906 API tests. |
-| 105 | Planned — not started | Final Workflow Platform Case Study |
+| 105 | In progress | Final case study, requirement checklist and complete delivery review. |
 
 ## Per-Phase Execution Record
 
@@ -3030,6 +3030,52 @@ This is a status index; implementation details live only in `docs/phases.md`.
   Both follow-up fixes are separate commits. No paid-provider execution, generated
   video, hosted acceptance or production runtime/schema change is claimed.
   Phase 105 begins only after this completion record is pushed and its CI passes.
+
+
+### Phase 105 — Final workflow platform case study
+
+- Phase 104 completion record `a6e51114f1da1140e2da82a81ce9cbc0588633f3`
+  was pushed; [CI 35215466462](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35215466462)
+  passed all jobs. Repository main was clean and matched origin before this phase.
+- Inspected the required context, final phase scope, architecture/security/tool
+  contracts, evaluation source constants, benchmark/fault/deployment reports,
+  actual demo rehearsal, evidence manifests and per-phase delivery records.
+- Plan: add a recruiter-readable final case study covering the problem, goal,
+  architecture, three business examples, evaluation method/results, measured
+  reliability/deployment, tradeoffs, lessons and future work. Link it from README
+  and the R14 evidence row; retain an explicit R01–R14 completion checklist.
+  Reconcile historical planning language without changing scope or phase IDs.
+- Acceptance: trace every capability/number to source or retained evidence;
+  separate assigned scores, local measurements and unperformed external checks;
+  review diagram/setup links and all completed-phase commit/CI evidence. Run
+  documentation validation and inspect the pushed diff; await every CI job.
+- Migration/rollout: documentation and evidence only. No application behavior,
+  schema, deployment, provider traffic, credentials or existing dataset changes.
+  The autonomous run is closed only after implementation CI and final review.
+
+
+- Added the [final case study](CASE_STUDY.md): architecture diagram, design
+  tradeoffs, business-agent paths, exact assigned comparison tables, measured load,
+  fault/deployment results, actual lessons and a complete R01–R14 checklist.
+  README and the evidence index link it. Historical plan wording now distinguishes
+  original planning from current delivery; all Phase 1–65 definitions are unchanged.
+- Validation: `uv run --directory apps/api python
+  ../../scripts/check_documentation.py --output
+  ../../docs/evidence/phase105/documentation-check.json` passed **49 documents,
+  533 local links, 105 ordered phase headings and both 14-requirement tables**.
+  The case-study checklist separately contains each requirement once. Diagram,
+  setup references and numeric claims were reviewed against source/results.
+- [Final evidence review](evidence/phase105/review.json) checked **94 retained
+  gzip archives** for SHA-256/JSON integrity and recorded 15 normalized source
+  hashes. It verified **92 linked CI runs** (89 successful; three historical
+  failures followed by recorded fixes/passing runs), **101 pushed commit IDs**
+  and validation/review fields for all 39 completed expansion phases before 105.
+  Numeric assertions matched load, fault and Kubernetes manifests. This is a
+  read-only evidence review, not a rerun of provider/deployment experiments.
+- No new runtime tests were added for this documentation-only phase. Required
+  full application/build/deployment CI will run on the pushed implementation.
+  Original archives and existing resources remain unchanged. Implementation
+  push, completed CI and post-push review are required before final closure.
 
 When a future phase starts, add a record here using these fields:
 
