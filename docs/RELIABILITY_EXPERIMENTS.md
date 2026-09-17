@@ -45,7 +45,7 @@ Docker daemon or credentials; it verifies archive hashes and recomputes counts.
 | Approval/cancel race, three instances | Race independent decision and cancellation sessions; cancellation remains terminal and downstream work does not run. |
 | Scheduler replicas | Race three schedulers at one explicit due instant and replay that instant; admit one fire, run and job. |
 | Overlapping graceful replacement | Start a second independent worker while the first owns a held checkpoint; request the first worker's stop event, release/drain it, and complete eight accepted runs without lease recovery. |
-| PostgreSQL service outage | Stop the owned database container with an accepted claimed job; reject an unavailable admission and worker operation, restart the database, fence the expired owner and complete the accepted run. |
+| PostgreSQL service outage | Stop the owned database container with an accepted claimed job; reject an unavailable admission and worker operation, restart the database, wait for the persisted lease deadline, fence the expired owner and complete the accepted run. |
 
 All 15 cases use fixed synthetic graph/input data. Race winners depend on the
 operating-system scheduler; the permitted terminal invariants are fixed. There

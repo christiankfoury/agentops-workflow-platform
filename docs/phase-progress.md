@@ -2531,6 +2531,29 @@ This is a status index; implementation details live only in `docs/phases.md`.
   and reproducible analysis rather than only test-count claims. Phase commit,
   push, all CI and post-push review remain required before completion.
 
+- Implementation **`8d4582845201cb27f01bbffcfbd48a3ea3d7cef0`** was pushed
+  to `main`. [CI 35180407041](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35180407041)
+  passed Web and Compose but failed the API suite: **890 passed, 1 failed in
+  626.74s**. On the faster Linux host, PostgreSQL restarted before the fixture's
+  half-second lease expired; renewal was correctly allowed. The test had assumed
+  restart necessarily outlasted that lease. This is a fixture timing defect,
+  not an application fencing failure; Phase 99 remains incomplete.
+- Fix: wait for the persisted PostgreSQL lease deadline before asserting stale
+  renewal rejection and recovery. Rerun all 15 fault scenarios with separate raw
+  evidence in `docs/evidence/phase99-fix`. Post-push review also found that the
+  shared environment helper supplied a Phase 98 single-process scope label;
+  correct that descriptive label for the actual multiple-process fault suite,
+  preserving original source fingerprints and raw measurement archives.
+
+- Fix validation: all **15/15 scenarios passed in 182.08s** on
+  2026-09-17 04:15:19–04:18:24 UTC, command exit 0. Separate raw evidence
+  reconciles 24 accepted runs, 93 jobs, 78 attempts and four effects, with no
+  loss/duplication and one deliberately unknown outcome. All 316 source hashes
+  matched after measurement. Logs: `.phase99-fix-validation.log` and
+  `.phase99-fix-verification.log`. The subsequent descriptive scope correction
+  preserves both manifests' raw archives and measured source hashes, and records
+  the previous label/reason explicitly. Fix commit/push and passing CI remain due.
+
 When a future phase starts, add a record here using these fields:
 
 - Phase and authorized target range.

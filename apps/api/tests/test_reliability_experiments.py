@@ -345,6 +345,19 @@ def test_real_database_service_outage(evidence, monkeypatch):
             database.dispose()
             wait_for(ready, 60)
         evidence.mark("database_ready")
+
+        # Fast hosts can restart PostgreSQL before the short lease expires.
+        # Observe the persisted deadline; database loss alone does not revoke it.
+        def ownership_expired():
+            with database.connect() as conn:
+                return conn.scalar(
+                    select(queue.jobs.c.lease_expires_at <= func.clock_timestamp()).where(
+                        queue.jobs.c.id == claim.id
+                    )
+                )
+
+        wait_for(ownership_expired, 10)
+        evidence.mark("persisted_lease_expired")
         assert not leases.renew_lease(database, claim)
         assert leases.recover_expired(database) == 1
         drain(database)

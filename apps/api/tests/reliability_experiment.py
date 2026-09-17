@@ -16,6 +16,12 @@ from src.benchmarks.evidence import API, ROOT, environment, save
 from tests.reliability_evidence import reconcile
 
 EXPECTED_CASES = 15
+EXPERIMENT_SCOPE = (
+    "A separate pytest process per repetition, independent worker subprocesses, "
+    "PostgreSQL and a controlled loopback HTTP sink. A separately owned PostgreSQL "
+    "container is stopped and restarted. Development identity fixtures; no OIDC "
+    "ingress, human decision latency, paid models or third-party effects."
+)
 
 
 def verify(folder):
@@ -59,6 +65,7 @@ def run(args):
     folder = args.output.resolve()
     folder.mkdir(parents=True, exist_ok=False)
     provenance = environment()
+    provenance["measurement_scope"] = EXPERIMENT_SCOPE
     provenance["test_source_sha256"] = {
         path.relative_to(ROOT).as_posix(): hashlib.sha256(
             path.read_bytes().replace(b"\r\n", b"\n")

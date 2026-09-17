@@ -87,6 +87,16 @@ isolated outage then passed, followed by all three full repetitions. No
 application state transition, schema or retry policy was changed to obtain the
 result. Initial attempt logs are identified in [phase progress](phase-progress.md).
 
+The first implementation CI subsequently found a platform-dependent fixture
+assumption: Linux restarted PostgreSQL before the half-second lease expired,
+so renewal was correctly still allowed. The fixture now waits for the persisted
+database lease deadline before checking stale-owner rejection. This changes no
+runtime lease rule. A separate [fix-validation run](evidence/phase99-fix/summary.json)
+passed **all 15 scenarios in 182.08 seconds**, with 24 accepted runs, 93 terminal
+jobs, 78 attempts, all four intended effects, no loss/duplication and one
+deliberately unresolved outcome. The original three-repetition measurements above
+remain intact; this additional run is not mixed into those timing ranges.
+
 ## Evidence and provenance
 
 The [summary manifest](evidence/phase99-full/summary.json) identifies all **45
@@ -101,6 +111,13 @@ the measured checkout after the run. The new harness was measured before its
 phase commit; the implementation SHA and CI evidence are recorded in phase
 progress. Independent offline verification recomputed all totals and checked
 the timeout/reconciliation outcomes from the raw records.
+
+The fix rerun used base commit `8d4582845201cb27f01bbffcfbd48a3ea3d7cef0` plus
+the fingerprinted lease-wait correction. Its 316 source hashes matched after
+measurement. A later descriptive metadata correction replaces a Phase 98
+single-process scope label inherited from the shared helper. Both manifests
+retain that correction's previous label and reason; their measured source hashes
+and raw archives are unchanged. Future runner output uses the correct scope.
 
 The host ran Python 3.12.7 on Windows 11 with 16 logical CPUs. Ordinary cases
 used PostgreSQL 16.14 in the existing disposable validation service; each outage
