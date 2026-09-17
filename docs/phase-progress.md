@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 97 complete — completion-record CI pending before Phase 98**.
+Current implementation phase: **Phase 98 — Deterministic Throughput Benchmark (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–97 are complete; Phases 98–105 remain planned.
+Phases 66–97 are complete; Phase 98 is in progress; Phases 99–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -136,7 +136,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
 | 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
 | 97 | Complete | Scoped worker metrics and bounded live updates; implementation `202adc1`, fix `f73d4a1`, all CI passed with 874 API tests. |
-| 98 | Planned — not started | Deterministic Throughput Benchmark |
+| 98 | In progress | Deterministic Throughput Benchmark |
 | 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
 | 100 | Planned — not started | Production Container Packaging |
 | 101 | Planned — not started | Kubernetes Deployment Manifests |
@@ -2367,6 +2367,81 @@ This is a status index; implementation details live only in `docs/phases.md`.
   associated with retained tenant jobs, and historical claims without the new
   observation are excluded from queue-wait samples. Fleet metrics require trusted
   infrastructure database access. No production deployment or throughput claim.
+
+### Phase 98 — Deterministic Throughput Benchmark
+
+- Authorized range: 66–105. Dependency 97 is complete. Completion record
+  `d2b46667fd1476008697e55d698c0da38bbdd32e` was pushed; CI `35171054414`
+  passed all three independent check-runs, 874 API tests in 565.56s, 65 frontend
+  checks, fresh migrations, lint/typecheck/build, Compose and both clean audits.
+- Inspected acceptance/idempotency, queue workers, parallel scheduling, exact
+  tool approvals, HTTP destination policy, migrations and PostgreSQL fixtures.
+- Plan: add an opt-in benchmark CLI with fixed-seed bounded condition, parallel
+  and governed loopback HTTP workloads, synthetic persisted admin membership,
+  normal approval decisions and no LLM/provider calls. Create fresh uniquely
+  owned migrated schemas per concurrency stage; retain data and evidence.
+  Accept at least 10,000 workflows across capacities 1, 4 and 16, in bounded
+  batches, deliberately replay start requests, and drain using real workers.
+- Evidence: record source fingerprints/base commit, environment, workload,
+  duration, resource observations, latency percentiles, throughput and retries.
+  Save machine-readable per-run/job/effect reconciliation and a readable report.
+  Assert complete accepted-ID coverage and exact intended sink identities;
+  report failures and preserve partial evidence instead of excluding them.
+- Acceptance: deterministic small real-PostgreSQL CLI sample in CI, malformed
+  bounds and reconciliation failure checks, Ruff, documented full benchmark,
+  local diff review, phase commit/push, all CI and post-push review. No schema
+  migration or application/UI behavior change is planned. Measurements exclude
+  HTTP/OIDC ingress and human decision latency; they include real service-level
+  permission checks, persisted decisions and controlled HTTP dispatch.
+
+- Implemented the opt-in CLI, isolated migrated schemas, three bounded workloads,
+  membership-backed synthetic approver, real worker controller and independent
+  loopback sink. Added per-ID reconciliation, hashed JSONL archives, portable
+  resource observations, source fingerprints and an offline verifier. No runtime
+  service, schema, dependency or UI behavior changes. Instructions and limits:
+  [BENCHMARK.md](BENCHMARK.md).
+- Local validation: initial real CLI sample completed all 12 workflows at
+  capacities 1/4 and observed all four intended effects. Focused tests passed
+  **2/2 in 56.49s**; after tightening receipt/job/attempt/version/output checks,
+  final **2/2 passed in 87.07s**, including corruption/missing-record rejection.
+  Ruff passed. Logs: `.phase98-small-initial.log`, `.phase98-focused.log`,
+  `.phase98-accepted.log`. No unrelated frontend suite was required locally.
+- Full experiment started 2026-09-17 at approximately 02:05 UTC with the documented
+  10,000-count command, capacities 1/4/16 and batches of 100. The measured Python
+  sources are fixed for this run. Environment and periodic PostgreSQL resources
+  are retained in `docs/evidence/phase98-environment.json` and
+  `docs/evidence/phase98-resources.jsonl`; stage artifacts will be written under
+  `docs/evidence/phase98-full`. Completion, full reconciliation, phase delivery,
+  all CI and post-push review remain outstanding. No full-run result is claimed.
+
+- Full-run outcome (2026-09-17 02:05:02–03:10:45 UTC): **10,000 accepted and
+  completed workflows**, **33,333 completed jobs**, **26,666 completed attempts**,
+  and **3,333 intended sink effects**, all reconciled. No failed/cancelled/active
+  runs, missing jobs, extra/unknown effects, worker/controller errors, step/tool
+  retries or lease recoveries. **1,000 duplicate starts were prevented**; the sink
+  received no duplicate requests. Command and resource sampler both exited 0.
+- Measured capacities 1 / 4 / 16 completed 3,334 / 3,333 / 3,333 workflows in
+  2,467.594 / 786.141 / 588.250 seconds: **1.351 / 4.240 / 5.666 workflows/s**.
+  End-to-end p95 was 73.695 / 20.898 / 14.398 seconds. Input was at most 130 bytes.
+  These are single-process local observations with immediate synthetic approvals,
+  fresh schemas per stage and a shared Windows/Docker host, not production targets.
+- Independent verification: `python -m src.benchmarks.verify` passed for all
+  10,000 IDs and 3,333 sink identities. A separate check matched all **220 source
+  fingerprints** and all fixed-seed workloads; final Ruff passed. Evidence logs:
+  `.phase98-full.log`, `.phase98-offline-verification.log`,
+  `.phase98-source-verification.log`. [Measured results](BENCHMARK_RESULTS.md)
+  link the manifest, 30 hashed raw archives, environment, 124 database resource
+  samples and generated report. All three owned schemas remain available.
+- Local review: checked fresh-schema ownership, current membership/approval paths,
+  immutable version inputs, bounded producer/worker/sink work, persisted start/job/
+  attempt/effect identity accounting, failure visibility, reproducible seeds,
+  percentile definitions and resource/provenance limits. Corruption tests reject
+  missing records and duplicate effects. No unresolved local findings. The phase
+  exceeds the preferred 300–700 lines because the independently usable CLI includes
+  typed workload graphs, sink/controller, cross-platform observations, raw-data
+  verification and documentation; roughly 7 MB of compressed full-run evidence is
+  retained to make the 10,000-run claim inspectable. Commit/push, all CI and
+  post-push review are still required before Phase 98 is complete.
 
 When a future phase starts, add a record here using these fields:
 
