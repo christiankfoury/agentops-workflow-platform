@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.config import settings
@@ -81,9 +81,19 @@ def _input_title_for_run(db: Session, run: WorkflowRun) -> str | None:
 
 
 @router.get("", response_model=list[WorkflowRunRead])
-def list_workflow_runs(db: Session = Depends(get_db)) -> list[dict[str, object]]:
-    runs = db.query(WorkflowRun).order_by(WorkflowRun.created_at.desc()).all()
-    uploaded_inputs = db.query(UploadedInput).all()
+def list_workflow_runs(
+    db: Session = Depends(get_db),
+    limit: int | None = Query(default=None, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
+) -> list[dict[str, object]]:
+    query = db.query(WorkflowRun).order_by(WorkflowRun.created_at.desc(), WorkflowRun.id.desc())
+    if limit is not None:
+        query = query.offset(offset).limit(limit)
+    runs = query.all()
+    inputs = db.query(UploadedInput)
+    if limit is not None:
+        inputs = inputs.filter(UploadedInput.id.in_([run.input_id for run in runs if run.input_id]))
+    uploaded_inputs = inputs.all()
     input_titles = {uploaded_input.id: uploaded_input.title for uploaded_input in uploaded_inputs}
     return [_workflow_run_payload(run, input_titles.get(run.input_id)) for run in runs]
 

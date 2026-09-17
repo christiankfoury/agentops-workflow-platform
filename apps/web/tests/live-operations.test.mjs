@@ -83,6 +83,27 @@ test("manual terminal retry has bounded failure backoff and disposed failures st
   assert.equal(late.status.length, messages); assert.equal(late.timers.size, 0);
 });
 
+test("mutation refresh survives a paused page refresh even when the token is unchanged", async () => {
+  const state = setup(async () => pulse()); await state.tick(); assert.equal(state.refreshed(), 1);
+  state.available(false); state.loop.wake(true); await flush(); assert.equal(state.refreshed(), 1);
+  state.available(true); await state.tick(); assert.equal(state.refreshed(), 2); state.loop.dispose();
+});
+
+test("live lists bound pagination and approval run lookup fanout", async () => {
+  const React = require("react"), { renderToStaticMarkup } = require("react-dom/server");
+  const calls = [], rows = Array.from({ length: 26 }, (_, i) => ({ id: `a${i}`, workflow_run_id: `r${i}`, status: "pending" }));
+  const { default: Page } = load("app/human-approvals/page.tsx", {
+    "next/link": { default: props => React.createElement("a", props) }, "@/components/live-page": { LivePage: () => null },
+    "./human-approvals-table": { HumanApprovalsTable: ({ rows }) => React.createElement("p", null, `Rendered ${rows.length} rows`) },
+    "@/lib/api": { listHumanApprovals: async page => { calls.push(page); return rows; },
+      getWorkflowRun: async id => { calls.push(id); return { id, status: "waiting_for_human" }; } },
+  });
+  const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ offset: "25" }) }));
+  assert.deepEqual(calls[0], { offset: 25, limit: 26 }); assert.equal(calls.length, 26);
+  assert.match(html, /Rendered 25 rows/); assert.match(html, /offset=50/); assert.match(html, /offset=0/);
+  assert.match(html, /Counts and search apply to this page/);
+});
+
 test("operations renders bounded history, diagnostic meaning and current counts", async () => {
   const React = require("react"), { renderToStaticMarkup } = require("react-dom/server");
   const data = { observed_at: "fixture", jobs: { stale: 1, retrying: 2, dead_letter: 3 }, runs: {}, attempts: { completed: 4 },

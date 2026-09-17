@@ -12,9 +12,12 @@ export function startPolling(options: {
   let token: string | undefined, failures = 0, interval = 5000;
   function schedule(ms: number) { options.cancel(timer); if (!disposed && !stopped) timer = options.schedule(() => { void tick(); }, ms); }
   async function tick(force = false) {
-    if (disposed || pending || (stopped && !force)) return;
+    if (disposed || pending) return;
+    force ||= queuedForce;
+    if (stopped && !force) return;
     if (force) stopped = false;
-    if (!options.available()) { options.status("Updates paused while offline or in a hidden tab."); schedule(15000); return; }
+    if (!options.available()) { queuedForce ||= force; options.status("Updates paused while offline, hidden, or refreshing."); schedule(15000); return; }
+    queuedForce = false;
     pending = true;
     try {
       const result = await options.read();

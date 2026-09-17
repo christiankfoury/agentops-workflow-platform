@@ -18,12 +18,16 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default async function WorkflowRunsPage() {
+export default async function WorkflowRunsPage({ searchParams }: { searchParams: Promise<{ offset?: string }> }) {
+  const query = await searchParams;
+  const offset = /^\d{1,6}$/.test(query.offset ?? "") ? Number(query.offset) : 0;
+  let hasNext = false;
   let runs: WorkflowRun[] = [];
   let apiError = false;
 
   try {
-    runs = await listWorkflowRuns();
+    const result = await listWorkflowRuns({ offset, limit: 26 });
+    hasNext = result.length > 25; runs = result.slice(0, 25);
   } catch {
     apiError = true;
   }
@@ -31,6 +35,7 @@ export default async function WorkflowRunsPage() {
   return (
     <div className="space-y-6">
       <LivePage kind="runs" />
+      <p className="text-xs text-muted-foreground">Showing up to 25 runs. Counts and search apply to this page.</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Workflow Runs</h1>
@@ -103,6 +108,7 @@ export default async function WorkflowRunsPage() {
       ) : (
         <WorkflowRunsTable runs={runs} />
       )}
+      <nav aria-label="Workflow run pages" className="flex gap-4 text-sm">{offset > 0 && <Link className="underline" href={`/workflow-runs?offset=${Math.max(0, offset - 25)}`}>Previous page</Link>}{hasNext && <Link className="underline" href={`/workflow-runs?offset=${offset + 25}`}>Next page</Link>}</nav>
     </div>
   );
 }

@@ -813,7 +813,7 @@ export default async function WorkflowRunDetailPage({
   const workflowEvents = await listWorkflowEvents(run.id);
   const recoveryMessages = getRecoveryMessages(run.status, agentSteps, workflowEvents);
   const humanApprovals =
-    run.status === "waiting_for_human" ? await listHumanApprovals() : [];
+    run.status === "waiting_for_human" ? await listHumanApprovals({ runId: run.id, status: "pending", limit: 1 }) : [];
   const pendingApproval = humanApprovals.find(
     (approval) =>
       approval.workflow_run_id === run.id && approval.status === "pending",

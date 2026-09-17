@@ -69,13 +69,17 @@ async function loadRunsById(approvals: HumanApproval[]): Promise<Map<string, Wor
   );
 }
 
-export default async function HumanApprovalsPage() {
+export default async function HumanApprovalsPage({ searchParams }: { searchParams: Promise<{ offset?: string }> }) {
+  const query = await searchParams;
+  const offset = /^\d{1,6}$/.test(query.offset ?? "") ? Number(query.offset) : 0;
+  let hasNext = false;
   let approvals: HumanApproval[] = [];
   let runsById = new Map<string, WorkflowRun>();
   let apiError = false;
 
   try {
-    approvals = await listHumanApprovals();
+    const result = await listHumanApprovals({ offset, limit: 26 });
+    hasNext = result.length > 25; approvals = result.slice(0, 25);
     runsById = await loadRunsById(approvals);
   } catch {
     apiError = true;
@@ -106,6 +110,7 @@ export default async function HumanApprovalsPage() {
   return (
     <div className="space-y-6">
       <LivePage kind="approvals" />
+      <p className="text-xs text-muted-foreground">Showing up to 25 approvals. Counts and search apply to this page.</p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Human Approvals</h1>
@@ -152,6 +157,7 @@ export default async function HumanApprovalsPage() {
       ) : (
         <HumanApprovalsTable rows={approvalRows} />
       )}
+      <nav aria-label="Approval pages" className="flex gap-4 text-sm">{offset > 0 && <Link className="underline" href={`/human-approvals?offset=${Math.max(0, offset - 25)}`}>Previous page</Link>}{hasNext && <Link className="underline" href={`/human-approvals?offset=${offset + 25}`}>Next page</Link>}</nav>
     </div>
   );
 }

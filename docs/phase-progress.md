@@ -2329,6 +2329,26 @@ This is a status index; implementation details live only in `docs/phases.md`.
   and meaningful regression coverage. All changes belong to Phase 97. Commit,
   push, full CI and post-push review remain required before completion.
 
+- Pushed implementation: `202adc1284a9a82012b8d44375ff522727b0b516`, CI
+  `35169468174`. Post-push review found that legacy run/approval list refreshes
+  still used unbounded list endpoints, including approval-to-run lookup fanout.
+  The separate fix adds opt-in API pagination, 25-row live pages with a one-row
+  lookahead, page-local count/search explanations, and a scoped one-row pending
+  approval lookup on run detail. Existing unpaginated callers retain compatibility.
+  Polling now also pauses during a React page refresh and retains pending forced
+  refresh requests across that pause, even when a terminal token is unchanged.
+- Fix validation: **25 backend checks passed** in 101.44s (operations and legacy
+  run/approval API compatibility), **65 frontend checks passed** in 18805.3258ms,
+  Ruff/lint/typecheck/production build and diff checks passed. Browser verified
+  the new run/approval page scope explanation and successful API requests with
+  `offset=0&limit=26`. Logs: `.phase97-fix-api.log`,
+  `.phase97-fix-web-{smoke,lint,typecheck,build}.log`, `.phase97-fix-api-server.log`.
+  Implementation CI `35169468174` completed successfully before the fix push:
+  **873 API tests passed** in 570.33s, 63 frontend checks, fresh migrations,
+  Ruff/lint/typecheck/build, Compose and both clean dependency audits. All three
+  independent check-runs confirmed success. Fix push/review and completion gates
+  are still outstanding.
+
 When a future phase starts, add a record here using these fields:
 
 - Phase and authorized target range.

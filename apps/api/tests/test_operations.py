@@ -199,3 +199,26 @@ def test_snapshot_reuses_a_bounded_connection_pool(database):
             assert db.connection().get_isolation_level() == "REPEATABLE READ"
     finally:
         engine.dispose()
+
+
+def test_live_legacy_list_pagination_and_run_filter_stay_scoped(database, tenants, tenant_client):
+    from src.models.human_approval import HumanApproval
+
+    owner = tenants[0]
+    with Session(database) as db:
+        bind_tenant(db, owner["org"])
+        db.add_all([HumanApproval(workflow_run_id=owner["run"]) for _ in range(28)])
+        db.commit()
+    page1 = tenant_client.get("/human-approvals?limit=26&offset=0").json()
+    page2 = tenant_client.get("/human-approvals?limit=26&offset=26").json()
+    assert len(page1) == 26 and len(page2) == 3
+    assert not ({row["id"] for row in page1} & {row["id"] for row in page2})
+    for path in ("/human-approvals", "/workflow-runs"):
+        assert tenant_client.get(path + "?limit=51").status_code == 422
+        assert tenant_client.get(path + "?limit=1&offset=-1").status_code == 422
+    rows = tenant_client.get("/workflow-runs?limit=1&offset=0").json()
+    assert len(rows) == 1 and rows[0]["id"] == str(owner["run"])
+    assert tenant_client.get("/workflow-runs?limit=1&offset=1").json() == []
+    path = "/human-approvals?limit=1&status=pending&workflow_run_id="
+    assert len(tenant_client.get(path + str(owner["run"])).json()) == 1
+    assert tenant_client.get(path + str(tenants[1]["run"])).json() == []

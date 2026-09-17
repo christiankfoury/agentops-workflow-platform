@@ -103,8 +103,8 @@ export async function listAuditEvents(): Promise<Array<{
   return res.json();
 }
 
-export async function listWorkflowRuns(): Promise<WorkflowRun[]> {
-  const res = await apiFetch("/workflow-runs", { cache: "no-store" });
+export async function listWorkflowRuns(page?: { offset: number; limit: number }): Promise<WorkflowRun[]> {
+  const res = await apiFetch(`/workflow-runs${page ? `?offset=${page.offset}&limit=${page.limit}` : ""}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch workflow runs: ${res.status}`);
   return res.json() as Promise<WorkflowRun[]>;
 }
@@ -469,8 +469,11 @@ export async function createCorrectedEvaluationComparisonRun(
   return res.json() as Promise<CorrectedEvaluationComparison>;
 }
 
-export async function listHumanApprovals(): Promise<HumanApproval[]> {
-  const res = await apiFetch("/human-approvals", { cache: "no-store" });
+export async function listHumanApprovals(page?: { offset?: number; limit: number; runId?: string; status?: string }): Promise<HumanApproval[]> {
+  const query = new URLSearchParams();
+  if (page) { query.set("offset", String(page.offset ?? 0)); query.set("limit", String(page.limit));
+    if (page.runId) query.set("workflow_run_id", page.runId); if (page.status) query.set("status", page.status); }
+  const res = await apiFetch(`/human-approvals${query.size ? `?${query}` : ""}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch human approvals: ${res.status}`);
   return res.json() as Promise<HumanApproval[]>;
 }

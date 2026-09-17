@@ -89,10 +89,17 @@ bounded interval (15 seconds or longer) and retain the scrape timestamp.
 
 Run lists/details, graph debugger, approvals and operations use small metadata
 pulses. Active details poll at 5 seconds; waits and aggregate views at 15 seconds.
-Only changed tokens refresh the page. The operations token advances every 15
+Only changed tokens refresh the page. Live business run and approval lists show
+25 rows, fetching one lookahead row for pagination. Summary counts and text search
+apply to that page. Approval run lookups cover at most 25 distinct runs with six
+concurrent requests. Business run details fetch only their own pending approval.
+Legacy list APIs accept optional `limit` (1–50) and `offset`; existing callers
+without pagination retain their prior contract. The operations token advances every 15
 seconds because queue ages and lease expiry change without a workflow event.
 
-One pulse is in flight per page. Failed reads back off through 10, 20, 40 and
+One pulse is in flight per page; polling also pauses during a page refresh.
+Mutation refresh requests survive that pause, even when the token is unchanged.
+Failed reads back off through 10, 20, 40 and
 60 seconds. Offline/hidden tabs pause reads; reconnect resumes them. Resolved
 details stop automatic polling. Current permission and organization are checked
 for each pulse; access loss stops automatic reads. `Refresh now` is available

@@ -1,10 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.models.human_approval import HumanApproval
+from src.models.human_approval import ApprovalStatus, HumanApproval
 from src.schemas.human_approval import (
     HumanApprovalAction,
     HumanApprovalEdit,
@@ -26,8 +26,23 @@ router = APIRouter()
 
 
 @router.get("", response_model=list[HumanApprovalRead])
-def list_human_approvals(db: Session = Depends(get_db)) -> list[HumanApproval]:
-    return db.query(HumanApproval).order_by(HumanApproval.created_at.desc()).all()
+def list_human_approvals(
+    db: Session = Depends(get_db),
+    limit: int | None = Query(default=None, ge=1, le=50),
+    offset: int = Query(default=0, ge=0, le=1_000_000),
+    workflow_run_id: uuid.UUID | None = None,
+    status: ApprovalStatus | None = None,
+) -> list[HumanApproval]:
+    query = db.query(HumanApproval).order_by(
+        HumanApproval.created_at.desc(), HumanApproval.id.desc(),
+    )
+    if workflow_run_id is not None:
+        query = query.filter(HumanApproval.workflow_run_id == workflow_run_id)
+    if status is not None:
+        query = query.filter(HumanApproval.status == status)
+    if limit is not None:
+        query = query.offset(offset).limit(limit)
+    return query.all()
 
 
 @router.get("/feedback-summary", response_model=HumanFeedbackSummaryRead)
