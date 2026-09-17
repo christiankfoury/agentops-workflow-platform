@@ -2991,6 +2991,23 @@ This is a status index; implementation details live only in `docs/phases.md`.
   finish CI and review before this phase is marked complete.
   [Separate fix evidence](evidence/phase104/fix-review.json) records the revised
   source hashes and confirms that the normal simple demo URL remains accepted.
+- Implementation CI passed all jobs: **903 API tests in 625.24s**, **66 web
+  tests**, migrations, lint/typecheck/build, deployment/documentation checks and
+  dependency audits with no known vulnerabilities. Query-override fix
+  `91335923e454e6c93bf2ce2c37a8afee10c3e22a` was then pushed; its CI must finish
+  before the next fix push.
+- Follow-up inspection identified a second example-only gap: tenant-scoped ORM
+  preflight could miss another organization's work even though workers claim
+  globally. The next separate fix requires a single local organization before
+  seeding or draining, and documents exclusive use of the disposable database.
+  A real PostgreSQL test added a second tenant in a fresh isolated schema and
+  verified both seed and drain reject it before any worker starts.
+- Second fix validation: **8 tests passed in 17.65s**, including that PostgreSQL
+  test; Ruff and 48-document/445-link validation passed. Existing application
+  tables, browser fixture records and original rehearsal archives are preserved.
+  [Additional fixture review](evidence/phase104/tenant-guard-review.json) records
+  this finding and its revised source fingerprints. Completion still awaits
+  all fix CI and follow-up review.
 
 When a future phase starts, add a record here using these fields:
 

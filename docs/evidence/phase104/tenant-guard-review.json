@@ -1,0 +1,21 @@
+{
+  "reviewed_at": "2026-09-17T11:04:45.574246+00:00",
+  "preceding_fix_commit": "91335923e454e6c93bf2ce2c37a8afee10c3e22a",
+  "finding": "Tenant-filtered preflight cannot authorize a global synthetic worker over another organization; require an exclusively owned single-organization demo database",
+  "validation": {
+    "focused_tests": 8,
+    "seconds": 17.65,
+    "real_postgresql": "Fresh isolated test schema; second organization blocks both seed and drain before worker dispatch",
+    "ruff": "passed",
+    "normal_single_organization_database": "accepted without mutation",
+    "documentation_documents": 48,
+    "documentation_links": 445
+  },
+  "source_hashes": {
+    "apps/api/examples/demo_fixture.py": "714f1b2aeb01e278b37a4483c80df058b0af2f8b64e4a2eabd451f112ca2a378",
+    "apps/api/tests/test_demo_walkthrough.py": "543b5c00918061358e90ceb16a333fa2303a19642e80af56768baf746ff23c3d",
+    "docs/demo-walkthrough.md": "a706dfde55bca717d448ac512cb419218c9347ec6eeefa481169f4dad5f098cc"
+  },
+  "original_raw_archive_sha256": "95b8a9057c8363818912636aa6732e1364fe0a7d6565fe34b6724435da106781",
+  "limits": "Original browser fixture and its evidence are unchanged; no runtime production authorization behavior changed. CI and pushed review are in the phase ledger."
+}

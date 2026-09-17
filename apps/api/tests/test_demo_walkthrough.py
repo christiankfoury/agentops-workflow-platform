@@ -1,12 +1,16 @@
 """Safety boundaries and approved-input behavior of the optional demo helper."""
 
 import json
+import uuid
 from types import SimpleNamespace
 
 import pytest
 from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session
 
 from examples import demo_fixture as demo
+from src.models.identity import Organization
+from tests.test_workflow_transactions_postgres import database as database
 
 
 @pytest.mark.parametrize(
@@ -56,3 +60,22 @@ def test_fixture_writer_uses_approved_edit_and_rejects_other_schemas():
     assert response.usage.input_tokens == response.usage.output_tokens == 0
     with pytest.raises(ValueError, match="no provider fallback"):
         provider.generate_structured(schema={"properties": {"unknown": {}}})
+
+
+def test_fixture_refuses_other_organizations_before_seed_or_worker(
+    database, monkeypatch, tmp_path,
+):
+    # The shared fixture owns a fresh isolated PostgreSQL schema. URL guard cases
+    # are covered above; bypass only that guard to inspect real tenant behavior.
+    monkeypatch.setattr(demo, "engine", database)
+    monkeypatch.setattr(demo, "guard", lambda: None)
+    monkeypatch.setattr(demo, "run_worker", lambda *a, **k: pytest.fail("Worker must not start"))
+    with Session(database) as db:
+        db.add(Organization(id=uuid.uuid4(), name="Unrelated fixture tenant"))
+        db.commit()
+    manifest = tmp_path / "manifest.json"
+    with pytest.raises(ValueError, match="single local organization"):
+        demo.seed(manifest)
+    with pytest.raises(ValueError, match="single local organization"):
+        demo.drain({"database": database.url.database})
+    assert not manifest.exists()

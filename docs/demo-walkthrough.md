@@ -17,6 +17,9 @@ project to free a port. The helper refuses nonlocal databases, identity-enabled
 mode, non-development mode, URL query parameters, existing runs and an existing
 manifest. Connection query options are rejected because they can override the
 host/database named in the URL; use the simple explicit connection form below.
+The helper also refuses any additional organization because its synthetic worker
+must own an isolated single-organization dataset. Do not provision another tenant
+or run another worker against this database during the rehearsal.
 
 From the repository root in PowerShell, configure each API/worker terminal:
 

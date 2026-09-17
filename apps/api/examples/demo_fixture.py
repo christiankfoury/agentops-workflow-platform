@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from src.config import settings
 from src.database import engine
 from src.models.human_approval import HumanApproval
+from src.models.identity import Organization
+from src.models.tenant import DEFAULT_ORGANIZATION_ID
 from src.models.uploaded_input import UploadedInput
 from src.models.workflow_definition import WorkflowVersion
 from src.models.workflow_execution import WorkflowExecution
@@ -135,11 +137,21 @@ def guard():
         )
 
 
+def require_single_organization(db):
+    # Organization is not tenant-filtered. The example worker must never claim
+    # another tenant's jobs with its synthetic model implementation.
+    if db.scalar(select(Organization.id).where(
+        Organization.id != DEFAULT_ORGANIZATION_ID,
+    ).limit(1)) is not None:
+        raise ValueError("Demo fixture requires a single local organization")
+
+
 def drain(manifest):
     guard()
     if manifest["database"] != engine.url.database:
         raise ValueError("Manifest/database mismatch")
     with Session(engine) as db:
+        require_single_organization(db)
         active = db.scalars(select(WorkflowExecution).where(
             WorkflowExecution.status.not_in(["completed", "failed", "cancelled"]),
         )).all()
@@ -163,6 +175,7 @@ def seed(path):
     if path.exists():
         raise ValueError("Manifest exists; use a new disposable database and manifest")
     with Session(engine) as db:
+        require_single_organization(db)
         if db.scalar(select(func.count()).select_from(WorkflowRun)) or db.scalar(
             select(func.count()).select_from(WorkflowExecution)
         ):
