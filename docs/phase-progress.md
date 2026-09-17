@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 96 — Safe Manual Retry and Recovery Controls (in progress)**.
+Current implementation phase: **Phase 96 complete — Phase 97 next after completion-record CI**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–95 are complete; Phase 96 is in progress; Phases 97–105 remain planned.
+Phases 66–96 are complete; Phases 97–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -134,7 +134,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 93 | Complete | Generic workflow draft builder, typed node forms and conflict-safe editing. |
 | 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
 | 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
-| 96 | In progress | Authorized cancellation, bounded infrastructure retry, reconciliation and linked terminal recovery. |
+| 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
 | 97 | Planned — not started | Worker Observability and Live Updates |
 | 98 | Planned — not started | Deterministic Throughput Benchmark |
 | 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
@@ -2232,6 +2232,22 @@ This is a status index; implementation details live only in `docs/phases.md`.
   successful and uncertain effects, bounded policies and duplicate operator
   actions. Tool eligibility queries now omit payloads and refresh effect metadata
   under lock. No unresolved local findings; all required local checks passed.
+
+- Delivery: implementation `9524627e4842e659c38e06379aba5ec381897db2` pushed to
+  `main`. [CI 35165725922](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35165725922)
+  passed API, Web and Docker Compose; all three independent commit check-runs
+  confirmed success. API: **865 passed**, 1 warning, 567.84s; fresh migrations and
+  Ruff passed. Web: all 53 checks, typecheck, lint and production build passed.
+  Both dependency audits reported no known vulnerabilities.
+- Post-push review: checked phase acceptance against source/receipt immutability,
+  source-lock serialization, tenant/current permission checks, effect reconciliation,
+  preserved attempt budgets and usage, fresh approvals, parallel/quality scheduling,
+  migration compatibility and error/pending UI behavior. No blocking findings or
+  fix commit required. Phase 96 is complete. Phase 97 may begin after this
+  completion-record commit is pushed and every required CI check passes.
+- Limitations: explicit recovery lineage is bounded to 100 generations; changed
+  input/policy or exhausted conversation/effect budgets requires a new start.
+  Tests use deterministic LLM/HTTP fixtures; no production deployment is claimed.
 
 When a future phase starts, add a record here using these fields:
 
