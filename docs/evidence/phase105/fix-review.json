@@ -1,0 +1,15 @@
+{
+  "reviewed_at": "2026-09-17T11:43:46.911508+00:00",
+  "implementation_commit": "348309ed13592f832a79dd63c9019d659630e046",
+  "finding": "Case-study wording could imply cyclic edges are allowed inside quality revision regions",
+  "resolution": "Graph edges always remain acyclic; bounded policy repeats a declared region with logical iteration identity",
+  "sources": [
+    "apps/api/src/services/graph_validation.py",
+    "docs/WORKFLOW_GRAPH.md",
+    "docs/LLM_EXECUTION.md"
+  ],
+  "source_hashes": {
+    "docs/CASE_STUDY.md": "85d8fc3c5c0587abaf7d69863940655edd13e429566abd9f28a397e5b79bd3d1"
+  },
+  "limits": "Documentation-only correction. Original source review and measurement archives unchanged; CI and follow-up review recorded in phase progress."
+}

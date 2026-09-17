@@ -84,7 +84,8 @@ silently change accepted work. Eight primitives cover `llm`, `code`, `tool`,
 `condition`, `approval`, `transform`, `parallel` and `delay`.
 [Graph contract](WORKFLOW_GRAPH.md) · [builder](WORKFLOW_BUILDER.md).
 
-Graphs are acyclic except for explicitly bounded quality-revision regions.
+Graph edges remain acyclic. An explicitly bounded quality-revision policy can
+repeat a declared region while retaining its logical iteration identity.
 Code nodes reference registered handlers; conditions and transforms use constrained
 expressions. This trades unrestricted programmability for validation and controlled
 execution. Parallel branches join once after all selected branches succeed.
