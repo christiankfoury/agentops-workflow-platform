@@ -51,20 +51,20 @@ are serialized by the execution revision; the first committed decision wins.
 Timed-out synchronous Python handlers may continue until they return. Their late
 results are fenced, and they retain their physical worker slot while running;
 the engine does not create unbounded replacement threads. Other workers may run
-the durably scheduled retry. Supported I/O abort follows in Phase 78. Handler
+the durably scheduled retry. Phase 78 adds supported cooperative I/O abort. Handler
 invocation is at least once where retries are allowed, and remote side effects
-require the later effect ledger/provider reconciliation contract.
+require the [effect ledger/provider reconciliation contract](TOOL_CONTRACTS.md).
 
 `--drain` continues polling while future queued retries exist, without occupying
 execution slots during backoff. Normal workers continue polling an empty queue.
 
 ## Retry ownership and validation
 
-The generic engine owns infrastructure retries. Future generic provider adapters
-must disable hidden SDK retries (`max_retries=0`) and return typed failures to the
+The generic engine owns infrastructure retries. Generic provider adapters
+disable hidden SDK retries (`max_retries=0`) and return typed failures to the
 engine, so attempt history reflects actual engine attempts. Existing legacy LLM
-paths retain their earlier SDK configuration; Phase 77 makes no provider calls.
-Quality revision control remains a separate later capability.
+paths retain their earlier SDK configuration. [Quality revisions](LLM_EXECUTION.md)
+use separate bounded iterations rather than infrastructure attempt counts.
 
 `tests/test_retry_runtime.py` covers fake-clock jitter/deadline decisions, durable
 backoff across a worker subprocess restart, permanent failures, exhaustion,

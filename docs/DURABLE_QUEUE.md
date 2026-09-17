@@ -9,7 +9,8 @@ the request handler.
 ## Queue transactions
 
 Each `durable_jobs` row identifies an execution checkpoint by a unique sequence.
-One queued/running job per execution is allowed at this stage. A checkpoint runs
+Linear execution permits one queued/running checkpoint job. Parallel regions
+use node/iteration jobs, described below. A checkpoint runs
 one ready node or finalizes graph output; its persisted graph edges determine
 the next ready node. Conditions retain skipped branches in execution history.
 
@@ -50,7 +51,8 @@ support repeatable local tests. A normal worker continues polling an empty queue
 
 The development Compose `worker` service uses the API image and database,
 starts after API health/migrations, and has a 30-second graceful stop interval.
-It exposes no public port. Production packaging follows in Phase 100.
+It exposes no public port. [Production packaging](PRODUCTION_CONTAINERS.md) and
+[Kubernetes](KUBERNETES.md) provide separate verified profiles.
 
 ## Current boundaries and evidence
 
@@ -59,7 +61,7 @@ exception text. Expired interrupted claims are recovered as described below.
 Phase 77 adds [engine retries, backoff and deadlines](RETRIES_AND_DEADLINES.md).
 Phases 78–81 add cancellation, durable waits and parallel execution. Phase 82 adds
 [LLM calls and bounded quality revisions](LLM_EXECUTION.md). External side effects
-arrive in later phases.
+use the [tool ledger and adapters](TOOL_CONTRACTS.md) from Phases 86–90.
 
 The PostgreSQL tests in `tests/test_durable_queue.py` cover atomic acceptance,
 concurrent bounded claims, duplicate deliveries during and after execution,
@@ -94,7 +96,8 @@ it never silently erases an attempt or loops indefinitely.
 
 Handler invocation is **at least once** when recovery permits another attempt.
 Completion and downstream scheduling remain unique in PostgreSQL; this does not
-guarantee exactly-once remote effects. Tool/effect reconciliation follows later.
+guarantee exactly-once remote effects. [Tool/effect reconciliation](TOOL_CONTRACTS.md)
+applies adapter-specific guarantees and preserves unknown outcomes.
 
 Stop old worker binaries before applying `f076_worker_leases`, then restart the
 new workers. The migration gives existing running jobs an expired lease, allowing

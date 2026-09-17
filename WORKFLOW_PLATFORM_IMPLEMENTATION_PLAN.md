@@ -2,16 +2,18 @@
 
 ## Status and purpose
 
-This documentation-only plan evolves AgentOps from three specialized multi-agent
+This plan defines AgentOps' evolution from three specialized multi-agent
 workflows into a durable AI workflow platform. It combines the original detailed
 findings 1–13 and concluding recommendations 1–9 into one feature inventory.
 **Phases 66–105 are authorized for autonomous implementation as of 2026-09-15.**
 Current implementation and validation evidence are in `docs/phase-progress.md`.
 
-Phases 1–65 remain complete. The future sequence is **Phases 66–105**, defined in
+Phases 1–65 remain complete. The expansion sequence is **Phases 66–105**, defined in
 [docs/phases.md](docs/phases.md). The former Phase 66 demo script and Phase 67 case
 study move to Phases 104 and 105; their deliverables are preserved. Writing this
-plan does not implement or complete Phase 66.
+plan alone does not implement a phase. Current code/test/measurement coverage is
+indexed in [docs/PLATFORM_EVIDENCE.md](docs/PLATFORM_EVIDENCE.md); delivery status
+and CI remain in the phase ledger.
 
 Document responsibilities:
 
@@ -21,7 +23,12 @@ Document responsibilities:
 - [AGENTS.md](AGENTS.md) owns the plan → implement → validate → commit → push → review loop.
 - [docs/deferred-phases.md](docs/deferred-phases.md) records adopted backlog items and exclusions.
 
-## Existing foundation to preserve
+## Historical planning baseline — 2026-09-14
+
+The following inspection table records the pre-expansion gaps, not the current
+implementation. Phases 66–102 replaced these boundaries; consult the evidence
+index and current architecture for delivered behavior. The preservation rules
+continue to apply.
 
 Keep PostgreSQL-backed workflow runs, agent-step history, structured output
 validation, editable human approvals, prompt versions, settings, cost/token/latency

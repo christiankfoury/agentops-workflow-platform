@@ -2,568 +2,173 @@
 
 [![CI](https://github.com/christiankfoury/agentops-workflow-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/christiankfoury/agentops-workflow-platform/actions/workflows/ci.yml)
 
-An enterprise-style multi-agent workflow platform for turning business documents
-into reviewed, measurable outputs. The project compares a single-agent baseline
-against a multi-agent workflow with specialized agents, reviewer checks, retry
-logic, human approval, deterministic evaluation, cost tracking, and observability.
+A durable AI workflow platform for building, running, debugging and evaluating
+business automations with LLM, deterministic, tool and human-approval steps.
 
-The portfolio claim this repo is built to prove:
+**The engineering question:** after a timeout, approval edit or worker crash, can
+we explain what happened and continue without silently changing the workflow or
+repeating an uncertain external action?
 
-> Multi-agent workflows cost more and take longer than a single prompt, but they
-> produce safer, more complete, and more trustworthy business outputs.
+AgentOps answers with immutable published graphs, PostgreSQL-backed jobs,
+lease fencing, retained attempts, exact-input approvals and an effect ledger.
+The original sales, feedback and incident agents are examples on this runtime.
+See the [product overview](docs/overview.md), [architecture](docs/ARCHITECTURE.md)
+and [R01–R14 evidence index](docs/PLATFORM_EVIDENCE.md).
 
-## Table of Contents
+## Recorded results
 
-- [What It Does](#what-it-does)
-- [Why This Project Matters](#why-this-project-matters)
-- [Evaluation Framework](#evaluation-framework)
-- [Architecture](#architecture)
-- [Key Features](#key-features)
-- [Product Tour](#product-tour)
-- [Evaluation Methodology](#evaluation-methodology)
-- [Tech Stack](#tech-stack)
-- [Quick Start With Docker](#quick-start-with-docker)
-- [Demo Mode](#demo-mode)
-- [Validation](#validation)
-- [Security](#security)
-- [Lessons Learned](#lessons-learned)
-
-## What It Does
-
-AgentOps supports three business workflows:
-
-| Workflow | Input | Output |
+| Check | Result | What it establishes |
 | --- | --- | --- |
-| Sales Report | Revenue, pipeline, churn, regional performance | Executive summary |
-| Customer Feedback | CSV/text reviews, tickets, NPS comments | Product insights report |
-| Incident Log | Timestamped operational events | Post-incident report |
+| [Deterministic benchmark](docs/BENCHMARK_RESULTS.md) | 10,000 completed workflows, 33,333 jobs, 3,333 sink effects; zero loss/duplication | Controlled local service-level execution, not 10,000 simultaneous LLM calls |
+| [Fault experiments](docs/RELIABILITY_RESULTS.md) | 45 cases; 72 accepted runs accounted for, including expected failures/cancellations | Recovery and uncertainty handling under injected faults; three intentionally unknown outcomes remain unknown |
+| [Kubernetes operations](docs/KUBERNETES_OPERATIONS_RESULTS.md) | 21 completed runs, 21 effects from 23 requests; rollout, scaling, fencing and restore passed | Authenticated single-node local deployment with synthetic identity and an idempotent sink |
+| [Evaluation](docs/EVALUATION.md) | Baseline/multi-agent scoring and comparisons; 30 base cases plus two showcase cases | Seeded UI examples and tested scoring, not measured live-model quality improvement |
 
-For each workflow, the app stores the input, every agent step, reviewer findings,
-human approval decisions, final output, evaluation scores, costs, latency, retries,
-and workflow events.
+At executor capacities 1, 4 and 16, the benchmark observed **1.351, 4.240 and
+5.666 workflows/second** on one shared host. The method, raw archives, source
+hashes and limitations accompany each result. Hosted deployment and paid-provider
+acceptance are not claimed. Commit, CI and review evidence is in the
+[phase ledger](docs/phase-progress.md).
 
-## Why This Project Matters
+## Build and inspect automations
 
-The app is intentionally not a chatbot. It treats AI output as a stateful business
-workflow that can be inspected, retried, approved, measured, and compared against
-a baseline. That is the practical engineering story: better control and higher
-trustworthiness in exchange for extra cost and latency.
-
-## Evaluation Framework
-
-The project includes 32 synthetic evaluation cases: 10 sales reports, 10 customer
-feedback datasets, 10 incident logs, and 2 sales remediation showcase cases. Each
-case defines expected facts, risks, recommendations, and workflow-specific checks
-such as feedback themes or incident timeline events.
-
-The evaluation engine compares single-agent and multi-agent outputs across factual
-coverage, unsupported claims, completeness, cost, latency, retries, routing, and
-human approval. Demo Mode loads deterministic illustrative records so the
-dashboards are immediately explorable; those records are not presented as measured
-production performance. Live evaluation runs calculate scores from their generated
-outputs and the expectations stored with each case.
-
-## Architecture
+- **Author:** eight typed primitives, constrained expressions, bindings, retry
+  policies, delays, approvals and parallel joins. Save revisioned drafts and
+  publish immutable versions through the [builder](docs/WORKFLOW_BUILDER.md).
+- **Run:** manual starts, signed webhooks and timezone-aware cron use the same
+  versioned idempotent admission contract. Workers persist leases, retries and
+  checkpoints; waits release capacity. [Execution contract](docs/EXECUTION_RECORDS.md).
+- **Act:** governed HTTP REST, restricted PostgreSQL reads and GitHub issue tools;
+  declared LLM tool calls use the same schema, permission and budget checks.
+  [Tool contracts](docs/TOOL_CONTRACTS.md).
+- **Review:** approved payload hashes bind a decision to the displayed input.
+  Edits supersede old approvals; writers consume the approved content.
+  [Business templates](docs/BUSINESS_TEMPLATES.md).
+- **Debug:** pinned graph, selected edges, steps, attempts, tools, errors and
+  approvals; authorized cancellation and explicit linked recovery.
+  [Debugger](docs/WORKFLOW_DEBUGGER.md) · [Recovery](docs/WORKFLOW_RECOVERY.md).
+- **Operate:** tenant-scoped queue/worker views and bounded live updates.
+  [Operations](docs/WORKER_OPERATIONS.md).
+- **Authorize:** verified OIDC sessions, organization memberships, server-owned
+  roles, service scopes and audit history. [Identity](docs/IDENTITY.md).
 
 ```mermaid
 flowchart LR
-    User["User"]
-    Web["Next.js Web App"]
-    API["FastAPI API"]
-    DB["PostgreSQL"]
-    LLM["LLM Provider"]
-
-    User --> Web
-    Web --> API
-    API --> DB
-    API --> LLM
-
-    subgraph Dashboards
-        Runs["Workflow Runs"]
-        Eval["Evaluation"]
-        Compare["Comparison"]
-        Cost["Cost"]
-        Agents["Agent Performance"]
-        Failures["Failure Explorer"]
-    end
-
-    Web --> Dashboards
+    Browser["Browser / Next.js"] --> API["FastAPI: identity, authoring, admission"]
+    Trigger["Signed webhook / cron"] --> API
+    API --> DB[("PostgreSQL: versions, jobs, history")]
+    Worker["Durable workers"] <--> DB
+    Worker --> LLM["LLM provider"]
+    Worker --> Tools["Configured tool destinations"]
+    Browser --> Review["Human decision"]
+    Review --> API
 ```
 
-```mermaid
-flowchart TD
-    Input["Business Input"]
-    Router["Router Agent"]
-    Specialist["Specialized Agent"]
-    Reviewer["Reviewer Agent"]
-    Retry{"Retry Needed?"}
-    Human["Human Approval"]
-    Writer["Writer Agent"]
-    Final["Final Output"]
-    Eval["Evaluation + Observability"]
+The cron scheduler runs in workers; the trigger arrow represents the shared
+admission contract, not a scheduler making public HTTP requests. Detailed
+transaction and trust boundaries are in the [architecture](docs/ARCHITECTURE.md).
 
-    Input --> Router
-    Router --> Specialist
-    Specialist --> Reviewer
-    Reviewer --> Retry
-    Retry -- Yes --> Specialist
-    Retry -- No / Needs Review --> Human
-    Human --> Writer
-    Writer --> Final
-    Final --> Eval
+## Business workflows and evaluation
+
+| Template | Multi-agent path | Output |
+| --- | --- | --- |
+| Sales | Analyst → reviewer → approval → writer | Executive summary |
+| Feedback | Classifier → insight → reviewer → approval → writer | Product insights |
+| Incident | Timeline → root cause → reviewer → approval → writer | Post-incident report |
+
+Each has a one-step baseline. Quality revisions are bounded separately from
+infrastructure retries. Published business templates require approval; human
+edits and old attempts remain inspectable. Existing business dashboards, prompt
+settings, exports and historical runs remain available through compatibility
+projections without inventing graph versions for old records.
+
+![Business dashboard example](docs/screenshots/dashboard.png)
+
+This retained screenshot shows business/demo data. The [business screenshot tour](docs/BUSINESS_TOUR.md)
+and [demo walkthrough](docs/demo-walkthrough.md) distinguish seeded examples from
+live runs. Reviewer quality, deterministic expected-item scores and observed
+cost/latency answer different questions; none alone proves a model is reliable.
+See [evaluation methodology and illustrative values](docs/EVALUATION.md).
+
+## Start locally
+
+The root Compose profile is **loopback-only development**, with local credentials
+and development identity behavior. It is not the production profile.
+
+```powershell
+# From the repository root; preserve an existing environment file.
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d --build
 ```
 
-## Key Features
-
-- Multi-workflow support for sales reports, customer feedback, and incident logs.
-- Router confidence thresholds for auto-select, confirmation, and manual fallback.
-- Specialized analyst/classifier/timeline/root-cause agents per workflow.
-- Reviewer agents that flag unsupported claims and low-quality analysis.
-- Score-based retry logic and safe workflow state transitions.
-- Human approval with structured analysis editing before writer execution.
-- Writer agents that produce final business-ready reports.
-- Single-agent baseline runs for comparison.
-- Evaluation cases and results across all three workflows.
-- Deterministic checks for expected facts, themes, timeline events, and unsupported
-  generated numbers.
-- Cost, token, latency, retry, failure, and schema validation tracking.
-- Prompt version management and prompt-version performance comparison.
-- Failure case explorer and improvement tracking dashboards.
-- Demo mode that seeds polished data for portfolio walkthroughs.
-
-## Product Tour
-
-### Operations Dashboard
-
-![AgentOps operations dashboard](docs/screenshots/dashboard.png)
-
-### Multi-Agent Workflow Walkthroughs
-
-Each workflow follows the same controlled pattern: structured intake, specialized
-analysis, reviewer validation, human approval, and final report generation.
-
-<details open>
-<summary><strong>Sales report workflow</strong></summary>
-
-#### 1. Create the workflow
-
-Configure the sales input, run mode, workflow type, and optional routing notes.
-
-![Creating a sales report workflow](docs/screenshots/workflows/sales/01-create-workflow.png)
-
-#### 2. Run the Sales Analyst
-
-Start the specialist agent that extracts sales performance, risks, and
-evidence-backed recommendations.
-
-![Running the Sales Analyst](docs/screenshots/workflows/sales/02-run-analyst.png)
-
-#### 3. Review and human approval
-
-Inspect the completed analyst and reviewer steps before approving or editing the
-analysis.
-
-![Sales analysis ready for human approval](docs/screenshots/workflows/sales/03-review-and-human-approval.png)
-
-#### 4. Final writer output
-
-The Writer converts the approved analysis into the final executive report.
-
-![Final sales report](docs/screenshots/workflows/sales/04-final-output.png)
-
-</details>
-
-<details open>
-<summary><strong>Customer feedback workflow</strong></summary>
-
-#### 1. Create the workflow
-
-Provide customer reviews, tickets, survey comments, or an uploaded CSV file.
-
-![Creating a customer feedback workflow](docs/screenshots/workflows/customer-feedback/01-create-workflow.png)
-
-#### 2. Run the Feedback Classifier
-
-Start the classifier that organizes the source feedback into useful categories.
-
-![Running the Feedback Classifier](docs/screenshots/workflows/customer-feedback/02-run-classifier.png)
-
-#### 3. Generate insights, review, and approve
-
-Inspect the completed classifier, insight, and reviewer steps before human
-approval.
-
-![Customer feedback insights ready for human approval](docs/screenshots/workflows/customer-feedback/03-insight-review-and-human-approval.png)
-
-#### 4. Final writer output
-
-The Writer turns the approved findings into a product insights report.
-
-![Final customer feedback report](docs/screenshots/workflows/customer-feedback/04-final-output.png)
-
-</details>
-
-<details open>
-<summary><strong>Incident log workflow</strong></summary>
-
-#### 1. Create the workflow
-
-Provide timestamped operational events and any incident context.
-
-![Creating an incident log workflow](docs/screenshots/workflows/incident/01-create-workflow.png)
-
-#### 2. Run the Timeline Agent
-
-Start the specialist that reconstructs the incident sequence from the source log.
-
-![Running the Timeline Agent](docs/screenshots/workflows/incident/02-run-timeline.png)
-
-#### 3. Analyze root cause, review, and approve
-
-Inspect the completed timeline, root-cause, and reviewer steps before human
-approval.
-
-![Incident analysis ready for human approval](docs/screenshots/workflows/incident/03-root-cause-review-and-human-approval.png)
-
-#### 4. Final writer output
-
-The Writer produces the approved post-incident report.
-
-![Final incident report](docs/screenshots/workflows/incident/04-final-output.png)
-
-</details>
-
-### Prompt and Agent Configuration
-
-Prompt versions are managed independently from runtime settings, allowing each
-agent to use a selected prompt, model, token budget, timeout, retry policy, and
-review threshold. The interface also flags prompt names that appear inconsistent
-with the assigned agent role so configuration drift is visible before future runs.
-
-<details open>
-<summary><strong>View prompt and agent configuration</strong></summary>
-
-#### Prompt version library
-
-![Prompt version library](docs/screenshots/configuration/01-prompt-versions-overview.png)
-
-#### Workflow-specific prompt assignments
-
-![Workflow-specific prompt assignments](docs/screenshots/configuration/02-prompt-version-details.png)
-
-#### Workflow-grouped agent settings
-
-![Workflow-grouped agent settings](docs/screenshots/configuration/03-agent-settings.png)
-
-</details>
-
-### Baseline Comparison
-
-The same source input can be processed as a single-agent baseline and compared
-with the reviewed multi-agent workflow.
-
-<details open>
-<summary><strong>Run and compare a sales baseline</strong></summary>
-
-#### 1. Create the baseline run
-
-![Creating a sales baseline run](docs/screenshots/comparison/01-create-sales-baseline.png)
-
-#### 2. Run the baseline
-
-![Running the sales baseline](docs/screenshots/comparison/02-run-sales-baseline.png)
-
-#### 3. Inspect its final output
-
-![Final sales baseline output](docs/screenshots/comparison/03-sales-baseline-final-output.png)
-
-#### 4. Start a comparison
-
-![Selecting Compare this run](docs/screenshots/comparison/04-compare-this-run.png)
-
-#### 5. Compare baseline and multi-agent results
-
-Review output quality, factual support, cost, and latency side by side.
-
-![Sales baseline compared with the multi-agent workflow](docs/screenshots/comparison/05-baseline-vs-multi-agent.png)
-
-</details>
-
-## Evaluation Methodology
-
-Each evaluation case stores:
-
-- Source input text.
-- Expected facts.
-- Expected risks.
-- Expected recommendations.
-- Expected feedback themes for customer feedback workflows.
-- Expected timeline events for incident workflows.
-- Notes that define unsupported-claim guardrails.
-
-The evaluation system compares baseline and multi-agent outputs using:
-
-- Factual accuracy.
-- Unsupported claim rate.
-- Completeness.
-- Human approval rate.
-- Average retries.
-- Average cost.
-- Average latency.
-- Router accuracy and confidence.
-
-Deterministic checks complement LLM judging by verifying expected numeric facts,
-feedback themes, incident timeline timestamps/events, and unsupported generated
-numbers.
-
-## Tech Stack
-
-| Layer | Technologies |
+Open [the web app](http://localhost:3000) or
+[API health](http://localhost:8000/health). API startup applies migrations;
+the separate worker executes accepted durable jobs. Open `/demo` to seed
+illustrative business records without provider calls, then visit:
+
+| Route | View |
 | --- | --- |
-| Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, Lucide React |
-| Backend | Python 3.12, FastAPI, Pydantic Settings, Uvicorn |
-| AI integration | OpenAI Python SDK with custom stateful agent orchestration |
-| Database | PostgreSQL 16, SQLAlchemy 2, Alembic, psycopg2 |
-| Infrastructure | Docker, Docker Compose |
-| JavaScript tooling | Node.js 20, pnpm workspaces, ESLint |
-| Python tooling | uv, Ruff |
-| Testing and audits | pytest, pytest-asyncio, HTTPX, Node.js test runner, pip-audit, pnpm audit |
-| Continuous integration | GitHub Actions |
+| `/workflow-definitions` | Draft builder, validation, publication and manual starts |
+| `/execution-traces` | Generic graph runs and debugger |
+| `/workflow-triggers` | Webhook/cron configuration and delivery history |
+| `/operations` | Queue and worker observations |
+| `/workflow-runs` | Business run history and canonical trace links |
+| `/human-approvals` | Business review queue |
+| `/workflow-comparison`, `/evaluation`, `/costs` | Quality and cost views |
+| `/account` | Identity and organization selection when enabled |
 
-Agent handoffs and workflow state transitions are implemented directly in the
-application. LangChain and LangGraph are not runtime dependencies.
+For native development, migrations, template installation and environment setup,
+use [deployment](docs/DEPLOYMENT.md). Live model runs require deliberately
+configured worker credentials and quota; the demo seed does not. Optional
+external usage reporting is documented in [telemetry](docs/TELEMETRY.md).
 
-## Project Structure
+## Deploy and verify
 
-```text
-apps/
-  api/          FastAPI backend, models, routers, services, tests
-  web/          Next.js frontend, dashboard routes, API client
-packages/
-  shared/       Shared TypeScript package
-docs/           Project specs, phase plan, progress tracker
-docker/         Docker support
-scripts/        Utility scripts
-```
+- [Production containers](docs/PRODUCTION_CONTAINERS.md) and
+  [measured results](docs/PRODUCTION_CONTAINER_RESULTS.md).
+- [Kubernetes local/hosted profiles](docs/KUBERNETES.md) and
+  [local acceptance](docs/KUBERNETES_RESULTS.md).
+- [Operations runbook](docs/KUBERNETES_OPERATIONS.md) and
+  [recovery/backup/rollback results](docs/KUBERNETES_OPERATIONS_RESULTS.md).
 
-## Quick Start With Docker
+Production startup requires verified identity, HTTPS configuration and protected
+secrets. The hosted profile is documented but not deployed. Local acceptance
+uses synthetic TLS/OIDC and a single-node cluster; it does not establish public
+security or multi-node availability. See [security policy](SECURITY.md).
 
-> [!IMPORTANT]
-> Docker Compose is configured for local development only. It binds services to
-> loopback and uses local credentials. Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-> before exposing any service to the internet.
+## Development and validation
 
-```bash
-git clone https://github.com/christiankfoury/agentops-workflow-platform.git
-cd agentops-workflow-platform
-cp .env.example .env
-make up
-```
-
-Services:
-
-- Web: `http://localhost:3000`
-- API: `http://localhost:8000`
-- API health: `http://localhost:8000/health`
-
-## Local Development
-
-Install dependencies:
-
-```bash
-pnpm install
-cd apps/api
-uv sync
-cd ../..
-```
-
-Start the API:
-
-```bash
-cd apps/api
-uv run uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Start the web app:
-
-```bash
-pnpm --dir apps/web dev --hostname 127.0.0.1 --port 3000
-```
-
-If the web app runs outside Docker, set the API URL when needed:
-
-```bash
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 pnpm --dir apps/web dev
-```
-
-## Production AI Platform Telemetry
-
-AgentOps can optionally send safe, best-effort LLM usage telemetry to the
-Production AI Platform. Telemetry is disabled by default, and AgentOps workflows
-continue normally if the platform is unavailable.
-
-Local placeholder configuration:
-
-```env
-AGENTOPS_TELEMETRY_ENABLED=false
-AGENTOPS_TELEMETRY_ENDPOINT=http://localhost:8000/v1/usage/llm-events
-AGENTOPS_TELEMETRY_API_KEY=agentops-local-placeholder-key-not-a-secret
-AGENTOPS_TELEMETRY_TIMEOUT_SECONDS=2
-AGENTOPS_TELEMETRY_MAX_METADATA_BYTES=2048
-AGENTOPS_TELEMETRY_REDACT_CONTENT=true
-```
-
-When AgentOps runs in Docker and Production AI Platform runs on the host, use:
-
-```env
-AGENTOPS_TELEMETRY_ENDPOINT=http://host.docker.internal:8000/v1/usage/llm-events
-```
-
-The telemetry client only sends operational metadata such as workflow IDs, agent
-step IDs, agent name/type, token counts, latency, cost estimate, status, retry
-count, and safe error categories. It does not send prompts, generated outputs,
-workflow input/output JSON, tool arguments, tool results, provider payloads, API
-keys, or OpenAI credentials.
-
-Structured JSON model calls are represented as `agent_step` events with
-`response_type=structured_json`; writer and baseline text calls use
-`response_type=text`. Workflow summary events are aggregate-only terminal status
-events. They intentionally omit token and cost fields so Production AI Platform
-does not double-count spend already reported by per-step events.
-
-Send one local smoke event after the Production AI Platform API is running and
-seeded with the AgentOps placeholder key:
+Python 3.12, FastAPI, SQLAlchemy/Alembic and PostgreSQL 16; Next.js 16, React 19,
+TypeScript and Tailwind; Node.js 24 in CI/production images; uv and pnpm lockfiles.
+The graph interpreter and worker are application code, without LangGraph/Celery.
 
 ```powershell
-cd apps/api
-uv run python ../../scripts/send_platform_telemetry_smoke.py
-```
-
-For a browser proof in Production AI Platform, keep the platform dashboard on
-`http://localhost:3000` and run AgentOps on non-conflicting ports such as
-`API_PORT=8001` and `WEB_PORT=3001`. The safest repeatable demo path is the
-platform-owned synthetic sender:
-
-```powershell
-cd /path/to/production-ai-platform
-uv run python scripts/send_agentops_browser_demo_event.py
-```
-
-Then open `http://localhost:3000`, filter **Source App** to `agentops`, and
-inspect the resulting `Agent Step` telemetry row. Use a real local AgentOps
-workflow only when provider credentials and any OpenAI quota usage are
-intentional.
-
-## Demo Mode
-
-Seed polished demo data from the UI:
-
-1. Open `http://localhost:3000/demo`.
-2. Run one workflow demo or the full evaluation demo.
-3. Open `/workflow-comparison` or `/evaluation` to inspect results.
-
-For a scripted reviewer/remediation demo path, follow
-[`docs/demo-walkthrough.md`](docs/demo-walkthrough.md).
-
-Seed from the API CLI:
-
-```bash
-cd apps/api
-uv run python -m src.seed_demo_dataset
-```
-
-Demo seeding is idempotent. Re-running it refreshes the demo records instead of
-duplicating demo runs and results.
-
-## Validation
-
-Backend tests:
-
-```bash
-cd apps/api
-uv run pytest
-```
-
-Production AI Platform telemetry mocked receiver check:
-
-```bash
-cd apps/api
-uv run python ../../scripts/test_phase45_mocked_platform_receiver.py
-```
-
-Docker Compose config check with placeholder env values:
-
-```bash
-docker compose --env-file .env.example config
-```
-
-Backend lint:
-
-```bash
-cd apps/api
-uv run ruff check src tests
-```
-
-Frontend typecheck:
-
-```bash
+uv run --directory apps/api pytest
+uv run --directory apps/api ruff check src tests
 pnpm --dir apps/web typecheck
-```
-
-Frontend smoke tests:
-
-```bash
 pnpm --dir apps/web test:smoke
+uv run --directory apps/api python ../../scripts/check_documentation.py
 ```
 
-Dependency audits:
+Database concurrency tests require disposable PostgreSQL via
+`WORKFLOW_TEST_DATABASE_URL`; CI supplies it, migrates a fresh database, runs
+application checks/builds, renders deployment profiles and audits dependencies.
+The [documentation checker](scripts/check_documentation.py) verifies local links,
+anchors, fences, phase numbering and requirement-table coverage; factual claims
+still require source/evidence review.
+If a bare local suite hangs, use explicit files and record that limitation.
 
-```bash
-pnpm audit --audit-level moderate
-cd apps/api
-uv run pip-audit
-```
+## Guarantees and remaining boundaries
 
-## Security
+Delivery is at least once. Stable local keys cannot guarantee exactly-once remote
+writes. Adapters require provider idempotency or reconciliation; unresolved
+outcomes remain explicit. Cancellation cannot reverse a completed external action.
+Unknown usage/cost remains unknown. Linked recovery preserves the source history
+and requires fresh approvals instead of reopening a terminal run.
 
-Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
-Never commit provider keys or production credentials. The included environment
-examples contain local placeholders only.
-
-## Lessons Learned
-
-- Agent quality is easier to improve when every intermediate output is stored and
-  reviewable.
-- Reviewer agents are most useful when paired with deterministic checks for facts,
-  numbers, themes, and timeline events.
-- Human approval is not a fallback bolted onto the end; it needs structured edit
-  support so the writer agent can use the corrected analysis.
-- Baseline comparison keeps the project honest by showing both quality improvement
-  and the cost/latency tradeoff.
-- Demo data matters for portfolio work because dashboards need meaningful records
-  before a reviewer or recruiter can understand the system.
-
-## Roadmap
-
-The [Workflow Platform Implementation Plan](WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
-consolidates the two feature lists into 14 capabilities and
-[40 planned phases (66–105)](docs/phases.md#platform-expansion-planned-phases-66105).
-They cover generic versioned workflows, durable execution, tools/actions,
-triggers, real organizations/RBAC, a builder/debugger, reliability benchmarks,
-and Kubernetes, followed by updated platform documentation and case-study work.
-These features are planned; this documentation revision starts no implementation
-run. [Phase progress](docs/phase-progress.md) records the actual completion state.
-
-Phase 46 through Phase 65 is complete. Completed work includes human edit flows,
-feedback-loop metrics, agent performance, workflow comparison, exports,
-uploads/parsers, deterministic evaluation checks, failure exploration,
-improvement tracking, demo dataset seeding, demo mode, testing, security/input
-safety, and portfolio UI polish.
-
-Current user-directed refinement focuses on:
-
-- Reviewing whether each workflow algorithm and agent handoff still makes sense.
-- Improving prompt/settings clarity and future-run impact messaging.
-- Tightening demo storytelling for recruiter review.
-- Polishing workflow run, approval, comparison, cost, and prompt UI.
-- Improving CSS consistency, responsive behavior, empty states, and visual hierarchy.
+The [implementation plan](WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md) owns R01–R14;
+[phase progress](docs/phase-progress.md) owns completion and CI evidence.
+[Deferred work](docs/deferred-phases.md) covers notifications, caching, advanced
+judging, additional connectors and hosted acceptance. No live-provider quality
+uplift, arbitrary uploaded code execution or production security certification
+is asserted.

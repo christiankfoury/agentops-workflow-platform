@@ -3,20 +3,20 @@
 Phase 72 adds persistence, centralized lifecycle transitions and read APIs.
 Phase 73 adds the idempotent pending-start contract below. Phase 74 adds the
 deterministic interpreter; Phase 75 adds the [durable queue](DURABLE_QUEUE.md).
-Provider calls follow in later phases.
+Phases 82–90 add LLM/provider and governed tool dispatch.
 
 ## Identity and history
 
 - `workflow_executions` permanently pins a tenant-owned immutable workflow
   version. Input/output, lifecycle timestamps, heartbeat, errors, actor and a
   revision counter belong to the execution. Optional business/run-mode labels and
-  a legacy run reference support later compatibility adapters.
+  a legacy run reference support the [business compatibility projections](BUSINESS_TEMPLATES.md).
 - `step_runs` identifies one logical node invocation by execution, node ID,
   branch and iteration. A database unique constraint protects that identity.
 - `step_attempts` identifies each numbered attempt of a logical step. Attempt
   numbers are unique per step, and infrastructure attempts share the logical
   step's stable idempotency key. This local identity does not guarantee remote
-  exactly-once effects; the effect ledger follows in Phase 86.
+  exactly-once effects; the [effect ledger](TOOL_CONTRACTS.md) uses provider-specific guarantees.
 - `execution_events` records entity creation/transitions within the same fenced
   transaction as the state change. Non-LLM steps do not require an agent name,
   model, token usage or cost. Optional attempt `llm_metadata` is reserved for
@@ -42,9 +42,9 @@ even inside a later transaction that has acquired the current run revision.
 
 Logical steps may wait/retry; individual attempts finish before a logical step
 waits, retries or terminates. An execution cannot terminate with active steps, and
-successful completion requires successful/skipped steps. The later interpreter
-also validates graph completion and final outputs. Lifecycle support for waiting
-does not yet implement durable approvals or delays.
+successful completion requires successful/skipped steps. The interpreter also
+validates graph completion and final outputs. Durable approvals and delays persist
+their wait state and release worker slots (Phases 79–80).
 
 ## Reads and compatibility
 
@@ -123,5 +123,5 @@ Checkpoint migration rollback refuses to discard nonempty checkpoint data.
 Durable delays, approvals and parallel regions are available through Phases 79–81.
 See [durable queue](DURABLE_QUEUE.md) for parallel ownership and joins.
 Phase 82 adds [LLM execution and bounded quality revisions](LLM_EXECUTION.md).
-Tool execution follows in its respective phases. Infrastructure retries use the
+Phases 86–90 add [tool execution](TOOL_CONTRACTS.md). Infrastructure retries use the
 Phase 77 durable scheduler.

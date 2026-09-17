@@ -106,6 +106,9 @@ jobs:
       - name: Validate development Compose configuration
         run: docker compose --env-file .env.example config --quiet
 
+      - name: Validate documentation links and plan coverage
+        run: python scripts/check_documentation.py
+
       - name: Render Kubernetes profiles with checksum-verified pinned tools
         run: |
           python deploy/kubernetes/tools.py

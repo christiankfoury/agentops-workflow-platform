@@ -1,7 +1,8 @@
 # LLM execution and quality revisions
 
 Phase 82 adds the `llm` primitive to durable workers. Legacy business endpoints
-remain available; their template migration follows in Phases 83–85.
+remain available for unlinked historical runs; Phases 83–85 delivered the
+[business-template migration](BUSINESS_TEMPLATES.md).
 
 ## Configuration and publication
 

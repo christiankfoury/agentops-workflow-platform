@@ -1,7 +1,9 @@
 # Evaluation
 
-The evaluation system measures whether multi-agent workflows improve output
-quality compared with a single-agent baseline.
+The evaluation system compares final outputs against stored expectations and
+exposes baseline/multi-agent quality, cost and latency tradeoffs. It does not
+assume that adding agents improves quality. No comparative live-provider quality
+gain is established by the recorded platform delivery.
 
 ## Dataset
 
@@ -12,6 +14,11 @@ The current dataset contains:
 - 10 sales report cases.
 - 10 customer feedback cases.
 - 10 incident log cases.
+
+Demo seeding adds two sales showcases: reviewer issue correction and remediation
+impact. The full seed creates **32 cases, 65 runs/results and 99 AgentStep records**,
+as checked by [demo tests](../apps/api/tests/test_demo_dataset.py). These are
+synthetic historical records, not 65 observed provider executions.
 
 Each case stores:
 
@@ -74,6 +81,15 @@ Current checks include:
 
 The runner writes deterministic notes into `judge_notes` so dashboards and exports
 can show why a score changed.
+
+The [scorer](../apps/api/src/services/evaluation_metrics.py) uses normalized phrase
+and keyword overlap plus numeric checks. Its `factual_accuracy` field measures
+captured expected facts divided by expected facts, not a semantic precision audit
+of every generated claim. Completeness covers the combined expected items;
+unsupported-claim rate uses heuristic support for split output claims. These
+proxies can miss paraphrases or accept coincidental overlap. Empty denominators
+use the service's defined zero behavior, not proof of correctness. There is no
+additional LLM judge call in the current scoring path.
 
 ## Running Evaluations
 
@@ -161,6 +177,46 @@ Frontend routes:
 
 ## Interpreting Results
 
-The expected story is not that multi-agent workflows are cheaper or faster.
-The expected story is that they trade cost and latency for better factual
-accuracy, fewer unsupported claims, stronger completeness, and better auditability.
+Compare the same input, pinned configuration and scoring method. Report failed,
+pending and missing-usage records separately; aggregates use completed results
+and available values. Inspect outputs and reviewer notes alongside the metrics.
+More calls can add cost/latency without improving a deterministic score.
+
+### Assigned demo values — not measured provider results
+
+The [seed source](../apps/api/src/services/demo_dataset.py) assigns these values
+to the 30 base-case pairs. They are not recomputed live quality measurements and
+must not be presented as an observed uplift or provider bill.
+
+| Assigned field | Baseline | Multi-agent |
+| --- | ---: | ---: |
+| Factual accuracy | 0.70 | 0.92 |
+| Unsupported claim rate | 0.22 | 0.05 |
+| Completeness | 0.64 | 0.88 |
+| Cost, USD | 0.035 | 0.128 |
+| Latency, seconds | 4.2 | 18.4 |
+
+The separate **Remediation impact showcase** deliberately has mixed results:
+
+| Assigned field | Baseline | Previous multi-agent | Corrected multi-agent |
+| --- | ---: | ---: | ---: |
+| Factual accuracy | 0.94 | 1.00 | 0.94 |
+| Unsupported claim rate | 0.00 | 0.00 | 0.33 |
+| Completeness | 0.91 | 1.00 | 0.96 |
+| Cost, USD | 0.00034 | 0.00205 | 0.00198 |
+| Latency, seconds | 2.42 | 10.23 | 7.93 |
+
+Its corrected output removes a reviewer issue while the assigned unsupported
+score worsens. Reviewer approval and deterministic coverage answer different
+questions. These case-specific rows must not be mixed with base-case constants
+or called overall dataset averages.
+
+### Measured runtime evidence is a separate experiment
+
+The [10,000-run benchmark](BENCHMARK_RESULTS.md),
+[fault experiments](RELIABILITY_RESULTS.md) and
+[Kubernetes operations](KUBERNETES_OPERATIONS_RESULTS.md) measure execution and
+recovery using deterministic fixtures. They do not measure LLM output quality,
+provider pricing or human review time. A live paired evaluation requires authorized
+worker credentials, retained outputs/settings, declared sample selection and
+scoring limitations; that experiment was not performed in this delivery.

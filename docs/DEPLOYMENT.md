@@ -1,144 +1,109 @@
 # Deployment
 
-> **Planned expansion:** Phases 100–102 add production web/API/worker packaging,
-> Kubernetes, worker metrics, and deployment/recovery evidence. The
-> [platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md#r13--kubernetes-and-operation)
-> describes that future scope. The instructions below describe the existing
-> deployment foundation; they do not claim those phases are implemented.
+Choose a profile deliberately. The root Compose file is development tooling;
+production images and isolated verification profiles live under `deploy/`.
+The required local container/Kubernetes deployments were measured. A hosted
+profile exists, but no hosted target has been deployed or verified.
 
-This project is designed to run locally with Docker Compose and can be deployed
-as separate web, API, and PostgreSQL services. The included Compose file and
-Dockerfiles are development tooling, not a production deployment template.
+| Path | Use | Recorded evidence |
+| --- | --- | --- |
+| [Root Compose](../docker-compose.yml) | Loopback development, reload/source mounts, local credentials | CI configuration check |
+| [Production containers](PRODUCTION_CONTAINERS.md) | Immutable web/API/worker images, separate migration, protected configuration, health/readiness and drain | [Authenticated local container results](PRODUCTION_CONTAINER_RESULTS.md) |
+| [Kubernetes](KUBERNETES.md) | Local kind/PVC profile and hosted external-DB profile; services/ingress, secret references, limits and metrics | [Local cluster results](KUBERNETES_RESULTS.md) |
+| [Operations harness](KUBERNETES_OPERATIONS.md) | Owned local cluster only: rollout, scaling, loss/fencing, outage, restore and rollback | [Measured operations](KUBERNETES_OPERATIONS_RESULTS.md) |
 
-## Local Docker
+## Local Docker development
 
-```bash
-cp .env.example .env
-make up
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d --build
+docker compose ps
 ```
 
-Services:
+Web is `http://localhost:3000`, API `http://localhost:8000`, PostgreSQL is bound
+to loopback port 5432. API startup applies Alembic migrations; the worker starts
+after API health. The root profile has development identity behavior and local
+credentials. Do not expose it publicly. `docker compose logs` inspects services;
+`docker compose down` stops/removes containers while retaining named volumes.
+Do not add `--volumes` when preserving datasets.
 
-- Web: `http://localhost:3000`
-- API: `http://localhost:8000`
-- Database: PostgreSQL on `localhost:5432`
+Open `/demo` and seed the full illustrative dataset to explore the business UI
+without provider calls. Seeding also installs the business templates. For an
+empty organization without demo records, an administrator can install the
+[sales/feedback/incident templates](BUSINESS_TEMPLATES.md) explicitly. Installation
+publishes configuration but does not call a provider. Worker credentials and quota
+are required for subsequent live LLM runs.
 
-Useful commands:
+## Native development
 
-```bash
-make logs
-make ps
-make down
+Use Python 3.12, Node.js 24 and the repository's uv/pnpm lockfiles. Provision a
+local PostgreSQL database and set `DATABASE_URL` consistently for API, CLI and
+workers. Follow [identity](IDENTITY.md) if enabling verified local sessions.
+
+```powershell
+pnpm install --frozen-lockfile
+uv sync --directory apps/api --locked --dev
+uv run --directory apps/api alembic upgrade head
+uv run --directory apps/api python -m src.seed_prompts
 ```
 
-## Local Non-Docker
+Run each long-lived service in its own terminal:
 
-API:
-
-```bash
-cd apps/api
-uv sync
-uv run uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
+```powershell
+uv run --directory apps/api uvicorn src.main:app --host 127.0.0.1 --port 8000
+uv run --directory apps/api python -m src.worker
+pnpm --dir apps/web dev --hostname 127.0.0.1 --port 3000
 ```
 
-Web:
+These are separate commands, not a sequential service launcher. Web server requests
+use `API_INTERNAL_URL` when configured; `NEXT_PUBLIC_API_URL` is the public API
+address/fallback. Container server requests must use service DNS. No browser
+credential value belongs in a `NEXT_PUBLIC_*` variable. See environment examples
+in [API](../apps/api/.env.example) and [web](../apps/web/.env.local.example).
 
-```bash
-pnpm install
-NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 pnpm --dir apps/web dev
-```
+## Production configuration boundary
 
-## Required Environment
+Public startup requires `ENVIRONMENT=production`, verified identity and HTTPS
+OIDC configuration. Use registered issuer/audience/JWKS, exact callback origin,
+PKCE sign-in, provisioned memberships and protected database/tool credentials.
+Shared development keys or caller-selected role headers do not replace this.
+[Identity and permissions](IDENTITY.md) is canonical for configuration/provisioning.
 
-Backend:
+Apply migrations as an ordered release step before serving upgraded workloads.
+Keep PostgreSQL and worker endpoints private; expose only the intended TLS web/API
+routing. Configure bounded rate/transport policies and network egress. Runtime
+container probes distinguish process health from database readiness; worker
+readiness checks that container's own unexpired presence.
 
-- Database URL for PostgreSQL.
-- OpenAI API key for live LLM-backed runs.
+Use the production/Kubernetes runbooks for exact build, secret generation,
+migration, deployment, verification and cleanup commands. Their fixture profile
+uses synthetic TLS/OIDC for the owned local environment only. It is not a real
+identity provider or a public deployment recommendation. Secrets and binary
+backups stay outside Git; only redacted evidence and hashes are committed.
 
-Frontend:
+## Upgrade, backout and recovery
 
-- `NEXT_PUBLIC_API_URL` for browser-visible API calls.
-- `API_INTERNAL_URL` when the web server should call an internal Docker/service
-  hostname instead of the public API URL.
+Accepted runs retain their graph and worker ownership across later publication.
+Business-template feature flags choose the legacy path for future starts only;
+keep workers available for accepted durable work. Additive migrations protect
+retained identities/history; some downgrades deliberately refuse existing data.
+Do not infer that image rollback permits schema deletion.
 
-## Database Setup
+The [operations verification](KUBERNETES_OPERATIONS_RESULTS.md) tested a distinct
+metadata-only image release at the same application/schema version, then rolled
+back to the known baseline. It restored a binary PostgreSQL backup into a fresh
+database and rechecked 11 workflow/tool history tables. Original databases/PVCs
+were retained. This is not cluster-role, Secret, registry or provider-data recovery.
 
-The app uses SQLAlchemy models and Alembic migrations. A deployment should:
+## Validation and remaining work
 
-1. Provision PostgreSQL.
-2. Apply migrations.
-3. Seed prompt versions.
-4. Optionally seed evaluation/demo data.
+CI migrates fresh PostgreSQL, runs API/web tests and builds, renders local/hosted/
+operations Kubernetes profiles and Compose configuration, and audits dependencies.
+A successful render is not a deployment. Local authenticated deployment and
+operations evidence are separate from CI configuration checks.
 
-Seed commands:
-
-```bash
-cd apps/api
-uv run python -m src.seed_prompts
-uv run python -m src.seed_evaluation_cases
-uv run python -m src.seed_demo_dataset
-```
-
-## Deployment Shape
-
-Recommended service split:
-
-```mermaid
-flowchart LR
-    CDN["Web hosting"]
-    API["API service"]
-    DB["Managed PostgreSQL"]
-    LLM["OpenAI API"]
-
-    CDN --> API
-    API --> DB
-    API --> LLM
-```
-
-Suitable portfolio deployment targets:
-
-- Render
-- Railway
-- Fly.io
-- Azure App Service / Container Apps
-
-## Public Deployment Requirements
-
-Before exposing the application to the internet:
-
-1. Keep PostgreSQL on a private network and use a managed secret for its password.
-2. Set `ENVIRONMENT=production`.
-3. Set `API_AUTH_ENABLED=true` and provide a strong `API_KEY` through the hosting
-   platform's secret manager.
-4. Set `API_RATE_LIMIT_PER_MINUTE` to a positive value appropriate for the service.
-5. Terminate TLS at the hosting platform or reverse proxy.
-6. Restrict allowed network origins and do not expose development or database ports.
-7. Run migrations as a release step rather than using a reload-enabled development
-   process.
-8. Decide whether demo seeding endpoints should remain enabled for the deployment.
-
-The current shared API-key roles are sufficient for a controlled portfolio demo;
-they are not a replacement for user identity, sessions, or tenant-aware authorization.
-
-## Release Checklist
-
-- API health endpoint returns `200`.
-- Web app can reach API through configured URL.
-- Migrations are applied.
-- Prompt versions are seeded.
-- Demo mode can seed the demo dataset.
-- `/evaluation` and `/workflow-comparison` show baseline and multi-agent data.
-- Secrets are configured outside source control.
-- API authentication and rate limiting are enabled.
-- PostgreSQL is not exposed to the public internet.
-- TLS and hosting-level network controls are configured.
-- Full validation passes before deployment.
-
-## Known Limits
-
-- Full user authentication and tenant-aware authorization are not implemented; the
-  API currently supports shared-key viewer, operator, and admin roles.
-- Background jobs are not yet required for demo mode.
-- Live LLM runs require valid provider credentials and quota.
-- The deterministic demo path is intended for portfolio walkthroughs and does not
-  replace live evaluation runs.
+Hosted target/access, real identity-provider and tool-account acceptance,
+multi-node failure, managed-DB failover, production backups/restore objectives,
+network policy enforcement and security review belong to a separately configured
+rollout. None was silently substituted with fixture evidence.
+[Security policy](../SECURITY.md) · [Phase ledger](phase-progress.md).

@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 102 complete; Phase 103 next after completion-record CI**.
+Current implementation phase: **Phase 103 — platform documentation reconciliation in progress**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–102 are complete; Phases 103–105 remain planned.
+Phases 66–102 are complete; Phase 103 is active and Phases 104–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -141,7 +141,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 100 | Complete | Production images and authenticated deployment; 11 runs/207 jobs including two active drains; implementation `d7d172c`, CI `35188845395` passed 896 API tests. |
 | 101 | Complete | Authenticated kind deployment, migration, approval/PVC persistence and metrics; implementation `918db61`, CI `35195207152` passed 896 API tests. |
 | 102 | Complete | Local rollout, scaling, Pod loss/fencing, readiness, backup/restore and rollback; 21 runs/21 effects reconciled; implementation `3c30652`, CI `35200997403` passed 898 API tests. |
-| 103 | Planned — not started | Platform README and Architecture Reconciliation |
+| 103 | In progress | Platform README and Architecture Reconciliation |
 | 104 | Planned — not started | Platform Demo Video Script |
 | 105 | Planned — not started | Final Workflow Platform Case Study |
 
@@ -2836,6 +2836,48 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - **Phase 102 complete.** Phase 103 is eligible after this completion record is
   committed, pushed and its CI passes. Hosted operation remains unperformed;
   controlled sink idempotency and a metadata-only release limit the claims.
+
+### Phase 103 — Platform README and architecture reconciliation
+
+- Phase 102 completion record `096a088b5ed47dd9f460b48a0e6a3c1eb9b48645`
+  was pushed; [CI 35202236737](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35202236737)
+  passed all API, web and deployment jobs. Commit checks independently confirmed
+  success. The working tree was clean before this phase.
+- Inspected the context/plan, existing docs, executor registry, state/queue/models,
+  permissions, business template projections, evaluation calculations and seeded
+  records, deployment configuration and Phase 98–102 measurements. Found stale
+  future-tense claims, old shared-key deployment guidance, an absent LLM judge,
+  unsupported illustrative quality claims and five broken README image links.
+- Plan: lead with the implemented durable platform, preserve business examples,
+  and reconcile README, overview, specification, architecture, agents, observability,
+  deployment, security, evaluation and backlog. Add R01–R14 code/test/evidence
+  mapping; distinguish completed capabilities, seeded examples, measured local
+  results and unperformed hosted/provider checks. Correct stale cross-references
+  in earlier runtime docs without rewriting historical phase records.
+- Acceptance: verify all local links/anchors, fenced examples, unique continuous
+  phase numbering, complete requirement coverage, route/command/source references,
+  diagrams and numeric claims. Documentation only: no application/schema change,
+  data mutation, deployment or unrelated local test suite is required. CI still
+  must finish before closure. Demo script and case study remain Phases 104–105.
+- Reconciled the core documents and earlier runtime cross-references. Added the
+  [R01–R14 index](PLATFORM_EVIDENCE.md), preserved business screenshots in a labeled
+  [historical tour](BUSINESS_TOUR.md), and moved optional telemetry instructions to
+  [their own page](TELEMETRY.md). Removed invented target-performance claims and
+  explicitly retained the actual assigned baseline/multi-agent/showcase values.
+- Clarified a source-review finding: builder publication requires runnable
+  validation, while direct API publication can retain a recognized unavailable
+  handler. Every start independently checks executable capability. No runtime
+  behavior was changed to reconcile the prose.
+- Added `scripts/check_documentation.py` and its CI configuration step. Initial
+  validation passed 47 documents, 406 links/anchors, 105 ordered unique phase
+  headings and both complete R01–R14 tables. Ruff passed for the checker; diff
+  whitespace checks passed. No unrelated local application suite or deployment
+  was rerun for documentation. [Semantic review](evidence/phase103/semantic-review.json)
+  records source hashes, route/command checks, numeric provenance and limitations.
+- The larger documentation scope removes obsolete duplicate specification and
+  overview material across the requested documents while preserving historical
+  phase records, screenshots and runtime behavior. This is one reconciliation
+  phase, not several combined feature phases. Commit/push/CI review pending.
 
 When a future phase starts, add a record here using these fields:
 

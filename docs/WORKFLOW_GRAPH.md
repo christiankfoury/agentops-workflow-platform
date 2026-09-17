@@ -2,7 +2,8 @@
 
 Phase 70 introduces `WorkflowGraph` schema version 1 and pure validation. Phase 71
 adds definition/version persistence and APIs, described below. Existing business
-workflows continue through their existing services. Schema recognition covers
+workflows now use [published templates](BUSINESS_TEMPLATES.md) by default, with
+retained legacy compatibility. Schema recognition covers
 `llm`, `code`, `tool`, `condition`, `approval`, `transform`, `parallel` and `delay`;
 `ensure_executable` rejects every type absent from the supplied executor registry.
 Quality revision execution has its own capability gate.
@@ -16,8 +17,8 @@ edge. Only conditions and parallel forks have labeled or multiple outgoing edges
 An ordinary node with multiple incoming edges declares `merge: exclusive`, and
 its incoming routes must be mutually exclusive. Parallel forks name distinct
 branch entries and a matching `all_selected` join; branches cannot overlap, end
-early or accept external edges. Branch declaration order is the output order
-contract for the later executor.
+early or accept external edges. Joins assemble explicitly named branch outputs;
+the runtime returns deterministic sorted keys as described in [parallel execution](DURABLE_QUEUE.md).
 
 Limits: 100 nodes, 300 edges, 256 routing paths per node, eight cases/branches,
 100 fields per object, 16 path segments, eight nested expression operations,
@@ -28,7 +29,8 @@ delays at most seven days, and quality revisions at most five.
 
 Quality revision metadata identifies a closed entry-to-review subgraph. Only its
 entry may receive external edges and only its review node may exit. This reserves
-a bounded revision contract without admitting cyclic edges or executing retries.
+a bounded revision contract without admitting cyclic edges. The
+[LLM runtime](LLM_EXECUTION.md) executes those bounded revisions.
 
 ## Data and expressions
 
@@ -99,6 +101,9 @@ and use a forward migration when data exists.
 
 Published versions may contain recognized but unavailable primitives.
 `GET /{id}/versions/{version_id}/capabilities` exposes that distinction, and the
-start-boundary helper rejects unavailable executors. Phase 71 adds no run-start
-API or generic execution. Tool references remain unresolved until Phase 86;
-LLM runtime and settings resolution arrive in Phase 82.
+start-boundary helper rejects unavailable executors. The builder's server action
+requires runnable validation before publication, while direct API publication
+can retain a recognized graph with an unavailable handler. Tool references and
+policies are validated/bound on publication; runtime settings are pinned at start.
+All eight primitives have implementations, but configured references and handler
+versions must still be available. See [execution](EXECUTION_RECORDS.md).

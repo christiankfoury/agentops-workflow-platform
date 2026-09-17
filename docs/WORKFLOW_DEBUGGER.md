@@ -45,7 +45,8 @@ must keep credentials in configured references rather than workflow payloads.
 A failed section load retains the existing view and provides a retry. Initial
 step-history failure leaves the graph/run state usable. Controls suppress duplicate
 requests while loading. **Reload section** refreshes that history; reload the page
-to refresh graph/run state. Automatic polling remains a separate delivery phase.
+to refresh graph/run state. [Bounded live pulses](WORKER_OPERATIONS.md) also refresh
+changed views and invalidate stale expanded payloads while preserving form edits.
 
 ## Historical compatibility and usage
 

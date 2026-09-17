@@ -74,8 +74,10 @@ No migration is required. This interface uses existing definition draft APIs.
 
 Open **Validation and versions** after saving. Validation reports the exact saved
 revision and separates graph errors from unavailable runtime capabilities. An
-administrator can publish only a runnable revision; the server rechecks it and
-rejects concurrent edits. Publishing creates an immutable version. Existing runs
+administrator can publish only a runnable revision through this screen; its web
+server action validates capability and the API rejects concurrent draft edits.
+Direct API publication can retain recognized but unavailable handlers; every
+start independently rechecks runtime support. Publishing creates an immutable version. Existing runs
 retain their original version, even while a later draft is edited or published.
 
 Select a published version to inspect its capabilities or compare it with another

@@ -1,0 +1,50 @@
+{
+  "reviewed_at": "2026-09-17T09:26:41.452953+00:00",
+  "base_commit": "096a088b5ed47dd9f460b48a0e6a3c1eb9b48645",
+  "passed": true,
+  "source_hashes": {
+    ".github/workflows/ci.yml": "2e1a4e0f94641336cf578b70039212a7bf60ebe1e267b4b7cd504d237b3eddf5",
+    "README.md": "a316d109499b8b73c79e23d0dfa3837ae27c11e1bba08e130a47a3e4f74553b0",
+    "SECURITY.md": "2dadd02ef34c29d887e93816e7228816785ba0f5753e88e65f12f39213d8c8c6",
+    "WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md": "25051b6f9d252c0e597bd5a77caffd03c5251cdbfaac9446b47c08fe941d55e4",
+    "docs/AGENTS.md": "1597beadd253e50407529bb63b9ed5ec223903403ff802af3e9f7ba42bcd84de",
+    "docs/ARCHITECTURE.md": "15c0a50487cd7868cd750e66bd61d31779ce438e2525e59bc5c818e9b32340d3",
+    "docs/DEPLOYMENT.md": "130fbff37a1da2dd3d15fefb40bdeeb83d3e2e2d2cd3fdb3993d094fd6d60b61",
+    "docs/DURABLE_QUEUE.md": "3945e08ccdd4d305e1d1cc376dacd561d84e26b15ae0062de80cb540383d1135",
+    "docs/EVALUATION.md": "eb627b5ca9f90f06656431f6a529ec22638dd98191575176edf53075493ab42c",
+    "docs/EXECUTION_RECORDS.md": "6526c56ab0e708842ebe4f7c5da9dba86e6d697f2531a33b5ebffe209507fa55",
+    "docs/LLM_EXECUTION.md": "454ed18e98acaa1db4c283bc1f727e0d55bb29448700d16cbcd1f06fe6f49125",
+    "docs/OBSERVABILITY.md": "c76800c6de437a5ff381d56143c2a65b001445229d34bde002dec838f56335c2",
+    "docs/PROJECT_SPEC.md": "aa616f02e553fd188272bc5c540b8b4ca06a7b88bdba36e52dbf0217b5bd1c53",
+    "docs/RETRIES_AND_DEADLINES.md": "363530bcd8e3f1ab466a8b75cf724cd40495980dea3eaff25bbfe60fa068d60b",
+    "docs/TOOL_CONTRACTS.md": "06dbb7047123f065165c05eebb1d9994afd2b1099b6589792624cc7d0a466ffe",
+    "docs/WORKFLOW_BUILDER.md": "920814ebba13153cd4178680256b94c1a05d32f752d78b2465ec9ebc93c7e204",
+    "docs/WORKFLOW_DEBUGGER.md": "cefb1e2248e2f4e0496ab2789d44f4221149676e9246f36e8a169f1d113043ba",
+    "docs/WORKFLOW_GRAPH.md": "c7a864ce79db5b9b1170d3e12c80e0a3f3282f30fb5b0cbe487daa69538fdd99",
+    "docs/deferred-phases.md": "cdd983fe5f2f74a9957de26d9cb5f60d178ca4ce6d622d5a624b5048c272068b",
+    "docs/overview.md": "3e993a846bdcb017bed820bfbbf175ebc26f73b5a31532cd1021cee45296fb08",
+    "docs/BUSINESS_TOUR.md": "d6ac816829efbd974aa137eddc6ee63e6c31ac8164855914f92dce7fb5cb8799",
+    "docs/PLATFORM_EVIDENCE.md": "eda124d9790ff293c5a0475cc5038774296a500cbe7d2d6fa82798f261a56d10",
+    "docs/TELEMETRY.md": "d85a5636f798ecde2e3cd400a3bda0aefffcc3726aa6522ce04ca47d314ddf7a",
+    "scripts/check_documentation.py": "c0950295b2d9460f8725db3be84cff01a0defd344f51387c575a186ce71c7024"
+  },
+  "checks": [
+    "All R01-R14 rows linked to implementation and tests or measured evidence",
+    "README routes compared with Next.js route files",
+    "Native/container commands checked against CLI/configuration and prior deployment evidence; no deployment rerun claimed",
+    "Eight primitives, pinned versions/settings, lease fencing, retry/quality separation and cancellation limits checked against source/contracts",
+    "Direct API publication versus builder runnable-validation boundary documented",
+    "Business mandatory approvals, compatibility projections and no fabricated historical versions preserved",
+    "Demo assigned metrics and 32-case/65-result/99-step counts checked against seed source/tests",
+    "Benchmark 10000/33333/3333, 45 fault cases and 21-run Kubernetes result traced to recorded results",
+    "Five missing screenshot links corrected while preserving original image files",
+    "Old shared-key-only public deployment and future-runtime claims replaced",
+    "Diagrams reviewed against worker scheduling, transaction and ownership boundaries"
+  ],
+  "limitations": [
+    "No new application test or deployment run for prose changes",
+    "External URLs not network-crawled by documentation checker",
+    "No live provider quality uplift or hosted/security certification claimed",
+    "Phase104 script and Phase105 case study remain outstanding"
+  ]
+}

@@ -1,198 +1,172 @@
 # Architecture
 
-AgentOps is a full-stack workflow application with a FastAPI backend, a Next.js
-frontend, and PostgreSQL persistence. The system treats AI generation as a
-stateful workflow rather than a one-shot chat request.
+AgentOps separates authoring/admission from execution. PostgreSQL is the durable
+source for graph versions, accepted runs, jobs, decisions and history. FastAPI
+serves authenticated APIs; Next.js provides the authoring, review and operations
+UI; independent Python workers execute bounded checkpoints. See the
+[requirement evidence index](PLATFORM_EVIDENCE.md) for code and tests.
 
-## Runtime Components
+## Runtime and trust boundaries
 
 ```mermaid
 flowchart LR
-    Browser["Browser"]
-    Web["Next.js app"]
-    API["FastAPI app"]
-    DB["PostgreSQL"]
-    LLM["LLM provider"]
-
-    Browser --> Web
-    Web --> API
-    API --> DB
-    API --> LLM
+    User["Browser"] --> Web["Next.js server: session forwarding"]
+    Web --> API["FastAPI: verified identity and tenant APIs"]
+    Sender["Webhook sender"] --> API
+    API --> DB[("PostgreSQL")]
+    Workers["Workers + schedule scanner"] <--> DB
+    Workers --> Provider["LLM provider"]
+    Workers --> Destinations["Allowlisted HTTP / PostgreSQL / GitHub"]
 ```
 
-## Backend Layout
+Workers scan due jobs/schedules as trusted infrastructure, then bind a fresh
+session to the claimed organization. Public APIs cannot select an arbitrary
+infrastructure scope. Provider I/O occurs outside workflow database locks.
+Tool credentials resolve only on workers; API catalog references are metadata.
+See [identity](IDENTITY.md), [tools](TOOL_CONTRACTS.md) and
+[deployment](DEPLOYMENT.md).
 
-- `apps/api/src/main.py` registers API routers.
-- `apps/api/src/routers/` contains HTTP endpoints.
-- `apps/api/src/services/` contains workflow, agent, evaluation, cost, and demo logic.
-- `apps/api/src/models/` contains SQLAlchemy models.
-- `apps/api/src/schemas/` contains Pydantic API contracts.
-- `apps/api/tests/` contains unit and API tests with fake sessions where practical.
+## Authoring and version pinning
 
-Primary routers:
+[WorkflowGraph](../apps/api/src/schemas/workflow_graph.py) defines eight primitives:
+`llm`, `code`, `tool`, `condition`, `approval`, `transform`, `parallel`, `delay`.
+Schemas are a closed JSON subset; bindings use constrained expressions. Code
+nodes reference server-registered handlers, not uploaded Python. Validation checks
+reachability, references, routing/defaults, exclusive merges, parallel regions,
+policies and executable capabilities. Arbitrary cycles are forbidden; quality
+revision regions are explicitly bounded.
 
-- `/workflow-runs`
-- `/uploaded-inputs`
-- `/human-approvals`
-- `/prompt-versions`
-- `/agent-settings`
-- `/evaluation-results`
-- `/agent-performance`
-- `/demo`
+Draft saves use a revision check. Publication retains the graph, prompt snapshots
+and immutable version. Acceptance pins the chosen version and runtime settings;
+retries and approval resume do not reread mutable configuration. Publishing or
+archiving later versions does not change existing run history. Tool versions and
+server-policy fingerprints are also pinned and rechecked at dispatch. See
+[graph/version APIs](WORKFLOW_GRAPH.md), [builder](WORKFLOW_BUILDER.md) and
+[LLM configuration](LLM_EXECUTION.md).
 
-## Identity boundary (Phase 67)
+## Admission, ownership and completion
 
-Verified OIDC tokens and revocable browser sessions resolve users and active
-organization memberships in the shared authentication dependency. Roles and
-service-principal scopes come from the database. See [identity setup](IDENTITY.md)
-for PKCE sign-in, session expiry, provisioning and fixture validation. Public
-API startup outside development/test requires configured verified identity with
-HTTPS OIDC endpoints. Phase 69 adds shared role/service permissions and transactional
-tenant audit events. Decisions recheck membership under row locks; actors come from
-identity. Only reviewer/admin may decide, and only admin may approve high/critical
-findings. The UI uses the API permission response. See the
-[permission and rollout gate](IDENTITY.md#permissions-and-public-deployment-gate-phase-69).
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant DB as PostgreSQL
+    participant Worker
+    participant Tool as Provider or tool
+    Client->>API: Version/input + stable start key
+    API->>DB: Commit receipt, execution, initial job, audit/events
+    API-->>Client: 202 with accepted run/version
+    Worker->>DB: Claim due job with lease/token
+    Worker->>DB: Commit attempt and prepared inputs
+    Worker->>Tool: Bounded I/O outside DB transaction
+    Tool-->>Worker: Result or uncertain outcome
+    Worker->>DB: Check live lease/token, revision, deadline, cancellation
+    Worker->>DB: Commit result/history + next checkpoint atomically
+```
 
-Phase 68 binds each request session to verified organization membership. All
-business models use `TenantOwned`; shared ORM filters cover list, nested and
-aggregate reads, and write checks plus composite database foreign keys enforce
-same-organization references. Migration `f068_tenant_ownership` preserves legacy
-IDs/content under the explicit default organization with a reversible owner ledger.
-Prompts/settings and demo copies are tenant-specific. Exports use the authenticated
-web server client. See [the tenant contract](IDENTITY.md#tenant-ownership-contract-phase-68)
-before adding a business resource or background query.
+The start receipt binds organization, key and canonical request fingerprint.
+Identical retries return the original run; changed input with the same key
+conflicts. Receipts remain for retained execution history, with no purge/reuse API.
+Manual UI keys survive request retries in page memory, not browser reloads.
+[Start contract](EXECUTION_RECORDS.md#idempotent-starts-phase-73).
 
-## Frontend Layout
+Claims use `FOR UPDATE SKIP LOCKED`. Heartbeats renew a live lease; expiry allows
+bounded recovery with a new fence. Completion checks the current job token,
+attempt and run revision. A stale worker cannot adopt newer ownership or reopen
+terminal history. `workflow_state.py` and transaction authorities centralize live
+state changes; events, scheduling and outputs commit together. Demo imports have
+an explicit synthetic-history path. [Queue contract](DURABLE_QUEUE.md).
 
-- `apps/web/src/app/` contains Next.js route segments.
-- `apps/web/src/lib/api.ts` is the server-side API client.
-- `apps/web/src/lib/types.ts` mirrors backend API response contracts.
-- `apps/web/src/components/` contains shared UI components.
-- `apps/web/tests/routes.smoke.test.mjs` protects route/API wiring.
+Parallel branches receive independent runnable jobs; a join waits for all selected
+branches and finalizes once. Approval/delay/backoff waits retain durable state and
+release slots. Generic run states are `pending`, `running`, `waiting`, `retrying`,
+`completed`, `failed`, `cancelled`; steps and attempts have their own status sets.
+These differ from the retained business-specific labels.
+[Execution models](../apps/api/src/models/workflow_execution.py).
 
-Primary dashboard routes:
+## Retries, cancellation and external effects
 
-- `/workflow-runs`
-- `/workflow-runs/new`
-- `/workflow-runs/:id`
-- `/human-approvals`
-- `/evaluation`
-- `/workflow-comparison`
-- `/costs`
-- `/agent-performance`
-- `/failures`
-- `/improvements`
-- `/prompt-versions`
-- `/settings`
-- `/demo`
+Infrastructure attempts use the pinned error allowlist, attempt bound, persisted
+exponential backoff/jitter and deadlines. Permanent schema/auth/policy failures
+are not transient retries. Provider SDK retries are disabled in generic execution;
+bounded schema repair shares an attempt deadline and retains returned usage.
+Reviewer quality revisions use separate logical iterations and feedback history.
+[Retry policy](RETRIES_AND_DEADLINES.md) · [LLM policy](LLM_EXECUTION.md).
 
-## Core Data Model
+Cancellation persists intent, stops new runnable work, attempts cooperative I/O
+abort and fences late commits. A synchronous handler may continue until return
+while retaining its physical slot. Cancellation cannot undo a provider-accepted
+request. Failed/cancelled runs can create one linked recovery child, subject to
+current authority and policy. Source history stays terminal; approvals are fresh,
+reused checkpoints have provenance, and spent effect/quality budgets remain.
+[Recovery controls](WORKFLOW_RECOVERY.md).
+
+The effect ledger reserves a stable logical action key before dispatch. HTTP
+replay requires configured provider idempotency; GitHub creation uses persisted
+correlation and bounded reconciliation, never an assumed safe duplicate POST.
+Restricted PostgreSQL tools are read-only. Missing proof after an ambiguous write
+leaves `unknown`, blocking unsafe recovery until an authorized evidence-backed
+resolution. LLM tool calls use the same executor with declared bindings, exact
+write approval and call/round/cost/time budgets. Delivery is at least once; the
+local ledger alone cannot promise exactly-once remote effects.
+[Tool contracts](TOOL_CONTRACTS.md) · [LLM tools](LLM_TOOL_CALLING.md).
+
+## Persistent model and compatibility
 
 ```mermaid
 erDiagram
-    uploaded_inputs ||--o{ workflow_runs : input
-    workflow_runs ||--o{ agent_steps : has
-    workflow_runs ||--o{ workflow_events : emits
-    workflow_runs ||--o{ human_approvals : requires
-    workflow_runs ||--o{ evaluation_results : scored_by
-    evaluation_cases ||--o{ evaluation_results : evaluates
-    prompt_versions ||--o{ agent_steps : used_by
-    agent_steps ||--o{ cost_events : records
+    workflow_definitions ||--o{ workflow_versions : publishes
+    workflow_versions ||--o{ workflow_executions : pins
+    workflow_executions ||--o{ step_runs : invokes
+    step_runs ||--o{ step_attempts : attempts
+    workflow_executions ||--o{ durable_jobs : schedules
+    workflow_executions ||--o{ execution_approvals : reviews
+    workflow_executions ||--o{ execution_events : records
+    step_runs ||--o{ tool_executions : acts
+    tool_definitions ||--o{ tool_versions : publishes
+    tool_versions ||--o{ tool_executions : contracts
 ```
 
-Important tables:
+The diagram shows logical relationships; tenant-qualified foreign keys and
+identity/immutability guards enforce database boundaries. Users, organizations,
+memberships, sessions, service principals, triggers and recovery receipts provide
+identity/admission/control records. Model definitions live in
+[models](../apps/api/src/models); migrations in [Alembic versions](../apps/api/alembic/versions).
 
-- `uploaded_inputs`: pasted/uploaded source text and file metadata.
-- `workflow_runs`: workflow type, run mode, status, final output, cost, latency.
-- `agent_steps`: agent inputs, outputs, model metadata, cost, latency, failures.
-- `workflow_events`: audit-style lifecycle events.
-- `human_approvals`: approval decisions, feedback, edited analysis.
-- `prompt_versions`: versioned prompt templates by agent type.
-- `agent_settings`: runtime model and threshold settings.
-- `evaluation_cases`: gold-standard expectations.
-- `evaluation_results`: baseline and multi-agent scores.
+Sales, feedback and incident starts use published templates by default. A unique
+`legacy_run_id` links each business run to at most one durable owner. The worker
+updates business run, AgentStep, approval, event and cost projections atomically.
+Generic attempts and those projections describe the same work: never sum both.
+Legacy per-agent endpoints reject durable-owned runs. Historical AgentStep-only
+runs remain readable without fabricated graph versions or attempts.
+[Business compatibility/backout](BUSINESS_TEMPLATES.md).
 
-## Workflow State Model
+Migrations are additive where required. Guards refuse downgrades that would erase
+retained histories or live ownership. Feature flags select legacy starts only for
+future business runs; accepted durable work keeps its worker and pinned version.
+Image rollback requires a compatible schema. Phase 102 verified metadata-only
+image rollback and a fresh-database restore, not a destructive schema downgrade.
 
-Workflow statuses are defined in `WorkflowStatus`:
+## User-facing and operational surfaces
 
-```text
-created
-running
-routing
-analyst_running
-reviewer_running
-retrying
-waiting_for_human
-writer_running
-completed
-failed
-cancelled
-```
+- `/workflow-definitions`: drafts, validation, versions, diffs and manual starts.
+- `/execution-traces`: pinned graph, paginated steps/attempts/events/tools/approvals.
+- `/workflow-triggers`: webhook/cron configuration and retained delivery histories.
+- `/operations`: organization-scoped queue and worker observations.
+- Business runs, approvals, final outputs, evaluation/comparison, cost, prompts,
+  settings and membership pages retain their existing roles.
 
-`services/workflow_state.py` owns live run and agent-step transitions. Terminal
-states cannot reopen, and terminal timestamps are set with the transition.
-`services/workflow_transactions.py` owns short transactions: a PostgreSQL row
-lock serializes each run's mutations and a persisted `state_revision` rejects
-stale operations (HTTP 409). Step starts and their events commit together;
-results, costs, totals, decisions, events, and resulting run states commit together.
-Nested helpers flush; only the outer owner commits. Rollback removes all changes
-and suppresses external completion telemetry.
+Readers return bounded metadata/detail previews with redaction. Small authorized
+pulses refresh changed pages; hidden/offline tabs pause and failures back off.
+Worker presence is observation, never lease authority. Aggregate infrastructure
+metrics use a separate trusted CLI/CronJob. [Observability](OBSERVABILITY.md).
 
-Provider calls happen between transactions without a run lock. Results must
-present the revision captured at start, so cancellation or another control
-operation fences late success and failure. This is logical cancellation; it does
-not interrupt a provider request or recover work after process death. Durable
-worker cancellation remains Phase 78. Revision migration `f066_state_revision`
-adds a zero-initialized counter without modifying historical outputs.
+## Validation boundary
 
-Demo imports are an explicit exception: `services/demo_dataset.py` constructs
-historical completed fixtures in its own transaction without inventing live
-transition events. Its run/step assignments and evaluation-result bookkeeping
-are the documented direct-write exceptions. Live evaluations call the same agent
-services and approval transitions as interactive workflows.
-
-`tests/test_workflow_transactions_postgres.py` uses isolated PostgreSQL schemas
-and independent sessions to verify rollback, stale writes, conflicting decisions,
-cancellation/completion races, and late provider results for all three baselines.
-Set `WORKFLOW_TEST_DATABASE_URL` to a disposable database to run these tests;
-CI supplies PostgreSQL and also runs the complete migration chain.
-
-The current architecture is the business-workflow foundation. The
-[platform implementation plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md)
-defines the future generic graph, versions, step attempts, workers, tools,
-triggers and Kubernetes architecture. Identity, tenant isolation and role/audit
-controls are implemented through Phase 69. Phases 70–71 add the validated
-[graph format and version APIs](WORKFLOW_GRAPH.md), tenant-owned revisioned drafts,
-immutable publication snapshots, retained prompts, archive/history and version
-diffs. Generic execution remains planned; runtime capability checks reject all
-unavailable primitives independently of schema acceptance/publication.
-Phase 72 adds [generic execution records](EXECUTION_RECORDS.md) and read APIs,
-sharing the revision-checked transition authority with existing business runs.
-Phase 73 adds atomic tenant-scoped idempotent pending starts. Unavailable executors
-remain blocked; generic dispatch and workers are still planned.
-
-## Agent Execution Pattern
-
-Agent services follow the same broad shape:
-
-1. Validate the workflow run and required prior steps.
-2. Create an `AgentStep` with `running` status.
-3. Log `agent_started`.
-4. Resolve runtime prompt/model settings.
-5. Call the LLM client or deterministic demo path.
-6. Validate structured output.
-7. Persist output, token usage, cost, latency, and status.
-8. Log completion or failure.
-9. Transition the workflow when needed.
-
-## Demo Data Path
-
-Phase 57 and 58 added deterministic demo data:
-
-- `services/demo_dataset.py` seeds demo uploaded inputs, baseline runs,
-  multi-agent runs, evaluation results, and agent steps.
-- `routers/demo.py` exposes one-click demo seeding endpoints.
-- `apps/web/src/app/demo/` exposes demo controls in the UI.
-
-The demo path is idempotent and does not require live LLM credentials.
+PostgreSQL concurrency/migration tests, deterministic adapter/provider fixtures,
+[10,000-run measurements](BENCHMARK_RESULTS.md),
+[injected faults](RELIABILITY_RESULTS.md) and
+[deployed operations](KUBERNETES_OPERATIONS_RESULTS.md) cover different layers.
+Synthetic evaluation records are not model-quality measurements. Hosted
+availability, real third-party acceptance and production security certification
+remain outside the recorded checks.
