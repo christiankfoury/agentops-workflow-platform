@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 99 — complete; completion-record CI pending**.
+Current implementation phase: **Phase 100 — production container packaging in progress**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,8 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–99 are complete; Phases 100–105 remain planned. Phase 100 starts after
-the Phase 99 completion-record CI passes.
+Phases 66–99 are complete; Phase 100 is active and Phases 101–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -92,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 100: Production Container Packaging
 
-Status: Planned — awaiting Phase 99 completion-record CI.
+Status: In progress — Phase 99 completion-record CI passed.
 
 Scope: production web/API/worker images, verified identity, bounded resources,
 readiness, migrations, graceful shutdown and authenticated local verification.
@@ -2572,6 +2571,99 @@ This is a status index; implementation details live only in `docs/phases.md`.
   after database loss, and stop-event rather than OS/container rollout testing.
   Phase 100 is eligible after this completion record is committed, pushed and
   all of its CI checks pass.
+
+### Phase 100 — production container packaging
+
+- Phase 99 completion record `894f3429153c867fd9dc1e21fc99d0bbfd07dbf4`
+  was pushed. [CI 35182643896](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35182643896)
+  passed all three jobs, independently confirmed through commit check-runs:
+  **891 API tests in 632.32s**, 65 web smoke tests, lint/typecheck/build,
+  fresh migration, Compose and both dependency audits (no known vulnerabilities).
+- Plan: preserve development Compose, existing authentication/session/RBAC,
+  workflow semantics and all retained databases. Add separate non-root production
+  images, standalone web output, secret-file loading, production configuration
+  guards, bounded resources/logging, dependency readiness and worker health.
+  Add one-shot migrations and explicit local verification with ephemeral TLS/OIDC
+  credentials, a disposable persistent PostgreSQL volume and deterministic graph.
+- Acceptance: build/start actual images; verify signed authentication and web/API
+  routing; publish/start/approve/complete a workflow; reject unauthenticated access;
+  observe readiness failure/recovery, persistence after restart and real container
+  SIGTERM drain or fenced recovery. Inspect image/configuration for secrets and
+  root privileges. Record commands, image IDs, actual outcomes and limitations.
+- Rollout: no schema change planned. Migrate once before starting compatible API
+  and worker images; stop claims and allow active work to drain within termination
+  grace. Provider keys and external destinations remain empty in validation.
+  Kubernetes and hosted deployment remain scoped to Phases 101–102.
+
+- Initial validation: production API/web images built successfully, and the
+  isolated database migrated through `f097_worker_presence`. The owned production
+  stack startup command exited 0. These results do not yet prove authenticated
+  workflow, restart, readiness-failure or SIGTERM acceptance; the verifier has
+  not run. Ruff and frontend typecheck passed. Focused backend run: **41 passed,
+  one setup error in 562.18s**, caused by a PostgreSQL statement timeout while
+  creating a fixture table; requires investigation/rerun. The first test command
+  named a nonexistent worker test file and collected no tests; corrected command
+  used `test_production.py`, `test_identity.py`, `test_durable_queue.py` and
+  `test_worker_leases.py`. Frontend lint rejected CommonJS `require` in the new
+  launcher; changed the launcher to ESM imports. Lint recheck and image rebuild
+  remain required. Logs: `.phase100-build.log`, `.phase100-migrate.log`,
+  `.phase100-focused-recheck.log`, `.phase100-web-lint.log`.
+- Automatic approval review rejected a subsequent database/startup inspection
+  because account usage was exhausted. Existing process results were collected
+  and local code corrections preserved. No Phase 100 commit/push or CI run has
+  occurred; Phase 100 remains incomplete and Phases 101–105 have not started.
+- The ESM launcher correction is present in the worktree. Its sandboxed lint
+  recheck could not start Node because access to the user installation was denied
+  (`EPERM`); it did not pass. `git diff --check` passed. Static review strengthened
+  the pending shutdown verifier to require outstanding work before SIGTERM,
+  zero running jobs after clean exit and unchanged claim counts while stopped.
+- Account status subsequently reported available usage and approval review
+  accepted validation commands again. The corrected frontend passed lint and
+  **65 smoke tests**; all **42 focused backend tests passed in 300.11s** on rerun.
+  The earlier DDL timeout did not recur. Ruff passed across runtime, tests,
+  secret entrypoint and deployment scripts.
+- Actual deployment inspection found Caddy's bundled file capability conflicted
+  with dropped container capabilities. Added a non-root gateway image that removes
+  the unused low-port capability and an explicit health probe. Fixed scratch
+  directory ownership. A negative host test exposed Caddy directive reordering;
+  explicit `route` order now checks hosts before proxying. Preserved failed
+  verification manifests, including a subsequent HTTPX client-lifecycle fixture
+  error; corrected that fixture. Signed OIDC login and host rejection then passed.
+  Complete workflow/restart/shutdown acceptance is still running, not yet claimed.
+- Acceptance found a startup-signal/readiness race: an early SIGTERM could arrive
+  before Python installed its handler, while hostname-based health matched a
+  previous process heartbeat. Added container init, an entrypoint-generated worker
+  instance identity and exact-instance readiness, with a regression rejecting a
+  previous live heartbeat. The affected **33 tests passed in 207.35s**.
+- Final main deployment check passed on **2026-09-17 05:59:09–06:01:47 UTC**:
+  **9 accepted/completed workflows and 203 completed jobs**. Verified signed OIDC
+  and secure cookies, 401/421 negative checks, version/approval output, exact
+  approval/session persistence after restart, API/web 503 on database loss,
+  liveness 200, clean SIGTERM, stable stopped claim count and backlog completion.
+  [Manifest](evidence/phase100-final/summary.json) and hashed gzip archive retain
+  accepted IDs, job records, source fingerprints and measured image IDs.
+- Independent review matched **195 recorded source hashes**, rechecked archive
+  and job/run invariants, verified the published definition in authenticated
+  server-rendered HTML, and inspected actual non-root/read-only/init/resource/
+  capability/logging configuration. No generated secrets in image metadata or
+  environment/private-key files in application images; external tools/providers
+  remained disabled. Both Compose profiles, Ruff, typecheck, frontend lint,
+  65 smoke tests and whitespace checks passed.
+- The principal SIGTERM observation had queued work, so a separate bounded
+  disposable-database checkpoint lock proved active ownership drain. It observed
+  a claimed job and draining heartbeat, released the checkpoint, required exit 0
+  and zero recovery for the original job, then completed its continuation.
+  Both the initial check and the final CLI repeat passed: **two additional runs
+  and four jobs**, all completed. [Results and limits](PRODUCTION_CONTAINER_RESULTS.md)
+  link successful and preserved failed evidence; [runbook](PRODUCTION_CONTAINERS.md)
+  includes reproducible commands and migration/rollout order.
+- Pre-commit review checked signal forwarding, process-specific readiness,
+  authenticated proxy routing, secret boundaries, scratch permissions, resource
+  limits, immutable evidence and preservation of existing databases. No unresolved
+  blocking local findings. The phase exceeds the preferred line count because
+  separate runtime profiles, TLS/OIDC fixtures, fault verification and lossless
+  evidence are required for an actual deployment gate. Implementation commit,
+  push, all CI and post-push review remain required; Phase 101 has not started.
 
 When a future phase starts, add a record here using these fields:
 

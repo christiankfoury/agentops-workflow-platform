@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 import signal
 import socket
 from concurrent.futures import ThreadPoolExecutor
@@ -10,6 +11,7 @@ from uuid import uuid4
 
 from src.config import settings
 from src.database import engine
+from src.production import validate_configuration
 from src.services.approval_runtime import expire_approval_waits
 from src.services.delay_runtime import wake_due_delays
 from src.services.durable_queue import claim_jobs, has_queued_jobs, process_claim
@@ -27,7 +29,7 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
     if max_jobs is not None and max_jobs < 1:
         raise ValueError("max_jobs must be positive")
     stop = stop or Event()
-    identity = f"{socket.gethostname()[:64]}:{uuid4().hex}"
+    identity = os.environ.get("WORKER_INSTANCE_ID") or f"{socket.gethostname()[:64]}:{uuid4().hex}"
     dispatched = 0
     failures = 0
     active = set()
@@ -78,6 +80,7 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
 
 
 def main():
+    validate_configuration()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--max-jobs", type=int)
     parser.add_argument("--drain", action="store_true", help="Exit when the queue is empty")

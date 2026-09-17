@@ -1,0 +1,9 @@
+{
+  "started_at": "2026-09-17T05:51:23.053057+00:00",
+  "finished_at": "2026-09-17T05:52:55.078093+00:00",
+  "passed": false,
+  "base_commit": "894f3429153c867fd9dc1e21fc99d0bbfd07dbf4",
+  "archive": "verification.json.gz",
+  "sha256": "b28679fda40f1bceddd2378e0531376b900d474da36e49827cb11d5f36fed70d",
+  "failure": "Workflow, restart and dependency readiness passed; worker startup signal race caused exit 137 after grace. All nine accepted runs subsequently completed."
+}

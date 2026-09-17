@@ -1,4 +1,6 @@
 .git
+.local
+deploy
 .github
 **/.env*
 **/node_modules

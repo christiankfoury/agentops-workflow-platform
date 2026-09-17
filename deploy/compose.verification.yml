@@ -1,0 +1,27 @@
+# Explicit local-only identity fixture. Never enable on a public deployment.
+services:
+  api:
+    environment: {SSL_CERT_FILE: /run/secrets/fixture_ca}
+    secrets: [fixture_ca]
+  web:
+    environment: {NODE_EXTRA_CA_CERTS: /run/secrets/fixture_ca}
+    secrets: [fixture_ca]
+  gateway:
+    volumes: [./verification/Caddyfile:/etc/caddy/Caddyfile:ro]
+    depends_on: [oidc]
+  oidc:
+    image: agentops-oidc-fixture:local
+    build:
+      context: ./verification
+    environment:
+      FIXTURE_ORIGIN: ${APP_ORIGIN}
+    secrets: [fixture_signing_key]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+secrets:
+  fixture_ca: {file: "${SECRET_DIR}/ca.crt"}
+  fixture_signing_key: {file: "${SECRET_DIR}/oidc.key"}

@@ -1,0 +1,9 @@
+{
+  "started_at": "2026-09-17T05:49:54.322855+00:00",
+  "finished_at": "2026-09-17T05:50:03.760204+00:00",
+  "passed": false,
+  "base_commit": "894f3429153c867fd9dc1e21fc99d0bbfd07dbf4",
+  "archive": "verification.json.gz",
+  "sha256": "6569944ac0df354cfac8c5656602007074fc6016afaca7025b9f4c9d5ae24879",
+  "failure": "Signed login passed; HTTPX fixture attempted to enter an already-open client."
+}

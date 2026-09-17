@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     environment: str = "development"
+    trusted_hosts: list[str] = ["localhost", "127.0.0.1", "api", "testserver"]
     database_url: str = "postgresql://postgres:postgres@localhost:5432/agentops"
     db_pool_size: int = Field(default=10, ge=1)
     db_max_overflow: int = Field(default=20, ge=0)

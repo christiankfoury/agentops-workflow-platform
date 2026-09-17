@@ -1,0 +1,194 @@
+{
+  "started_at": "2026-09-17T06:08:10.399437+00:00",
+  "passed": true,
+  "script_sha256": "c5a9d673bf9a4dfc40ba0634a5117753b61d47150afcbe6c09de055a94f46f05",
+  "accepted_id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+  "claimed_before_signal": [
+    {
+      "id": "69eeaa11-e1b6-4a85-a727-421aea8382ea",
+      "execution_id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+      "sequence": 0,
+      "node_id": null,
+      "iteration": 0,
+      "branch": "main",
+      "status": "running",
+      "attempt_id": null,
+      "worker_id": "f946bda182f0:fd53efdc8beb462f9128054b7c76a027",
+      "created_at": "2026-09-17T06:08:16.288388Z",
+      "due_at": "2026-09-17T06:08:16.288388Z",
+      "claimed_at": "2026-09-17T06:08:16.825384Z",
+      "dispatched_at": null,
+      "completed_at": null,
+      "error_code": null,
+      "lease_expires_at": "2026-09-17T06:08:46.826196Z",
+      "heartbeat_at": "2026-09-17T06:08:16.826196Z",
+      "recovery_count": 0
+    }
+  ],
+  "draining_heartbeat_observed": true,
+  "stopped_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-09-17T06:06:30.005756851Z",
+    "FinishedAt": "2026-09-17T06:08:26.092329938Z",
+    "Health": {
+      "Status": "unhealthy",
+      "FailingStreak": 1,
+      "Log": [
+        {
+          "Start": "2026-09-17T06:07:36.110558634Z",
+          "End": "2026-09-17T06:07:38.216953069Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-09-17T06:07:48.217470432Z",
+          "End": "2026-09-17T06:07:50.443474381Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-09-17T06:08:00.443749741Z",
+          "End": "2026-09-17T06:08:02.556827173Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-09-17T06:08:12.557962447Z",
+          "End": "2026-09-17T06:08:14.960411387Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-09-17T06:08:24.960582337Z",
+          "End": "2026-09-17T06:08:26.051333676Z",
+          "ExitCode": 137,
+          "Output": ""
+        }
+      ]
+    }
+  },
+  "jobs_after_drain": [
+    {
+      "id": "69eeaa11-e1b6-4a85-a727-421aea8382ea",
+      "execution_id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+      "sequence": 0,
+      "node_id": null,
+      "iteration": 0,
+      "branch": "main",
+      "status": "completed",
+      "attempt_id": "45b12c4f-8b0d-4067-8298-f8a1862dd205",
+      "worker_id": "f946bda182f0:fd53efdc8beb462f9128054b7c76a027",
+      "created_at": "2026-09-17T06:08:16.288388Z",
+      "due_at": "2026-09-17T06:08:16.288388Z",
+      "claimed_at": "2026-09-17T06:08:16.825384Z",
+      "dispatched_at": "2026-09-17T06:08:16.849429Z",
+      "completed_at": "2026-09-17T06:08:24.536148Z",
+      "error_code": null,
+      "lease_expires_at": "2026-09-17T06:08:46.826196Z",
+      "heartbeat_at": "2026-09-17T06:08:16.826196Z",
+      "recovery_count": 0
+    },
+    {
+      "id": "e1befa7a-6279-437f-b133-d2ab7887a703",
+      "execution_id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+      "sequence": 1,
+      "node_id": null,
+      "iteration": 0,
+      "branch": "main",
+      "status": "queued",
+      "attempt_id": null,
+      "worker_id": null,
+      "created_at": "2026-09-17T06:08:24.536148Z",
+      "due_at": "2026-09-17T06:08:24.536148Z",
+      "claimed_at": null,
+      "dispatched_at": null,
+      "completed_at": null,
+      "error_code": null,
+      "lease_expires_at": null,
+      "heartbeat_at": null,
+      "recovery_count": 0
+    }
+  ],
+  "run": {
+    "id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+    "status": "completed",
+    "input_json": {
+      "value": 99
+    },
+    "output_json": {
+      "value": 99
+    },
+    "error_code": null,
+    "error_message": null,
+    "created_at": "2026-09-17T06:08:16.288388Z",
+    "started_at": "2026-09-17T06:08:16.861429Z",
+    "heartbeat_at": null,
+    "completed_at": "2026-09-17T06:08:35.147155Z",
+    "version_id": "ba27437c-b44b-4be1-857f-aa15b6152f53",
+    "legacy_run_id": null,
+    "business_type": null,
+    "run_mode": null,
+    "created_by_user_id": "327f92e8-74a4-4143-9400-748c421082ad",
+    "state_revision": 3,
+    "checkpoint_json": {
+      "edges": {}
+    },
+    "runtime_config": {},
+    "deadline_at": "2026-09-18T06:08:16.301413Z",
+    "cancel_requested": false,
+    "cancel_requested_at": null,
+    "cancel_requested_by_user_id": null,
+    "cancel_reason": null
+  },
+  "jobs": [
+    {
+      "id": "69eeaa11-e1b6-4a85-a727-421aea8382ea",
+      "execution_id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+      "sequence": 0,
+      "node_id": null,
+      "iteration": 0,
+      "branch": "main",
+      "status": "completed",
+      "attempt_id": "45b12c4f-8b0d-4067-8298-f8a1862dd205",
+      "worker_id": "f946bda182f0:fd53efdc8beb462f9128054b7c76a027",
+      "created_at": "2026-09-17T06:08:16.288388Z",
+      "due_at": "2026-09-17T06:08:16.288388Z",
+      "claimed_at": "2026-09-17T06:08:16.825384Z",
+      "dispatched_at": "2026-09-17T06:08:16.849429Z",
+      "completed_at": "2026-09-17T06:08:24.536148Z",
+      "error_code": null,
+      "lease_expires_at": "2026-09-17T06:08:46.826196Z",
+      "heartbeat_at": "2026-09-17T06:08:16.826196Z",
+      "recovery_count": 0
+    },
+    {
+      "id": "e1befa7a-6279-437f-b133-d2ab7887a703",
+      "execution_id": "2a923d66-ed2c-4596-9da8-36b81fa90bb4",
+      "sequence": 1,
+      "node_id": null,
+      "iteration": 0,
+      "branch": "main",
+      "status": "completed",
+      "attempt_id": null,
+      "worker_id": "f946bda182f0:c14359e8f0494ed685d445b3b1cb8381",
+      "created_at": "2026-09-17T06:08:24.536148Z",
+      "due_at": "2026-09-17T06:08:24.536148Z",
+      "claimed_at": "2026-09-17T06:08:35.081932Z",
+      "dispatched_at": "2026-09-17T06:08:35.121429Z",
+      "completed_at": "2026-09-17T06:08:35.121429Z",
+      "error_code": null,
+      "lease_expires_at": "2026-09-17T06:09:05.083637Z",
+      "heartbeat_at": "2026-09-17T06:08:35.083637Z",
+      "recovery_count": 0
+    }
+  ],
+  "finished_at": "2026-09-17T06:08:39.948898+00:00"
+}

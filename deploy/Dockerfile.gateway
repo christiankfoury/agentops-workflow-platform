@@ -1,0 +1,4 @@
+FROM caddy:2.10.2-alpine
+# Listen on unprivileged ports without the base binary's file capability.
+RUN setcap -r /usr/bin/caddy
+USER 10001:10001

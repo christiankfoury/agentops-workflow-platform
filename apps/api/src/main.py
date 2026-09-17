@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
-from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from src.config import settings
 from src.database import check_db
+from src.production import validate_configuration
 from src.routers import (
     access,
     agent_performance,
@@ -35,18 +36,7 @@ from src.services.workflow_transactions import StaleWorkflowError
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if settings.environment not in {"development", "test"}:
-        if (
-            not settings.identity_enabled
-            or not settings.oidc_audience
-            or any(
-                not value or urlparse(value).scheme != "https" or not urlparse(value).hostname
-                for value in [settings.oidc_issuer, settings.oidc_jwks_url]
-            )
-        ):
-            raise RuntimeError(
-                "Public deployment requires configured verified identity and HTTPS OIDC endpoints"
-            )
+    validate_configuration()
     yield
 
 
@@ -55,6 +45,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 
 authenticated_router_dependencies = [Depends(require_access)]
 app.include_router(operations.router, prefix="/operations", tags=["operations"],

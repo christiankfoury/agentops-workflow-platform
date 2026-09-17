@@ -1,0 +1,40 @@
+{
+  "started_at": "2026-09-17T05:59:09.927661+00:00",
+  "finished_at": "2026-09-17T06:01:47.810901+00:00",
+  "passed": true,
+  "base_commit": "894f3429153c867fd9dc1e21fc99d0bbfd07dbf4",
+  "archive": "verification.json.gz",
+  "sha256": "b2898c90f0617870153697cf3dd16b5bc56e865c313b758ec92585b9a1f3044e",
+  "accepted_ids": [
+    "3cfe32fe-f12c-4bfd-83f1-4e2563dc1aab",
+    "3eced30b-8419-41df-9fc0-95238bca380a",
+    "eab8b6f3-e9c5-4761-860f-2273c2b2a32c",
+    "a74b8468-0526-4e24-a3dc-5baecc15f3b2",
+    "2913f989-38ff-4e11-9aff-fa9df8e1951a",
+    "64ee508e-b572-4405-ac17-643b3a36978d",
+    "0fc6fd65-b01a-4a7b-a259-003e4168e6a9",
+    "d9fdfdc1-f33b-4550-8cbf-87ea4153cad0",
+    "a60ce2d9-b5a1-4750-aa9e-5f69c38add70"
+  ],
+  "terminal_jobs": 203,
+  "images": [
+    {
+      "name": "agentops-api:production",
+      "id": "sha256:79094b95a6545fb9d613c31a956bdab5550e15745519a5026ddcad1ba52dacda",
+      "user": "10001:10001",
+      "generated_secrets_absent_from_metadata": true
+    },
+    {
+      "name": "agentops-web:production",
+      "id": "sha256:c8edb5357ca5b00335fd04d758af29c5264bee26c5d0a5523be96f0cda42bcfb",
+      "user": "node",
+      "generated_secrets_absent_from_metadata": true
+    },
+    {
+      "name": "agentops-gateway:production",
+      "id": "sha256:e5cff3e4a6ce24770a5c13f5222e491e33c1f05b90a49c05017de0c66a916d37",
+      "user": "10001:10001",
+      "generated_secrets_absent_from_metadata": true
+    }
+  ]
+}

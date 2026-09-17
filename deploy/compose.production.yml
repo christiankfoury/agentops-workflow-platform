@@ -1,0 +1,154 @@
+name: agentops-production
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging:
+    driver: json-file
+    options: {max-size: 10m, max-file: "3"}
+  stop_grace_period: 60s
+x-api-env: &api-env
+  ENVIRONMENT: production
+  IDENTITY_ENABLED: "true"
+  DATABASE_URL_FILE: /run/secrets/database_url
+  OIDC_ISSUER: ${OIDC_ISSUER:?Set OIDC_ISSUER}
+  OIDC_AUDIENCE: ${OIDC_CLIENT_ID:?Set OIDC_CLIENT_ID}
+  OIDC_JWKS_URL: ${OIDC_JWKS_URL:?Set OIDC_JWKS_URL}
+  TRUSTED_HOSTS: '["api","localhost","127.0.0.1"]'
+  DB_POOL_SIZE: "4"
+  DB_MAX_OVERFLOW: "4"
+  PGCONNECT_TIMEOUT: "3"
+  OPENAI_API_KEY: ""
+  TOOL_CREDENTIAL_VALUES: '{}'
+  HTTP_TOOL_DESTINATIONS: '{}'
+  POSTGRES_TOOL_CONNECTIONS: '{}'
+  GITHUB_TOOL_REPOSITORIES: '{}'
+  WEBHOOK_SECRET_VALUES: '{}'
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agentops
+      POSTGRES_DB: agentops
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    secrets: [database_password]
+    volumes: [database:/var/lib/postgresql/data]
+    shm_size: 128m
+    mem_limit: 512m
+    cpus: 1
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U agentops -d agentops]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+  migrate:
+    <<: *runtime
+    restart: "no"
+    image: agentops-api:${IMAGE_TAG:-production}
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile.production
+      args: {SOURCE_REVISION: "${SOURCE_REVISION:-unknown}"}
+    command: [alembic, upgrade, head]
+    environment: *api-env
+    secrets: [database_url]
+    mem_limit: 512m
+    cpus: 1
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    <<: *runtime
+    image: agentops-api:${IMAGE_TAG:-production}
+    environment: *api-env
+    secrets: [database_url]
+    mem_limit: 768m
+    cpus: 1
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready', timeout=4)"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+  worker:
+    <<: *runtime
+    image: agentops-api:${IMAGE_TAG:-production}
+    command: [python, -m, src.worker]
+    environment:
+      <<: *api-env
+      WORKER_CONCURRENCY: "2"
+      WORKER_LEASE_SECONDS: "30"
+      WORKER_HEARTBEAT_SECONDS: "5"
+    secrets: [database_url]
+    mem_limit: 768m
+    cpus: 1
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, container_entrypoint.py, python, -m, src.container_health]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+  web:
+    <<: *runtime
+    image: agentops-web:${IMAGE_TAG:-production}
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile.production
+      args: {SOURCE_REVISION: "${SOURCE_REVISION:-unknown}"}
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      IDENTITY_ENABLED: "true"
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN}
+      OIDC_AUTHORIZE_URL: ${OIDC_AUTHORIZE_URL:?Set OIDC_AUTHORIZE_URL}
+      OIDC_TOKEN_URL: ${OIDC_TOKEN_URL:?Set OIDC_TOKEN_URL}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?Set OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc_client_secret
+    secrets: [oidc_client_secret]
+    mem_limit: 512m
+    cpus: 1
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  gateway:
+    <<: *runtime
+    image: agentops-gateway:${IMAGE_TAG:-production}
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    user: "10001:10001"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-localhost}
+    ports: ["127.0.0.1:${HTTPS_PORT:-8443}:8443"]
+    volumes: [./Caddyfile:/etc/caddy/Caddyfile:ro]
+    secrets: [tls_certificate, tls_key]
+    tmpfs: [/tmp, "/data:uid=10001,gid=10001,mode=0700", "/config:uid=10001,gid=10001,mode=0700"]
+    mem_limit: 128m
+    cpus: 0.5
+    depends_on: [web]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://localhost:8081/health]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+volumes:
+  database:
+secrets:
+  database_password: {file: "${SECRET_DIR:?Set SECRET_DIR}/database_password"}
+  database_url: {file: "${SECRET_DIR:?Set SECRET_DIR}/database_url"}
+  oidc_client_secret: {file: "${SECRET_DIR:?Set SECRET_DIR}/oidc_client_secret"}
+  tls_certificate: {file: "${SECRET_DIR:?Set SECRET_DIR}/tls.crt"}
+  tls_key: {file: "${SECRET_DIR:?Set SECRET_DIR}/tls.key"}

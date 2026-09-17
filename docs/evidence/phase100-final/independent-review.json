@@ -1,0 +1,58 @@
+{
+  "verified_at": "2026-09-17T06:03:19.907010+00:00",
+  "archive_sha256": "b2898c90f0617870153697cf3dd16b5bc56e865c313b758ec92585b9a1f3044e",
+  "source_hashes_matched": 195,
+  "runs": 9,
+  "terminal_jobs": 203,
+  "authenticated_ssr_definition_id": "7fa93818-d77d-4010-85ad-7baa47b77f05",
+  "containers": [
+    {
+      "service": "api",
+      "image": "sha256:79094b95a6545fb9d613c31a956bdab5550e15745519a5026ddcad1ba52dacda",
+      "memory_limit_bytes": 805306368,
+      "cpu_limit": 1.0,
+      "read_only": true,
+      "init": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "healthy": true
+    },
+    {
+      "service": "worker",
+      "image": "sha256:79094b95a6545fb9d613c31a956bdab5550e15745519a5026ddcad1ba52dacda",
+      "memory_limit_bytes": 805306368,
+      "cpu_limit": 1.0,
+      "read_only": true,
+      "init": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "healthy": true
+    },
+    {
+      "service": "web",
+      "image": "sha256:c8edb5357ca5b00335fd04d758af29c5264bee26c5d0a5523be96f0cda42bcfb",
+      "memory_limit_bytes": 536870912,
+      "cpu_limit": 1.0,
+      "read_only": true,
+      "init": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "healthy": true
+    },
+    {
+      "service": "gateway",
+      "image": "sha256:e5cff3e4a6ce24770a5c13f5222e491e33c1f05b90a49c05017de0c66a916d37",
+      "memory_limit_bytes": 134217728,
+      "cpu_limit": 0.5,
+      "read_only": true,
+      "init": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "healthy": true
+    }
+  ]
+}

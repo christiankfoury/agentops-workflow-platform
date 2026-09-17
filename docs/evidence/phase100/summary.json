@@ -1,0 +1,9 @@
+{
+  "started_at": "2026-09-17T05:48:03.202602+00:00",
+  "finished_at": "2026-09-17T05:48:20.462932+00:00",
+  "passed": false,
+  "base_commit": "894f3429153c867fd9dc1e21fc99d0bbfd07dbf4",
+  "archive": "verification.json.gz",
+  "sha256": "cf1dc81c808ade83cf9980435f902c3d9662a35daee779bfee50176e1664c3a2",
+  "failure": "Gateway directive ordering allowed an untrusted Host; negative check failed."
+}
