@@ -1,0 +1,272 @@
+{
+  "started_at": "2026-09-17T08:30:38.552063+00:00",
+  "passed": true,
+  "base_commit": "ca281b73363d3c7b8dc6624aa0731c2beba8d21a",
+  "accepted": [
+    {
+      "case": "baseline",
+      "request": {
+        "definition_id": "8cf497b9-a8dd-4669-96d8-306e7ba47e7d",
+        "version_id": "3de3e479-fae3-4051-9b1f-bab65bc28e63",
+        "input": {},
+        "idempotency_key": "operations:43d171daf8aa42c4a07026e10829af2a"
+      },
+      "id": "2dc0f7c4-7ad7-4b13-b2ff-580b76692762"
+    },
+    {
+      "case": "rolling",
+      "request": {
+        "definition_id": "8cd60e50-271a-4c70-b1be-367cf56de8da",
+        "version_id": "01af06f2-f244-4513-9a10-3596bd1ecbfb",
+        "input": {},
+        "idempotency_key": "operations:32087b7e0e1e4d1baaf436a6052a0c35"
+      },
+      "id": "4e35ac91-d5bb-4320-a580-26bb88bbb71d"
+    },
+    {
+      "case": "rolling",
+      "request": {
+        "definition_id": "8cd60e50-271a-4c70-b1be-367cf56de8da",
+        "version_id": "01af06f2-f244-4513-9a10-3596bd1ecbfb",
+        "input": {},
+        "idempotency_key": "operations:5df60a538ed14c49b99748ae3418a59b"
+      },
+      "id": "35c4add3-b4e7-4d02-906e-5f580e6eebd6"
+    },
+    {
+      "case": "rolling",
+      "request": {
+        "definition_id": "8cd60e50-271a-4c70-b1be-367cf56de8da",
+        "version_id": "01af06f2-f244-4513-9a10-3596bd1ecbfb",
+        "input": {},
+        "idempotency_key": "operations:d4309be23b334dea833f37bcc01313cf"
+      },
+      "id": "d4fbd56b-2224-4f44-9122-55bae4a60d4f"
+    },
+    {
+      "case": "rolling",
+      "request": {
+        "definition_id": "8cd60e50-271a-4c70-b1be-367cf56de8da",
+        "version_id": "01af06f2-f244-4513-9a10-3596bd1ecbfb",
+        "input": {},
+        "idempotency_key": "operations:0509b830da9443fca75954f16b76b440"
+      },
+      "id": "fd7eee83-08a5-470e-a248-3af7e0e0d787"
+    },
+    {
+      "case": "rolling",
+      "request": {
+        "definition_id": "8cd60e50-271a-4c70-b1be-367cf56de8da",
+        "version_id": "01af06f2-f244-4513-9a10-3596bd1ecbfb",
+        "input": {},
+        "idempotency_key": "operations:068971e200fa4794b6bdaf26d3f8548e"
+      },
+      "id": "f13e769d-ec20-4d80-9043-636e95aa6199"
+    },
+    {
+      "case": "rolling",
+      "request": {
+        "definition_id": "8cd60e50-271a-4c70-b1be-367cf56de8da",
+        "version_id": "01af06f2-f244-4513-9a10-3596bd1ecbfb",
+        "input": {},
+        "idempotency_key": "operations:0adb81af64f541d8b80c4af47b0c0ac2"
+      },
+      "id": "99261f98-734d-4642-baac-6245ba36912f"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:167fe61397034e40976f9e7a37404cd0"
+      },
+      "id": "53ca082c-6a56-4545-b652-2f66f81d0561"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:c393b28393794eef9b2ebb7d79240db5"
+      },
+      "id": "1bb4ca43-db69-4fca-a83b-767a6cd182dc"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:b681c1b556994ecc869644d5b21b8a75"
+      },
+      "id": "bd6f7f12-1296-490e-a2c8-7148eca00f3d"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:845e1a51b97847b4b6368ce272cd8947"
+      },
+      "id": "be0064ae-7c02-4260-8cd5-2f89bdc36347"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:d499cba214ae4fa796d33f13d31c2889"
+      },
+      "id": "e82218cd-38ab-4048-a4ef-841dfb090c78"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:97d168b9affe4f9f962fbf854f9312e5"
+      },
+      "id": "179c9767-d1f0-45f0-90ec-cb68e500dadf"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:c5b28839c23d42a593401468109115cd"
+      },
+      "id": "69ff0fd3-10f3-4ef0-83da-be88359b68b2"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:b205a844d2824a489d12e13394c3abfa"
+      },
+      "id": "37a7cc96-a720-4459-9afb-1d97ca4c2ba6"
+    },
+    {
+      "case": "scaling",
+      "request": {
+        "definition_id": "0119b45e-2aef-420d-8fdd-7dc176d74fca",
+        "version_id": "f98884d1-a849-4b9c-9182-b3a7062595c8",
+        "input": {},
+        "idempotency_key": "operations:4ddaa6b0bed64560aac78100a3d41fa9"
+      },
+      "id": "f85dadf5-abf1-429f-a40c-4c408ebfc913"
+    },
+    {
+      "case": "pod-loss",
+      "request": {
+        "definition_id": "b78fe959-23ea-4686-8a3f-ffaa0a30026e",
+        "version_id": "082814ad-bfd3-42c7-89c2-c6c43bb13e08",
+        "input": {},
+        "idempotency_key": "operations:f5fb0b7a7c5145f39129ae15b99dbe90"
+      },
+      "id": "d87cba6c-f1d5-472a-9890-dcd46155d7f7"
+    },
+    {
+      "case": "stale-owner",
+      "request": {
+        "definition_id": "2dbcc61c-1025-43e3-bdb6-72fa1648efb7",
+        "version_id": "ab8a178d-8864-4a8f-8c45-07f486a2c3ed",
+        "input": {},
+        "idempotency_key": "operations:6ec643c727ad4ef0a0610ec66b7fec42"
+      },
+      "id": "f5910b9a-03f6-4d5a-9e2f-958ab89898e0"
+    },
+    {
+      "case": "readiness",
+      "request": {
+        "definition_id": "a163d015-1fe1-4b0e-8717-2d61219cbf9f",
+        "version_id": "81e7bafb-5a92-4637-b474-6434ce0e2ffc",
+        "input": {},
+        "idempotency_key": "operations:d13ab063205b4051bcbae413d0a5a8f0"
+      },
+      "id": "ce84de6a-aadf-4cdb-872d-cc4ebc0e01b4"
+    },
+    {
+      "case": "readiness",
+      "request": {
+        "definition_id": "a163d015-1fe1-4b0e-8717-2d61219cbf9f",
+        "version_id": "81e7bafb-5a92-4637-b474-6434ce0e2ffc",
+        "input": {},
+        "idempotency_key": "operations:d2b555a477e1459d92e04ffc3b1cd209"
+      },
+      "id": "72ac0e5b-15a9-48d8-9633-829760dc7114"
+    },
+    {
+      "case": "rollback",
+      "request": {
+        "definition_id": "0c0891aa-7b65-4da2-b715-ce19c40ff99a",
+        "version_id": "d151bed4-cb06-4e69-805a-c53461f8fe54",
+        "input": {},
+        "idempotency_key": "operations:cdaf4265e52349d0b720155706385f7b"
+      },
+      "id": "aa7e4c94-cb06-4f21-b578-e0c1c5d270e1"
+    }
+  ],
+  "source_hashes": {
+    "deploy/kubernetes/cluster.py": "620fc779197dbe20f9c93bd0828909349f20e13f960d76ccfee6e5f23ff6c6f5",
+    "deploy/kubernetes/kind.yaml": "6922a0691ee5ed5d7e11b37dd5e42d13ddebcdf1a1a7c9c37f8043dac9c70bb4",
+    "deploy/kubernetes/tools.py": "a115ae802adf2663e591addc3d9a6156a93068c4046c438a3da163f91b7b9afa",
+    "deploy/kubernetes/verify.py": "3ed19a85da4de7ae8811ea4a02b69785690f562a387840ba2a1c18d8d1f6f507",
+    "deploy/kubernetes/base/foundation.yaml": "9f5bebfbc5f24c86ee9626ce11642634c840115960a44ddb1051e686627a06df",
+    "deploy/kubernetes/base/kustomization.yaml": "8888a6e553463bb2a53a15456ff2bd32febf2b6074cce32edb382889d07321fd",
+    "deploy/kubernetes/base/metrics.yaml": "1daaef5813c4c962853a54881f4faa55319b3cb1139525806136d85c49780414",
+    "deploy/kubernetes/base/migration.yaml": "27d15255d9e6fca9ea765cd790c6d7742b5f6da4e752d0133a888301f7f6226c",
+    "deploy/kubernetes/base/services.yaml": "59161b9e9dca8f9df93427ec45a75728257d57e637abf2acd3ea78cc735b2c35",
+    "deploy/kubernetes/base/workloads.yaml": "734707fdbccf556bc89d9434e3b62ec3296944a4e0e47db7c2d6ad52dedb05b3",
+    "deploy/kubernetes/hosted/kustomization.yaml": "c144e089a1037c2e72a3cd4b9ddf14087e5466ac3691e1dfe3ec28da55f4ba39",
+    "deploy/kubernetes/ingress/controller.yaml": "bd5a7d84bb27d79a648a131cfca5070cb8cec0636500047ef973d24948e094c1",
+    "deploy/kubernetes/ingress/kustomization.yaml": "5446899b68cb9c6e21197d811771c580f0c1d22977536b0bb561afe1c614c294",
+    "deploy/kubernetes/local/database.yaml": "608c9affe87dbcbc4140e6e11dd7d5c56f0c49764e72186ec1f7dd06883aecd4",
+    "deploy/kubernetes/local/fixture-mounts.yaml": "397a7bd685b60b037021d2f03c6d49e917529daa62f89b5ca80dd0893d62dca0",
+    "deploy/kubernetes/local/identity.yaml": "1936e197739c9e8549952fe069f7f027c9a3d5dafde4de2ed109240599ac7ed4",
+    "deploy/kubernetes/local/kustomization.yaml": "bad51b7c9b3ec5e829f9ec737bfbb004111ad714f50dc215b1cdfde63f5645ef",
+    "deploy/kubernetes/local/settings.yaml": "63708c2344b24b6767f8d614f16d84cbd417365e274a6893a873ccfb23c74488",
+    "deploy/kubernetes/operations/Dockerfile.release": "754ccfbdf2f4cabd9ece4529f25a5377df792af425b62ccf38e1e7189b6e2cc9",
+    "deploy/kubernetes/operations/Dockerfile.sink": "2f0cb16c1be1a8cc33079d7ba7ec0a0edbf92c26ffd9ead2bfadcd0058d937a6",
+    "deploy/kubernetes/operations/kustomization.yaml": "8f6305ab4e1a9df05f1676a1693567e278a67d66d81ec68ce54efb390e61f93c",
+    "deploy/kubernetes/operations/run.py": "4b8e6db8b47e976fbfd237c0755aef07bf3f5a7b98013cf7fbb9bfd5b4ffba08",
+    "deploy/kubernetes/operations/sink.py": "c5f13f2efd1a4f64137c480e9145747851847b1412c0ecd7577d7d0ef5fe0e46",
+    "deploy/kubernetes/operations/sink.yaml": "137737f7cd098c4cdec9be6da78968bdb206faaf4f69b9a52dd72f94b3449d96",
+    "deploy/kubernetes/operations/support.py": "0a62b026373fd9acfd7cb828fd5f59afc3b27b9efa80b4e50321921dc2d23212"
+  },
+  "destination_policy": {
+    "10000000-0000-4000-8000-000000000100/operations": {
+      "origin": "http://effect-sink:8080",
+      "methods": [
+        "POST"
+      ],
+      "allowed_private_cidrs": [
+        "10.96.216.196/32"
+      ],
+      "allow_plain_http": true,
+      "idempotency_retention_seconds": 3600
+    }
+  },
+  "postgres_version": "PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+  "reconciliation": {
+    "accepted": 21,
+    "completed": 21,
+    "distinct_effects": 21,
+    "sink_calls_for_suite": 23,
+    "lost_accepted_runs": 0,
+    "duplicate_effects": 0,
+    "restored_history_verified": true
+  },
+  "finished_at": "2026-09-17T08:36:58.997375+00:00",
+  "raw_evidence": {
+    "path": "operations-evidence.json.gz",
+    "sha256": "ec347bf4f5600d0edcbe65d1d42b1b4bf0137bc2212a0a3b5a497eefca2cc2e1"
+  }
+}

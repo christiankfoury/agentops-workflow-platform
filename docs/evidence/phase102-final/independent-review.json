@@ -1,0 +1,67 @@
+{
+  "reviewed_at": "2026-09-17T08:38:26.218004+00:00",
+  "passed": true,
+  "source_hashes_verified": 25,
+  "raw_sha256": "ec347bf4f5600d0edcbe65d1d42b1b4bf0137bc2212a0a3b5a497eefca2cc2e1",
+  "attempts": {
+    "phase102": {
+      "accepted": 17,
+      "completed": 17,
+      "effects": 17,
+      "sink_requests": 18,
+      "history_sha256": "7058ec003081ebf1d576ee810f46e82073c6cb0955284db44ca4a3b90ff6d278",
+      "original_harness_passed": false
+    },
+    "phase102-recheck": {
+      "accepted": 21,
+      "completed": 21,
+      "effects": 21,
+      "sink_requests": 23,
+      "history_sha256": "5e2324d525b485ffa02c323eb5be9897b26a5c362a8999fddfccee10d1d30957",
+      "original_harness_passed": false
+    },
+    "phase102-final": {
+      "accepted": 21,
+      "completed": 21,
+      "effects": 21,
+      "sink_requests": 23,
+      "history_sha256": "592f653e43336bc1f36819c1d20a67fd536acb08f7cde1858c5e4740b3434c2b",
+      "original_harness_passed": true
+    }
+  },
+  "prior_completed_histories_unchanged": true,
+  "database_counts": {
+    "workflow_definitions": 19,
+    "workflow_versions": 19,
+    "workflow_executions": 60,
+    "execution_approvals": 60,
+    "step_runs": 120,
+    "step_attempts": 125,
+    "durable_jobs": 180,
+    "execution_events": 1775,
+    "tool_definitions": 18,
+    "tool_versions": 18,
+    "tool_executions": 59
+  },
+  "attempt_statuses": {
+    "completed": 120,
+    "failed": 5
+  },
+  "total_sink_effects": 59,
+  "total_sink_requests": 64,
+  "rolling_http_samples": {
+    "(200, 200)": 19
+  },
+  "restored_database_rechecked": "restore_phase102_a95839289259",
+  "restored_tables_rechecked": 11,
+  "backup_sha256": "06a25f48f47830ed612bd7fa5a277622b3eaf9eb2712015cd71dbbec08d3c470",
+  "backup_bytes": 376051,
+  "final_api_worker_baseline_ready": true,
+  "validation_logs_sha256": "05d7859d8255d68026e7879fa1a04f3d0d44126ed4e55dda77dca1e8de660045",
+  "limitations": [
+    "Owned single-node local kind cluster",
+    "Controlled idempotent sink",
+    "Release changes metadata only; application/schema unchanged",
+    "Hosted deployment and real provider effects unperformed"
+  ]
+}

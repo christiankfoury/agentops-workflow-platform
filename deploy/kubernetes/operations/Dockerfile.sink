@@ -1,0 +1,3 @@
+FROM agentops-api:kubernetes
+COPY sink.py /app/operations_sink.py
+ENTRYPOINT ["/usr/bin/tini", "-s", "--", "python", "operations_sink.py"]

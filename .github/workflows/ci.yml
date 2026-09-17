@@ -111,6 +111,7 @@ jobs:
           python deploy/kubernetes/tools.py
           .local/kubernetes/kubectl-v1.37.0 kustomize deploy/kubernetes/local > /tmp/agentops-local.yaml
           .local/kubernetes/kubectl-v1.37.0 kustomize deploy/kubernetes/hosted > /tmp/agentops-hosted.yaml
+          .local/kubernetes/kubectl-v1.37.0 kustomize deploy/kubernetes/operations > /tmp/agentops-operations.yaml
 
       - name: Validate production and isolated verification configuration
         env:

@@ -1,0 +1,10 @@
+{
+  "original_harness_passed": false,
+  "failure": "Assertion omitted successful reconciled effects",
+  "accepted": 17,
+  "completed": 17,
+  "effects": 17,
+  "sink_requests": 18,
+  "history_sha256": "7058ec003081ebf1d576ee810f46e82073c6cb0955284db44ca4a3b90ff6d278",
+  "unresolved_runs": 0
+}

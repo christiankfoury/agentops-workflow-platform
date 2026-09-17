@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata: {name: effect-sink, namespace: agentops}
+spec:
+  selector: {app: effect-sink}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: effect-sink, namespace: agentops}
+spec:
+  serviceName: effect-sink
+  replicas: 1
+  selector: {matchLabels: {app: effect-sink}}
+  template:
+    metadata: {labels: {app: effect-sink}}
+    spec:
+      serviceAccountName: runtime
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: sink
+          image: agentops-operations-sink:phase102
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 192Mi}
+          volumeMounts: [{name: data, mountPath: /data}]
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 1Gi}}

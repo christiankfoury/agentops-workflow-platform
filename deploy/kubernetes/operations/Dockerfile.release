@@ -1,0 +1,5 @@
+FROM agentops-api:kubernetes
+ARG RELEASE_REVISION
+# A compatible release artifact for rollout mechanics; application code/schema
+# intentionally match the verified Phase 101 image. No upgrade claim is implied.
+LABEL agentops.operations.release=$RELEASE_REVISION

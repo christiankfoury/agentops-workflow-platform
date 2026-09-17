@@ -1,0 +1,10 @@
+{
+  "original_harness_passed": false,
+  "failure": "Five-minute synthetic session expired during final reconciliation",
+  "accepted": 21,
+  "completed": 21,
+  "effects": 21,
+  "sink_requests_for_attempt": 23,
+  "history_sha256": "5e2324d525b485ffa02c323eb5be9897b26a5c362a8999fddfccee10d1d30957",
+  "unresolved_runs": 0
+}
