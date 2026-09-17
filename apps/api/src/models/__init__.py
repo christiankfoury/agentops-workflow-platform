@@ -17,6 +17,7 @@ from src.models.schedule import ScheduleFire, WorkflowSchedule
 from src.models.tool import ToolCredential, ToolDefinition, ToolExecution, ToolVersion
 from src.models.uploaded_input import UploadedInput
 from src.models.webhook import WebhookDelivery, WebhookTrigger
+from src.models.worker_presence import WorkerPresence
 from src.models.workflow_definition import (
     WorkflowDefinition,
     WorkflowVersion,
@@ -28,6 +29,7 @@ from src.models.workflow_run import WorkflowRun
 from src.services import tenancy as _tenancy  # noqa: F401
 
 __all__ = [
+    "WorkerPresence",
     "ExecutionRecovery",
     "ScheduleFire",
     "WorkflowSchedule",

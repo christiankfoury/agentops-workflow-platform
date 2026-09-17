@@ -1,4 +1,5 @@
 import { PermissionGate } from "@/components/permission-gate";
+import { LivePage } from "@/components/live-page";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -1002,6 +1003,7 @@ export default async function HumanApprovalDetailPage({
 
   return (
     <div>
+      <LivePage kind="approval" id={approval.id} terminal={approval.status !== "pending" || ["completed", "failed", "cancelled"].includes(run.status)} />
       <Link
         href="/human-approvals"
         className="text-sm text-muted-foreground transition-colors hover:text-foreground"

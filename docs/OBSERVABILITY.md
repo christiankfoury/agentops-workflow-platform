@@ -83,6 +83,11 @@ log `workflow_cancelled`.
 
 ## Operational Notes
 
+The generic runtime has a tenant-scoped [worker operations view](WORKER_OPERATIONS.md)
+at `/operations`, bounded live updates, persisted claim/wait/recovery measurements,
+and a separate infrastructure CLI for aggregate worker metrics. Its job and attempt
+counts are distinct from the business/agent cost projections described above.
+
 The current implementation uses database-backed observability. Future production
 deployment could add external telemetry such as OpenTelemetry or hosted tracing,
 but the database trace remains the source of truth for portfolio demos and tests.

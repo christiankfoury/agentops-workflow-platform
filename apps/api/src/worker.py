@@ -15,6 +15,7 @@ from src.services.delay_runtime import wake_due_delays
 from src.services.durable_queue import claim_jobs, has_queued_jobs, process_claim
 from src.services.execution_deadlines import enforce_deadlines
 from src.services.worker_leases import recover_expired
+from src.services.worker_presence import presence
 from src.services.workflow_transactions import StaleWorkflowError
 
 log = logging.getLogger(__name__)
@@ -30,7 +31,10 @@ def run_worker(database, *, capacity=1, poll_seconds=1, stop=None, max_jobs=None
     dispatched = 0
     failures = 0
     active = set()
-    with ThreadPoolExecutor(max_workers=capacity) as pool:
+    with (
+        presence(database, identity, capacity, stop),
+        ThreadPoolExecutor(max_workers=capacity) as pool,
+    ):
         while True:
             for future in list(active):
                 if future.done():

@@ -41,6 +41,7 @@ const primaryItems: NavItem[] = [
 ];
 
 const insightItems: NavItem[] = [
+  { href: "/operations", label: "Operations", icon: BarChart3 },
   { href: "/evaluation", label: "Evaluation", icon: BarChart3 },
   { href: "/costs", label: "Costs", icon: CircleDollarSign },
   { href: "/agent-performance", label: "Agents", icon: Bot },

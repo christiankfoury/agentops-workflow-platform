@@ -52,6 +52,17 @@ test("failed control requests retain eligibility and entered reason for an expli
   assert.ok(screen.getByText("Current state: failed · revision 7"));
 });
 
+test("live eligibility refresh preserves the typed reason", async () => {
+  let revision = 7;
+  const action = async () => ({ state: { ...initial, state_revision: revision } });
+  const props = { id: "run", scope: "org", action, refreshToken: 7 };
+  const rendered = render(React.createElement(ExecutionControls, props));
+  await ready(); fireEvent.change(screen.getByLabelText("Reason for action"), { target: { value: "Keep this reason" } });
+  revision = 8; rendered.rerender(React.createElement(ExecutionControls, { ...props, refreshToken: 8 }));
+  await screen.findByText("Current state: failed · revision 8");
+  assert.equal(screen.getByLabelText("Reason for action").value, "Keep this reason");
+});
+
 test("reconciliation validates JSON and sends evidence without repeating the remote action", async () => {
   const calls = [], state = { ...initial, can_recover: false, can_resolve: true, effects: [{ id: "effect", status: "unknown", needs_resolution: true }] };
   view(async (_scope, _id, request) => { calls.push(request); return { state }; }); await ready();

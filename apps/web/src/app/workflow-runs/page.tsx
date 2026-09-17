@@ -1,4 +1,5 @@
 import { PlusCircle } from "lucide-react";
+import { LivePage } from "@/components/live-page";
 import Link from "next/link";
 import { listWorkflowRuns } from "@/lib/api";
 import type { WorkflowRun } from "@/lib/types";
@@ -29,6 +30,7 @@ export default async function WorkflowRunsPage() {
 
   return (
     <div className="space-y-6">
+      <LivePage kind="runs" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Workflow Runs</h1>

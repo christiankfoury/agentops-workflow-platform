@@ -128,6 +128,7 @@ def claim_jobs(engine, worker_id, capacity=1):
                 )
                 continue
             token = uuid4()
+            claimed_at = conn.scalar(select(func.clock_timestamp()))
             conn.execute(
                 update(jobs)
                 .where(jobs.c.id == row["id"])
@@ -135,7 +136,7 @@ def claim_jobs(engine, worker_id, capacity=1):
                     status="running",
                     claim_token=token,
                     worker_id=worker_id,
-                    claimed_at=func.now(),
+                    claimed_at=claimed_at,
                     heartbeat_at=func.clock_timestamp(),
                     lease_expires_at=func.clock_timestamp()
                     + timedelta(
@@ -151,7 +152,10 @@ def claim_jobs(engine, worker_id, capacity=1):
                     entity_id=row["id"],
                     from_status="queued",
                     to_status="running",
-                    details={"worker_id": worker_id},
+                    details={
+                        "worker_id": worker_id,
+                        "queue_wait_seconds": max(0, (claimed_at - row["due_at"]).total_seconds()),
+                    },
                 )
             )
             claimed.append(

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LivePage } from "@/components/live-page";
 import { getWorkflowRun, listHumanApprovals } from "@/lib/api";
 import type { HumanApproval, WorkflowRun } from "@/lib/types";
 import {
@@ -104,6 +105,7 @@ export default async function HumanApprovalsPage() {
 
   return (
     <div className="space-y-6">
+      <LivePage kind="approvals" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Human Approvals</h1>

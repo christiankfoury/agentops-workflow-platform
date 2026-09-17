@@ -1,4 +1,5 @@
 import { PermissionGate } from "@/components/permission-gate";
+import { LivePage } from "@/components/live-page";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -955,6 +956,7 @@ export default async function WorkflowRunDetailPage({
 
   return (
     <div>
+      <LivePage kind="run" id={run.id} terminal={!canCancelWorkflow} />
       <Link
         href="/workflow-runs"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"

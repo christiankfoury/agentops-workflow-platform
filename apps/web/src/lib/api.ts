@@ -66,6 +66,7 @@ export async function builderRequest<T>(path: string, body?: unknown, method = "
       const detail = Array.isArray(data.detail) ? data.detail : [];
       Object.assign(error, { fields: detail.map((item: { loc?: unknown[]; msg?: string }) => `${item.loc?.join(" · ") ?? "Draft"}: ${item.msg ?? "Invalid value"}`) });
     }
+    Object.assign(error, { status: res.status });
     throw error;
   }
   return res.json() as Promise<T>;

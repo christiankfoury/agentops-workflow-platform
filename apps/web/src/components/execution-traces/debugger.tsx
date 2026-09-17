@@ -22,15 +22,35 @@ export function TraceDebugger({ head, initial, initialError, scope, read }: {
   const [error, setError] = useState(initialError ? "Step history is unavailable. Reload this section to retry." : "");
   const [notice, setNotice] = useState("");
   const pending = useRef(false), legacy = head.source === "legacy";
+  const generation = useRef(0), lastHead = useRef(head);
   const selectedSection = useRef<HTMLElement>(null);
   useEffect(() => { if (detail) selectedSection.current?.focus(); }, [detail]);
+  useEffect(() => {
+    if (lastHead.current === head) return;
+    lastHead.current = head;
+    const current = ++generation.current;
+    let active = true;
+    async function refreshVisible() {
+      try {
+        const result = await read(scope, { id: head.run.id, legacy, kind, offset: page.offset, step });
+        if (!active || current !== generation.current) return;
+        if (result.error) setError(result.error);
+        else { setPage(result.data as TracePage); setDetail(undefined); setPayloads(undefined);
+          setNotice("Visible history refreshed; select a record for its latest detail."); }
+      } catch { if (active && current === generation.current) setError("Live history refresh failed. Reload this section."); }
+    }
+    void refreshVisible();
+    return () => { active = false; };
+  }, [head, legacy, kind, page.offset, step, read, scope]);
   function request(input: Partial<TraceRequest>, accept: (data: unknown) => void) {
     if (pending.current) return;
+    const current = ++generation.current;
     pending.current = true; setBusy(true); setError(""); setNotice("");
     startTransition(async () => {
       try { const result = await read(scope, { id: head.run.id, legacy, ...input });
+        if (current !== generation.current) return;
         if (result.error) setError(result.error); else accept(result.data);
-      } catch { setError("Connection failed. The existing trace remains visible; retry this section."); }
+      } catch { if (current === generation.current) setError("Connection failed. The existing trace remains visible; retry this section."); }
       finally { pending.current = false; setBusy(false); }
     });
   }

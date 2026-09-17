@@ -60,6 +60,18 @@ test("section failure retains existing records and successful retry replaces onl
   assert.equal(screen.queryByRole("button", { name: "Inspect step-old" }), null);
 });
 
+test("a refreshed terminal snapshot reloads visible effects even without a run revision change", async () => {
+  const calls = []; let status = "unknown";
+  const read = async (_scope, request) => { calls.push(request); return { data: { ...empty, items: [{ id: "effect", status }] } }; };
+  const props = { head: { ...head, run: { id: "run", status: "failed", state_revision: 7 } }, initial: empty, scope: "org", read };
+  const rendered = view(read, props);
+  click("Tools"); await screen.findByText("unknown");
+  status = "reconciled";
+  rendered.rerender(React.createElement(TraceDebugger, { ...props, head: { ...props.head } }));
+  await screen.findByText("reconciled"); assert.equal(screen.queryByText("unknown"), null);
+  assert.equal(calls.at(-1).kind, "tools"); assert.equal(calls.at(-1).offset, 0);
+});
+
 test("bounded details, empty approvals and initial history failure remain usable", async () => {
   view(async (_scope, request) => ({ data: request.payloads ? { input: { text: "[REDACTED]", truncated: true, limit: 64000 } } : empty }), { initial: empty, initialError: true });
   assert.ok(screen.getByRole("alert")); click("Load run input, output and errors");

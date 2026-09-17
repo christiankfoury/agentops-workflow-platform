@@ -1,24 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import type { ControlAction, ControlRequest, ControlState } from "@/lib/execution-controls";
 
 const button = "rounded border px-3 py-2 text-sm disabled:opacity-50";
-export function ExecutionControls({ id, scope, action }: { id: string; scope: string | null; action: ControlAction }) {
+export function ExecutionControls({ id, scope, action, refreshToken }: { id: string; scope: string | null; action: ControlAction; refreshToken?: unknown }) {
   const [state, setState] = useState<ControlState>(), [error, setError] = useState("");
   const [busy, setBusy] = useState(false), [reason, setReason] = useState("");
   const [recovery, setRecovery] = useState<string>(), [notice, setNotice] = useState("");
   const pending = useRef(false);
+  const generation = useRef(0), lastRefresh = useRef(refreshToken);
+  useEffect(() => {
+    if (!state || busy || lastRefresh.current === refreshToken) return;
+    lastRefresh.current = refreshToken;
+    const current = ++generation.current;
+    let active = true;
+    void action(scope, id, { action: "read" }).then(result => {
+      if (!active || current !== generation.current) return;
+      if (result.state) setState(result.state);
+      if (result.error) setError(result.error);
+    }).catch(() => { if (active && current === generation.current) setError("Eligibility refresh failed. Reload before acting."); });
+    return () => { active = false; };
+  }, [refreshToken, state, busy, action, scope, id]);
   function submit(request: ControlRequest) {
     if (pending.current) return;
+    const current = ++generation.current;
     pending.current = true; setBusy(true); setError(""); setNotice("");
     startTransition(async () => {
       try {
         const result = await action(scope, id, request);
+        if (current !== generation.current) return;
         if (result.error) setError(result.error);
         else { if (result.state) setState(result.state); if (result.recovery_id) setRecovery(result.recovery_id);
-          if (request.action !== "read") setNotice("Action recorded. Reload the trace to see its latest history."); }
+          if (request.action !== "read") { setNotice("Action recorded. Refreshing the trace."); window.dispatchEvent(new window.Event("workflow:mutated")); } }
       } catch { setError("Connection failed. Reload eligibility before retrying this action."); }
       finally { pending.current = false; setBusy(false); }
     });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LiveRefresh } from "@/components/live-refresh";
 import { builderRequest } from "@/lib/api";
 import type { TraceHead, TracePage } from "@/lib/execution-traces";
 import { TraceDebugger } from "@/components/execution-traces/debugger";
@@ -15,6 +16,7 @@ export async function TracePageView({ id, legacy = false }: { id: string; legacy
   if (legacy && head.execution_id) return <div className="space-y-4"><h1 className="text-2xl font-bold">This run uses the generic engine</h1><p>Its historical agent records are compatibility projections. Open the canonical trace to avoid counting usage twice.</p><Link className="underline" href={`/execution-traces/${head.execution_id}`}>Open canonical run debugger</Link></div>;
   try { initial = await builderRequest<TracePage>(`${path}/${legacy ? "steps" : "records/steps"}?limit=25`); } catch { initialError = true; }
   return <div className="space-y-5"><Link href="/execution-traces" className="underline">All graph runs</Link>
-    {!legacy && <ExecutionControls key={`controls:${access.organization_id}:${id}`} id={id} scope={access.organization_id} action={controlExecution} />}
+    <LiveRefresh scope={access.organization_id} kind={legacy ? "run" : "execution"} id={id} terminal={["completed", "failed", "cancelled", "skipped"].includes(String(head.run.status))} />
+    {!legacy && <ExecutionControls key={`controls:${access.organization_id}:${id}`} id={id} scope={access.organization_id} action={controlExecution} refreshToken={head.run.state_revision} />}
     <TraceDebugger key={`${access.organization_id}:${id}`} head={head} initial={initial} initialError={initialError} scope={access.organization_id} read={readTrace} /></div>;
 }

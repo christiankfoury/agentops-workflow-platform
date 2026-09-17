@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 96 complete — Phase 97 next after completion-record CI**.
+Current implementation phase: **Phase 97 — Worker Observability and Live Updates (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–96 are complete; Phases 97–105 remain planned.
+Phases 66–96 are complete; Phase 97 is in progress; Phases 98–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -135,7 +135,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
 | 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
 | 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
-| 97 | Planned — not started | Worker Observability and Live Updates |
+| 97 | In progress | Worker Observability and Live Updates |
 | 98 | Planned — not started | Deterministic Throughput Benchmark |
 | 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
 | 100 | Planned — not started | Production Container Packaging |
@@ -2248,6 +2248,86 @@ This is a status index; implementation details live only in `docs/phases.md`.
 - Limitations: explicit recovery lineage is bounded to 100 generations; changed
   input/policy or exhausted conversation/effect budgets requires a new start.
   Tests use deterministic LLM/HTTP fixtures; no production deployment is claimed.
+
+### Phase 97 — Worker Observability and Live Updates
+
+- Authorized range: 66–105. Dependency 96 is complete. Completion record
+  `4a0ec2e5076ea2373d01a1d49a8a688def43e2f4` was pushed; CI `35166525941`
+  passed all three independent check-runs, 865 API tests in 566.69s, 53 frontend
+  checks, build/type/lint, fresh migrations, Compose and both dependency audits.
+- Inspected queue claims, lease recovery, execution events/attempts, tenant
+  enforcement, legacy projection revisions, debugger controls and approval pages.
+- Plan: add tenant-scoped metadata operations summaries and bounded job history
+  for queued/running/failed/retrying/dead-letter/stale work. Derive claim, recovery,
+  wait, attempt and completion metrics from persisted records; include measured
+  queue wait and fixed-window throughput. Add a small infrastructure heartbeat
+  registry for worker liveness. Tenant worker visibility is limited to workers
+  associated with that tenant's jobs, with no hostnames, foreign workloads or
+  fleet capacity exposed. Export fleet metrics through an infrastructure-only
+  database CLI, separate from tenant HTTP permissions.
+- UI plan: operations page and bounded, permission-aware polling for run lists,
+  run/debugger details, approvals and operations. Single-flight polling pauses
+  offline/hidden, backs off on failures/waits, stops on terminal details and
+  refreshes after mutations while retaining form state. Metadata pulses avoid
+  periodically fetching payloads. Document incident diagnosis and metric meaning.
+- Migration/rollout: additive ephemeral worker presence table/indexes; migrate
+  before updated workers/API. Existing durable records remain authoritative;
+  old workers are reported as unobserved, not falsely healthy. No new dependencies.
+- Acceptance: real PostgreSQL counts across claim, retry/lease loss, waits,
+  completion and recovery; independent tenant/API permission checks and bounded
+  pagination; worker start/stop/staleness and secret-free low-cardinality export.
+  Fake-clock frontend checks cover non-overlap, offline/reconnect, backoff,
+  terminal stop and mutation refresh. Run affected worker/migration regressions,
+  frontend/type/lint/build and browser acceptance; push, await all CI and review.
+
+- Implementation: additive `f097_worker_presence`, best-effort expiring/stopped
+  worker presence, persisted claim-wait observations, tenant metadata summaries,
+  bounded filtered jobs, tenant Prometheus export and infrastructure-only fleet
+  CLI. Added metadata change tokens, operations UI, and permission-aware bounded
+  polling on runs/debugger/approvals/operations. Mutation refresh retains form
+  text and refreshes trace history/eligibility, including terminal effect changes.
+  [WORKER_OPERATIONS.md](WORKER_OPERATIONS.md) documents definitions, incident
+  diagnosis, isolation, rollout and visibility limits.
+- Backend validation: initial fixture import typo was corrected. Five focused
+  checks then reported 4 passed and one incorrect expected claim count; corrected
+  the expectation to include the terminal scheduling checkpoint. Broader worker,
+  delay, recovery, operations and migration validation ran **51 passed, 1 failed**
+  in 272.49s: the migration test needed to commit DDL before a second connection
+  read it. Corrected the fixture; **7 focused checks passed** in 43.23s.
+  Local review found a real bounded-pool risk from holding the authorization
+  connection while borrowing a second snapshot connection. The read route now
+  ends its authorization transaction and reuses the request session for a
+  repeatable-read snapshot. Final **8 operations/migration checks passed** in
+  53.56s, including a one-connection/no-overflow pool and foreign-worker/approval
+  isolation. Ruff passed. Logs: `.phase97-api-{focused,regression,final,accepted}.log`.
+- Frontend validation: **63 smoke/interaction checks passed** in 5671.182ms,
+  including single-flight/queued mutation refresh, bounded backoff, offline and
+  hidden-state pause, reconnect, terminal stop/manual retry, late-response disposal,
+  current organization checks, terminal effect refresh and retained reason text.
+  Final lint initially identified JSX inside a try/catch in the live wrapper;
+  moved rendering after the guarded request. Final lint, typecheck and production
+  build passed. Logs: `.phase97-web-ready-smoke.log`,
+  `.phase97-web-accepted-{lint,typecheck,build}.log`. Diff whitespace checks passed.
+- Browser acceptance: migrated only owned `phase93_ui` schema to f097. Operations
+  showed bounded job history and queued filtering. New deterministic run
+  `b360e7a2-d28c-474e-92ba-1c9ed3c78795` advanced from pending to running via one
+  real worker checkpoint; debugger/history/eligibility updated automatically and
+  the typed reason remained. UI cancellation immediately refreshed to cancelled
+  and stopped polling. UI recovery linked `0c11ba57-7f2c-4665-85f1-87f896e6c480`;
+  worker drain completed it and polling automatically stopped at completed.
+  Operations/CLI reconciled 19 retained claims, 3 new wait samples, 2 linked
+  recoveries and 1 completion in the current 15-minute window. These include prior
+  synthetic UI fixtures and are not benchmark claims. At 390×844, client and
+  scroll widths were both 375px; restored the normal viewport. Evidence:
+  `.phase97-ui-migration.log`, `.phase97-browser-{fixture,worker-one,worker-drain,
+  operations-final,fleet-metrics,completed}.log`. No paid providers or real effects.
+- Local review: checked tenant filters on every Core aggregate/job query, absence
+  of global HTTP overrides, stable low-cardinality exports, stopped worker fencing,
+  queue/attempt accounting, bounded pool use, polling disposal/backoff and mutation
+  refresh. No unresolved local findings. Scope exceeds the preferred 300–700 lines
+  because it spans schema, worker telemetry, scoped APIs, multiple live UI surfaces
+  and meaningful regression coverage. All changes belong to Phase 97. Commit,
+  push, full CI and post-push review remain required before completion.
 
 When a future phase starts, add a record here using these fields:
 
