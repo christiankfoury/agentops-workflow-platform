@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 97 — Worker Observability and Live Updates (in progress)**.
+Current implementation phase: **Phase 97 complete — completion-record CI pending before Phase 98**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–96 are complete; Phase 97 is in progress; Phases 98–105 remain planned.
+Phases 66–97 are complete; Phases 98–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -135,7 +135,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 94 | Complete | Revision-bound publication, immutable history/diffs, idempotent manual starts and masked trigger controls. |
 | 95 | Complete | Immutable graph debugger, paginated traces, bounded detail and historical compatibility; 850 API tests and all CI green. |
 | 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
-| 97 | In progress | Worker Observability and Live Updates |
+| 97 | Complete | Scoped worker metrics and bounded live updates; implementation `202adc1`, fix `f73d4a1`, all CI passed with 874 API tests. |
 | 98 | Planned — not started | Deterministic Throughput Benchmark |
 | 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
 | 100 | Planned — not started | Production Container Packaging |
@@ -2348,6 +2348,25 @@ This is a status index; implementation details live only in `docs/phases.md`.
   Ruff/lint/typecheck/build, Compose and both clean dependency audits. All three
   independent check-runs confirmed success. Fix push/review and completion gates
   are still outstanding.
+
+- Delivery: fix `f73d4a1ac5fbd1ed6a8a11a05f0defc0ef653084` pushed to `main`.
+  [Fix CI 35170222011](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35170222011)
+  passed all API, Web and Docker Compose jobs; all three independent commit
+  check-runs confirmed success. **874 API tests passed**, 1 warning, 590.02s;
+  all 65 frontend checks, fresh migrations, Ruff/lint/typecheck/build and both
+  clean dependency audits passed.
+- Follow-up review: verified optional pagination preserves existing callers,
+  applies tenant filtering before limits, bounds input/run lookup fanout, and
+  keeps single-flight polling and forced refresh intent across transitions.
+  Rechecked metadata-only metrics, worker expiry, terminal polling, permission
+  changes, retained form state and migration compatibility. No unresolved
+  blocking findings. Phase 97 is complete; Phase 98 may begin after this
+  completion record is pushed and all required CI checks pass.
+- Limitations: list search/counts describe the displayed page; offset pagination
+  can shift while new records arrive. Tenant worker presence shows only workers
+  associated with retained tenant jobs, and historical claims without the new
+  observation are excluded from queue-wait samples. Fleet metrics require trusted
+  infrastructure database access. No production deployment or throughput claim.
 
 When a future phase starts, add a record here using these fields:
 
