@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 99 — Crash and Concurrency Reliability Experiments (in progress)**.
+Current implementation phase: **Phase 99 — complete; completion-record CI pending**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,8 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–98 are complete; Phase 99 is in progress; Phases 100–105 remain planned.
+Phases 66–99 are complete; Phases 100–105 remain planned. Phase 100 starts after
+the Phase 99 completion-record CI passes.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -89,13 +90,13 @@ history. Existing product refinement can continue when separately requested.
 
 ## Next Phase
 
-### Phase 99: Crash and Concurrency Reliability Experiments
+### Phase 100: Production Container Packaging
 
-Status: In progress — authorized implementation run.
+Status: Planned — awaiting Phase 99 completion-record CI.
 
-Scope: reproducible worker, database, delivery, timeout and concurrency faults,
-with raw recovery and effect reconciliation evidence.
-See [the full phase entry](phases.md#phase-99-crash-and-concurrency-reliability-experiments) for
+Scope: production web/API/worker images, verified identity, bounded resources,
+readiness, migrations, graceful shutdown and authenticated local verification.
+See [the full phase entry](phases.md#phase-100-production-container-packaging) for
 dependencies, acceptance checks, and the shared delivery gate.
 
 ## Planned Platform Phases
@@ -137,7 +138,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
 | 97 | Complete | Scoped worker metrics and bounded live updates; implementation `202adc1`, fix `f73d4a1`, all CI passed with 874 API tests. |
 | 98 | Complete | 10,000 workflows, 33,333 jobs and 3,333 sink effects reconciled; implementation `450c8c4`, CI `35177537976` passed. |
-| 99 | In progress | Crash and Concurrency Reliability Experiments |
+| 99 | Complete | 45 fault experiments and 15 fix checks reconciled; implementation `8d45828`, fix `bfe6c73`, CI `35181619634` passed all 891 API tests. |
 | 100 | Planned — not started | Production Container Packaging |
 | 101 | Planned — not started | Kubernetes Deployment Manifests |
 | 102 | Planned — not started | Kubernetes Operations and Recovery Verification |
@@ -2553,6 +2554,24 @@ This is a status index; implementation details live only in `docs/phases.md`.
   `.phase99-fix-verification.log`. The subsequent descriptive scope correction
   preserves both manifests' raw archives and measured source hashes, and records
   the previous label/reason explicitly. Fix commit/push and passing CI remain due.
+
+- Fix **`bfe6c73c6ceadffde8aae5b9c10d4e32d8364754`** was pushed to `main`.
+  [CI 35181619634](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35181619634)
+  passed all three jobs: **891 API tests in 859.35s**, including the real Linux
+  database outage, Ruff, fresh migration and API audit; **65 web smoke tests**,
+  lint/typecheck/build and web audit; Compose configuration. Both audits found
+  no known vulnerabilities. The commit check-runs endpoint independently
+  confirmed every job completed successfully.
+- Post-fix review confirmed the fixture observes PostgreSQL's actual deadline,
+  respects valid leases and verifies expired ownership before reclamation.
+  The corrected scope label is explicit, with prior metadata retained and no
+  raw measurement changes. No unresolved blocking findings; no application
+  runtime, migration or UI changes were required by this phase.
+- Phase 99 is complete. Limits remain documented: controlled local effects,
+  development identity fixtures, small fault samples, explicit worker restart
+  after database loss, and stop-event rather than OS/container rollout testing.
+  Phase 100 is eligible after this completion record is committed, pushed and
+  all of its CI checks pass.
 
 When a future phase starts, add a record here using these fields:
 
