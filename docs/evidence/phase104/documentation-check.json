@@ -1,0 +1,9 @@
+{
+  "documents": 48,
+  "local_links": 444,
+  "phase_headings": 105,
+  "requirements_per_table": 14,
+  "errors": [],
+  "passed": true,
+  "scope": "Local inline Markdown links/anchors, fences, phase headings and requirement tables; external URLs and semantic claims require separate review"
+}

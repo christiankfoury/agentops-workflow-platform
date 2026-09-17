@@ -168,6 +168,9 @@ and requires fresh approvals instead of reopening a terminal run.
 
 The [implementation plan](WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md) owns R01–R14;
 [phase progress](docs/phase-progress.md) owns completion and CI evidence.
+For a five-minute product demonstration, use the [recording script](docs/DEMO_SCRIPT.md)
+and [reproducible local walkthrough](docs/demo-walkthrough.md), with synthetic
+model responses clearly separated from measured runtime experiments.
 [Deferred work](docs/deferred-phases.md) covers notifications, caching, advanced
 judging, additional connectors and hosted acceptance. No live-provider quality
 uplift, arbitrary uploaded code execution or production security certification

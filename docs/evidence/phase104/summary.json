@@ -1,0 +1,104 @@
+{
+  "observed_at": "2026-09-17T10:47:13.215935+00:00",
+  "base_commit": "4653f1b4f6bfa914333f95df2ae9372efc012401",
+  "passed": true,
+  "database": "phase104_demo_20260917",
+  "seeded_comparison_counts": {
+    "evaluation_cases": 32,
+    "uploaded_inputs": 33,
+    "workflow_runs": 65,
+    "evaluation_results": 65,
+    "agent_steps": 99
+  },
+  "live_fixture_executions": {
+    "review": "8462e2bf-0e0d-479c-b357-856bd5aa16a1",
+    "skip": "3ac2edcc-9ee5-482f-8e5e-7a13c3a68376",
+    "sales": "dd535060-be49-493c-8b73-d4dca2050c97"
+  },
+  "sales_run_id": "2731035c-ce65-4a7d-80b9-2e42fe2cdf95",
+  "generic_tool_attempts": [
+    "failed:tool_unavailable",
+    "completed"
+  ],
+  "observed_retry_gap_seconds": 5.134355,
+  "sales_approval_statuses": [
+    "superseded",
+    "approved"
+  ],
+  "human_edit_in_final_output": true,
+  "negative_seed_guards": [
+    "Manifest exists; use a new disposable database and manifest",
+    "Database already contains runs; use a fresh migrated database"
+  ],
+  "before_after_run_execution_counts": [
+    66,
+    3
+  ],
+  "spoken_words": 563,
+  "target_seconds": 300,
+  "timing_words_per_minute": 140,
+  "scene_timing": [
+    {
+      "scene": "1. Problem and product \u00e2\u20ac\u201d 0:00\u00e2\u20ac\u201c0:25",
+      "words": 55,
+      "window_seconds": 25
+    },
+    {
+      "scene": "2. Author and publish \u00e2\u20ac\u201d 0:25\u00e2\u20ac\u201c1:05",
+      "words": 67,
+      "window_seconds": 40
+    },
+    {
+      "scene": "3. Start, branch and approve \u00e2\u20ac\u201d 1:05\u00e2\u20ac\u201c1:45",
+      "words": 74,
+      "window_seconds": 40
+    },
+    {
+      "scene": "4. Retry and inspect \u00e2\u20ac\u201d 1:45\u00e2\u20ac\u201c2:20",
+      "words": 66,
+      "window_seconds": 35
+    },
+    {
+      "scene": "5. Permissions \u00e2\u20ac\u201d 2:20\u00e2\u20ac\u201c2:40",
+      "words": 44,
+      "window_seconds": 20
+    },
+    {
+      "scene": "6. Sales review, human edit and final report \u00e2\u20ac\u201d 2:40\u00e2\u20ac\u201c3:40",
+      "words": 87,
+      "window_seconds": 60
+    },
+    {
+      "scene": "7. Evaluation and improvement tradeoffs \u00e2\u20ac\u201d 3:40\u00e2\u20ac\u201c4:25",
+      "words": 93,
+      "window_seconds": 45
+    },
+    {
+      "scene": "8. Measured operations and close \u00e2\u20ac\u201d 4:25\u00e2\u20ac\u201c5:00",
+      "words": 77,
+      "window_seconds": 35
+    }
+  ],
+  "browser_checks": [
+    "Eight primitives and four-node draft visible; normalized defaults remove draft warning",
+    "Validate saved draft and Publish saved draft completed via UI",
+    "Both inputs accepted via UI; pinned version, review wait and skipped branch inspected",
+    "Generic approval submitted through documented API; attempts 1 and 2 inspected in debugger",
+    "Save Edits redirected to replacement approval; Approve completed via UI; final report contains exact edit",
+    "Both named comparison cases expanded; mixed outcome and correction action verified without provider execution",
+    "Evaluation, Costs, Account and Operations loaded; account says sign-in not configured"
+  ],
+  "raw_archive_sha256": "95b8a9057c8363818912636aa6732e1364fe0a7d6565fe34b6724435da106781",
+  "source_hashes": {
+    "apps/api/examples/demo_fixture.py": "f53ec687e17a5ea3c365f8a066b612a1b2d7df9b73803404ff1ec39623f03a7d",
+    "apps/api/tests/test_demo_walkthrough.py": "c5176b915ced9803b0ea69ddf79f4392abd433987ad30f225c708a903d86f4ba",
+    "docs/DEMO_SCRIPT.md": "c5dbb07d791df35e9a9eeee1a4107fd1f5883aee8a2f49d91e65de851da97324",
+    "docs/demo-walkthrough.md": "d0c1a308192ab1ee6272aa14c86bc6cd6e550407cda2cad75b9c6b0ecc2a278f"
+  },
+  "limitations": [
+    "Synthetic model responses and zero usage; assigned comparison values, no live model performance claim",
+    "Development identity in this walkthrough; authenticated/tenant evidence is from prior recorded checks",
+    "Recorded benchmark and Kubernetes results were reviewed, not rerun for this script",
+    "No video generated or recorded; narration timing is a word-count estimate"
+  ]
+}

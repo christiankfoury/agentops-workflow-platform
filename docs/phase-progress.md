@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 103 complete — final record CI pending**.
+Current implementation phase: **Phase 104 — reproducible platform demo script**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,7 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–103 are complete; Phases 104–105 remain planned.
+Phases 66–103 are complete; Phase 104 is active and Phase 105 remains planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -91,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 104: Platform Demo Video Script
 
-Status: Planned — eligible after Phase 103 final completion-record CI passes.
+Status: In progress — Phase 103 final completion-record CI passed.
 
 Scope: a reproducible, timed platform demo script with business examples and
 clearly labeled seeded, measured and unperformed evidence.
@@ -142,7 +142,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 101 | Complete | Authenticated kind deployment, migration, approval/PVC persistence and metrics; implementation `918db61`, CI `35195207152` passed 896 API tests. |
 | 102 | Complete | Local rollout, scaling, Pod loss/fencing, readiness, backup/restore and rollback; 21 runs/21 effects reconciled; implementation `3c30652`, CI `35200997403` passed 898 API tests. |
 | 103 | Complete | Implementation `242c611`, fix `39b8f4f`; CI `35205261374` and `35207650946` passed 898 API tests; documentation review resolved. |
-| 104 | Planned — not started | Platform Demo Video Script |
+| 104 | In progress | Reproducible timed script, local fixtures and browser walkthrough. |
 | 105 | Planned — not started | Final Workflow Platform Case Study |
 
 ## Per-Phase Execution Record
@@ -2920,6 +2920,61 @@ This is a status index; implementation details live only in `docs/phases.md`.
   implemented adapters and permission source. No blocking findings remain.
   **Phase 103 complete** after implementation and separate fix validation/push/
   review. This final record must pass CI before Phase 104 implementation begins.
+
+### Phase 104 — Platform demo video script
+
+- Phase 103 final record `4653f1b4f6bfa914333f95df2ae9372efc012401` was pushed;
+  [CI 35209139612](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35209139612)
+  passed all jobs. The repository was clean before this phase.
+- Inspected the phase, builder/publication/debugger, generic and business approval
+  APIs/UI, demo seeds, deterministic provider test fixtures, retry behavior,
+  permissions and recorded benchmark/Kubernetes results. Existing demo walkthrough
+  used an obsolete button label and did not cover the generic platform.
+- Plan: write a five-minute script and update reproducible setup/scene instructions.
+  Add a development-only example fixture in a fresh explicitly named loopback
+  database: assigned business comparisons, synthetic sales provider responses,
+  and a condition/approval/local HTTP-read graph with one deliberate retry.
+  Walk through publication, manual admission, generic API approval, attempts,
+  sales edit/reapproval/output and comparison screens against the actual app.
+- Acceptance: exact visible controls/routes, real retained transitions with
+  synthetic model responses labeled, correct timing/links/numbers, measured
+  reliability/deployment evidence separate from assigned evaluation values,
+  and tenant-permission claims tied to recorded authenticated checks. No video
+  generation, paid/provider calls, new production features, schema migration or
+  deployment. Existing databases, services and completed evidence stay intact.
+- Added the [five-minute script](DEMO_SCRIPT.md), replaced stale setup in the
+  [walkthrough](demo-walkthrough.md), and linked both from README/R14 evidence.
+  The optional `examples.demo_fixture` helper guards loopback development/demo
+  databases, uses three synthetic model response schemas without network fallback,
+  and exposes only a read-only loopback fixture. CI lint now covers examples.
+- Actual fresh database `phase104_demo_20260917` migrated to existing head and
+  seeded **32 cases, 65 historical runs/results, 99 AgentSteps**. A separate sales
+  run paused for real approval. Native API/web/fixture ports 8008/3109/8144 were
+  unused before startup; original resources and databases remain intact.
+- Browser rehearsal validated/published the draft, started both condition paths,
+  inspected a waiting generic gate, and followed the documented API decision.
+  The tool retained failed `tool_unavailable` and completed attempts with a
+  **5.134355s** gap. The false branch skipped approval/tool execution. Sales
+  **Save Edits** created a replacement approval; **Approve** released the writer,
+  and the final report contains the exact edited recommendation. All three
+  executions completed. Comparison, evaluation, costs, account and operations
+  scenes were inspected; no correction/provider action was invoked.
+- Precommit rehearsal corrections: normalize graph defaults before saving so the
+  builder does not show a spurious missing-role warning; use the actual **Publish
+  saved draft** label; explain that one worker drain may complete both retry
+  attempts. The owned draft was normalized before publication; no old version
+  or prior acceptance dataset was rewritten.
+- Validation: `uv run --directory apps/api pytest tests/test_demo_walkthrough.py
+  -q` passed **5 tests in 2.19s**; Ruff passed examples and the focused test. Live
+  negative seed checks rejected existing manifests/runs with counts unchanged
+  at 66 business runs and three executions. All eight narration windows fit
+  140 words/minute: **563 spoken words**, approximately 241 seconds plus 59
+  seconds of holds. This is an editorial timing estimate, not a recorded video.
+- [Rehearsal evidence](evidence/phase104/summary.json) links source hashes and
+  compressed retained API records. No application/schema feature, live provider,
+  hosted deployment or new reliability experiment is claimed. The change includes
+  setup, safe fixture code/tests and reviewable evidence because the script must
+  be reproducible against actual UI. Implementation push/CI/review remain pending.
 
 When a future phase starts, add a record here using these fields:
 
