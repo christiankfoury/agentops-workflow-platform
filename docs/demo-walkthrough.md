@@ -14,7 +14,9 @@ current web build. Follow [native setup](DEPLOYMENT.md) first. Create a **new**
 database named `phase104_demo_<unique_suffix>` using your local database tools.
 Do not reuse a business database, drop an existing database, or stop another
 project to free a port. The helper refuses nonlocal databases, identity-enabled
-mode, non-development mode, existing runs and an existing manifest.
+mode, non-development mode, URL query parameters, existing runs and an existing
+manifest. Connection query options are rejected because they can override the
+host/database named in the URL; use the simple explicit connection form below.
 
 From the repository root in PowerShell, configure each API/worker terminal:
 

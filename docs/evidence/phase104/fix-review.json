@@ -1,0 +1,21 @@
+{
+  "reviewed_at": "2026-09-17T10:53:53.848376+00:00",
+  "implementation_commit": "677c6bbbbc22cec810a5bae51fe05389feb24f95",
+  "finding": "SQLAlchemy connection query arguments can override parsed URL host/dbname; reject query parameters before database access",
+  "validation": {
+    "focused_tests": 7,
+    "seconds": 5.35,
+    "ruff": "passed",
+    "normal_demo_url_guard": "passed without mutation",
+    "documentation_documents": 48,
+    "documentation_links": 444
+  },
+  "original_rehearsal_unchanged": true,
+  "original_raw_archive_sha256": "95b8a9057c8363818912636aa6732e1364fe0a7d6565fe34b6724435da106781",
+  "source_hashes": {
+    "apps/api/examples/demo_fixture.py": "ab4b03050ccc04020b4a562bb4bbaef235237ee9b179a963e7917832cab26850",
+    "apps/api/tests/test_demo_walkthrough.py": "1ee6876c4e32fd4ff8ec58e53d8812a95f842908b368c05f0301298076442309",
+    "docs/demo-walkthrough.md": "2ca2c2b898ce0db5cca4b35865b86876588cbf6428fbbef952b04478b2a5b72b"
+  },
+  "limits": "This fix does not rerun or relabel the original browser/model fixture. Push/CI/follow-up review are recorded in phase progress."
+}

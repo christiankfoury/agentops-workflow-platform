@@ -127,8 +127,12 @@ def guard():
         settings.environment != "development" or settings.identity_enabled
         or engine.url.host not in {"localhost", "127.0.0.1"}
         or not (engine.url.database or "").startswith("phase104_demo_")
+        or bool(engine.url.query)
     ):
-        raise ValueError("Requires development, local identity and a loopback phase104_demo_* DB")
+        raise ValueError(
+            "Requires development, local identity and a loopback phase104_demo_* DB; "
+            "URL query parameters are not allowed"
+        )
 
 
 def drain(manifest):

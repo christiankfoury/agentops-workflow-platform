@@ -2975,6 +2975,22 @@ This is a status index; implementation details live only in `docs/phases.md`.
   hosted deployment or new reliability experiment is claimed. The change includes
   setup, safe fixture code/tests and reviewable evidence because the script must
   be reproducible against actual UI. Implementation push/CI/review remain pending.
+- Implementation `677c6bbbbc22cec810a5bae51fe05389feb24f95` was pushed to main;
+  [CI 35212338200](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35212338200)
+  is being allowed to finish before any fix push. Post-push archive/source/timing
+  checks matched all four recorded hashes, three completed execution IDs and
+  all eight scene windows.
+- Post-push review found that SQLAlchemy URL query options can override the host
+  or database inspected by the example guard. A no-connection dialect check
+  demonstrated both overrides. The separate fix rejects all URL query options,
+  documents the simple connection form and adds regression cases for host and
+  database overrides. This changes only the optional fixture guard, not runtime
+  execution or existing records. Original rehearsal evidence remains unchanged.
+- Fix validation: **7 focused tests passed in 5.35s**; Ruff passed; documentation
+  validation passed 48 documents/444 links. The implementation and fix must both
+  finish CI and review before this phase is marked complete.
+  [Separate fix evidence](evidence/phase104/fix-review.json) records the revised
+  source hashes and confirms that the normal simple demo URL remains accepted.
 
 When a future phase starts, add a record here using these fields:
 

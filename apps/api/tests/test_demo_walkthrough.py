@@ -4,6 +4,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy.engine import make_url
 
 from examples import demo_fixture as demo
 
@@ -24,9 +25,20 @@ def test_fixture_refuses_non_demo_targets_before_database_access(
     monkeypatch.setattr(demo.settings, "identity_enabled", identity)
     # No connection method exists: rejection must happen before any DB access.
     monkeypatch.setattr(demo, "engine", SimpleNamespace(
-        url=SimpleNamespace(host=host, database=database),
+        url=SimpleNamespace(host=host, database=database, query={}),
     ))
     with pytest.raises(ValueError, match="Requires development"):
+        demo.guard()
+
+
+@pytest.mark.parametrize("query", ["host=remote.invalid", "dbname=agentops"])
+def test_fixture_refuses_query_overrides_of_approved_target(monkeypatch, query):
+    monkeypatch.setattr(demo.settings, "environment", "development")
+    monkeypatch.setattr(demo.settings, "identity_enabled", False)
+    target = make_url("postgresql://fixture@127.0.0.1/phase104_demo_safe?" + query)
+    assert target.host == "127.0.0.1" and target.database == "phase104_demo_safe"
+    monkeypatch.setattr(demo, "engine", SimpleNamespace(url=target))
+    with pytest.raises(ValueError, match="URL query parameters"):
         demo.guard()
 
 
