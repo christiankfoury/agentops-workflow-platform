@@ -56,6 +56,7 @@ def fixture(
     govern=True,
     side_effecting=None,
     start=True,
+    timeout_seconds=30,
 ):
     raw = policy(
         server,
@@ -96,6 +97,7 @@ def fixture(
                     output_schema=OUTPUT,
                     credential_ref=credential_id,
                     side_effecting=write if side_effecting is None else side_effecting,
+                    timeout_seconds=timeout_seconds,
                     options={
                         "destination": "fixture",
                         "method": "POST" if write else "GET",

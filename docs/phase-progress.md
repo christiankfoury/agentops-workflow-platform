@@ -1,6 +1,6 @@
 # Phase Progress
 
-Current implementation phase: **Phase 98 — complete; completion-record CI pending**.
+Current implementation phase: **Phase 99 — Crash and Concurrency Reliability Experiments (in progress)**.
 
 Completed autonomous target: Phase 46 through Phase 65.
 
@@ -11,8 +11,7 @@ phase-scoped commits and pushes to main and completed CI required before advance
 The documentation-only revision
 of 2026-09-14 defines Phases 66–105 in [phases.md](phases.md), based on the
 [consolidated platform plan](../WORKFLOW_PLATFORM_IMPLEMENTATION_PLAN.md).
-Phases 66–98 are complete; Phases 99–105 remain planned. Phase 99 starts after
-the Phase 98 completion-record CI passes.
+Phases 66–98 are complete; Phase 99 is in progress; Phases 100–105 remain planned.
 
 The former Phase 66 Demo Video Script and Phase 67 Final Recruiter Case Study
 are rescheduled as Phases 104 and 105. Completed Phases 1–65 retain their IDs and
@@ -92,7 +91,7 @@ history. Existing product refinement can continue when separately requested.
 
 ### Phase 99: Crash and Concurrency Reliability Experiments
 
-Status: Planned — awaiting Phase 98 completion-record CI.
+Status: In progress — authorized implementation run.
 
 Scope: reproducible worker, database, delivery, timeout and concurrency faults,
 with raw recovery and effect reconciliation evidence.
@@ -138,7 +137,7 @@ This is a status index; implementation details live only in `docs/phases.md`.
 | 96 | Complete | Safe linked recovery, fresh approvals, preserved effects/budgets, scoped controls; implementation `9524627`, CI `35165725922` passed. |
 | 97 | Complete | Scoped worker metrics and bounded live updates; implementation `202adc1`, fix `f73d4a1`, all CI passed with 874 API tests. |
 | 98 | Complete | 10,000 workflows, 33,333 jobs and 3,333 sink effects reconciled; implementation `450c8c4`, CI `35177537976` passed. |
-| 99 | Planned — not started | Crash and Concurrency Reliability Experiments |
+| 99 | In progress | Crash and Concurrency Reliability Experiments |
 | 100 | Planned — not started | Production Container Packaging |
 | 101 | Planned — not started | Kubernetes Deployment Manifests |
 | 102 | Planned — not started | Kubernetes Operations and Recovery Verification |
@@ -2460,6 +2459,77 @@ This is a status index; implementation details live only in `docs/phases.md`.
   sequential concurrency stages, immediate synthetic approvals, and no real
   provider, HTTP/OIDC ingress or hosted capacity claim. Phase 99 becomes eligible
   after this completion record is committed, pushed and its CI passes.
+
+- Completion record **`ee13c8cc0c0ff7201b76623bfdfaa2829edcd2e7`** was pushed.
+  [CI 35178145081](https://github.com/christiankfoury/agentops-workflow-platform/actions/runs/35178145081)
+  passed all three jobs: **876 API tests in 439.16s**, 65 web smoke tests,
+  migration/lint/typecheck/build/Compose checks and both dependency audits.
+  All commit check runs independently confirmed success. Phase 99 is eligible.
+
+### Phase 99 — Crash and Concurrency Reliability Experiments
+
+- Plan (2026-09-17 UTC, authorized Phases 66–105): inspected queue admissions,
+  leases/fencing, worker shutdown, effect receipts, approval/cancel transitions,
+  parallel joins, scheduler arbitration and linked recovery. Reuse existing
+  deterministic graph and governed HTTP fixtures, preserving runtime behavior.
+- Add explicit process-kill boundaries, expired ownership/duplicate delivery,
+  timeout after a sink write with and without provider idempotency, recorded
+  reconciliation, approval/cancel and scheduler races, dead-letter recovery,
+  graceful overlapping worker replacement and a real PostgreSQL service outage.
+  The outage owns a newly created, labeled Docker container; existing preview
+  and benchmark databases are not outage targets.
+- Capture admitted IDs, timestamps, persisted jobs/attempts/events/effects and
+  sink observations before/after faults. Reconcile every accepted execution and
+  queued-job admission against terminal history, including explicitly expected
+  failures and unknown remote outcomes. Measure recovery intervals and actual
+  duplicate prevention. Publish hashed raw evidence and a failure analysis.
+- Acceptance: focused real-PostgreSQL fault tests, three full local repetitions,
+  independent evidence verification, Ruff, relevant adjacent regressions if a
+  runtime defect needs fixing, phase-scoped commit/push, all CI and post-push
+  review. No migration, UI or paid/external provider work is planned. Cross-platform
+  graceful worker replacement exercises the worker stop event; operating-system
+  SIGTERM/container rollout validation remains in Phases 100–102.
+
+- Implemented 15 real fault/race scenarios, a cross-platform worker subprocess
+  fixture, controlled timeout-after-write sink, exclusively owned outage container,
+  independent job/effect reconciliation and a repeated-run/offline-verification
+  command. Existing HTTP test fixtures gained only an optional timeout argument,
+  preserving their prior default. No application runtime, migration or UI changes.
+  Method and commands: [RELIABILITY_EXPERIMENTS.md](RELIABILITY_EXPERIMENTS.md).
+- Initial focused run: **14 passed**, with the outage case failing on a fixture
+  model lookup before its fault. Corrected that lookup and a metadata keyword
+  collision. A subsequent outage reached service restart but failed host
+  readiness; the fixture now specifies a stable loopback port across restart.
+  The corrected real outage test passed **1/1 in 24.07s**, with its container
+  removed afterward. These were harness findings, not application runtime fixes.
+  Logs: `.phase99-focused.log`, `.phase99-outage.log`,
+  `.phase99-outage-recheck.log`, `.phase99-outage-stable-endpoint.log`.
+- Ruff passed. The full command is running three repetitions with fixed measured
+  Python sources under `docs/evidence/phase99-full`; no full-run outcome is
+  claimed yet. All CI, post-push review and delivery records remain outstanding.
+
+- Full experiment completed **2026-09-17 03:51:05–03:59:27 UTC**, exit 0:
+  **45/45 scenarios passed**, no skips, in three repetitions of 15 cases
+  (164.92s / 163.92s / 166.87s). Reconciliation accounted for **72 accepted
+  workflows**, **279 terminal jobs**, **234 attempts**, and **12 intended effects**.
+  There were **54 completed, 9 expected failed and 9 expected cancelled runs**;
+  **3 deliberately unresolved outcomes remained unknown**. No lost jobs/effects
+  or duplicate effects; 18 sink requests included six prevented duplicate writes.
+- The separate offline check recomputed all results, matched **220 runtime/
+  migration/lock hashes plus 96 test-source hashes**, and confirmed each timeout
+  case's actual adapter/operator/unknown outcome. Final Ruff passed; all owned
+  outage containers were removed. Logs: `.phase99-full.log`,
+  `.phase99-offline-verification.log`. [Measured report](RELIABILITY_RESULTS.md)
+  links the approximately 330 KB manifest, 45 hashed raw archives and per-run
+  pytest/JUnit evidence. No unrelated frontend checks were required locally.
+- Local review checked subprocess ownership/cleanup, isolated outage scope,
+  accepted-ID and queued-event reconciliation, explicit expected failures,
+  immutable source history, stable effect identities, unresolved-outcome policy,
+  bounded race fixtures and honest timer/auth/deployment limits. No blocking
+  runtime findings. The phase exceeds the preferred line count because it adds
+  independent process/HTTP/database fixtures, 15 scenarios, archive verification
+  and reproducible analysis rather than only test-count claims. Phase commit,
+  push, all CI and post-push review remain required before completion.
 
 When a future phase starts, add a record here using these fields:
 
