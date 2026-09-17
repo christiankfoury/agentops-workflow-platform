@@ -55,9 +55,9 @@ must have a binding; a nullable binding cannot feed a non-null destination.
 
 Prompt/tool IDs and contract versions are schema references. Phase 71 publication
 checks prompt ownership/existence and retains source links and content snapshots.
-Tool resolution and handler availability are enforced at later registry/execution
-boundaries. Tool adapter recognition initially includes HTTP;
-additional adapter contracts arrive with their integration phases.
+Tool resolution and handler availability are enforced at registry/execution
+boundaries. HTTP, PostgreSQL and GitHub adapters are implemented; publication
+pins their tenant-owned contracts and policies. See [tool contracts](TOOL_CONTRACTS.md).
 
 ## Validation evidence
 

@@ -87,8 +87,9 @@ advancement uses authorized agent or approval actions.
 Service principals require both an allowed role and an explicit action scope:
 `read`, `export`, `workflow.start`, `workflow.control`, or `input.write`, as applicable.
 Scopes never grant roles; adding `approval.decide` cannot give an operator service
-approval authority. `credentials.manage` and `workflow.publish` are reserved admin
-permissions for subsequent phases. Services cannot hold admin/reviewer roles.
+approval authority. `credentials.manage` and `workflow.publish` are admin permissions
+for tool credential management and graph publication. Services cannot hold
+admin/reviewer roles.
 
 Accepted starts, approval decisions/edits, prompt changes, settings, cancellation,
 exports and membership changes append tenant audit events in their owning database
